@@ -106,13 +106,30 @@ npx wrangler secret put BOT_TOKEN        # новый токен от BotFather
 npx wrangler secret put WEBHOOK_SECRET   # любая длинная случайная строка
 ```
 
-Привязать вебхук:
+Привязать вебхук и кнопку Mini App:
 
 ```bash
-curl -X POST "https://api.telegram.org/bot<ТОКЕН>/setWebhook" \
-  -H "content-type: application/json" \
-  -d '{"url":"https://loto-analytics-bot.<ВАШ-СУБДОМЕН>.workers.dev","secret_token":"<WEBHOOK_SECRET>"}'
+export BOT_TOKEN="токен от BotFather"
+python bot/setup_telegram.py status                 # что настроено сейчас
+python bot/setup_telegram.py commands               # список команд
+python bot/setup_telegram.py menu                   # кнопка -> Mini App
+python bot/setup_telegram.py webhook https://ваш-воркер.workers.dev СЕКРЕТ
 ```
+
+`menu` сначала проверяет, что адрес реально отвечает, и отказывается ставить
+кнопку на неработающий Pages — иначе бот выглядел бы сломанным.
+
+### Проверить без деплоя
+
+Пока облака нет, бот можно поднять прямо на своей машине — ни вебхука, ни
+HTTPS, ни домена не нужно:
+
+```bash
+export BOT_TOKEN="токен от BotFather"
+python bot/local_bot.py
+```
+
+Работает, пока открыто окно. Для продакшна нужен воркер.
 
 ### 5. Автообновление
 
