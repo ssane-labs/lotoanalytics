@@ -1,9 +1,10 @@
 /**
  * Mini App: подбор непопулярных комбинаций, разбор своей комбинации,
- * статистика тиражей и проверка предсказуемости.
+ * статистика тиражей, проверка предсказуемости и подписка.
  *
- * Всё считается в браузере: на GitHub Pages нет бэкенда, а данные приезжают
- * статическими JSON из docs/data/, которые собирает GitHub Actions.
+ * Вся математика считается в браузере: на GitHub Pages нет бэкенда, данные
+ * приезжают статическими JSON из docs/data/. Воркер нужен только для оплаты —
+ * без него приложение работает полностью, просто без платных функций.
  */
 
 import {
@@ -14,6 +15,7 @@ import {
   breakevenJackpot,
   unpopularityPercentile,
 } from './model.js';
+import { CONFIG } from './config.js';
 
 const GAME = '6x45';
 const DEFAULT_JACKPOT = 300_000_000;
@@ -27,11 +29,15 @@ const state = {
   selected: new Set(),
   jackpot: DEFAULT_JACKPOT,
   genCount: 1,
+  /** Подписка: null пока не проверяли, иначе ответ воркера. */
+  entitlement: null,
+  usedToday: 0,
 };
 
 // --------------------------------------------------------------- утилиты
 
 const $ = (sel) => document.querySelector(sel);
+
 const el = (tag, cls, text) => {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -39,31 +45,43 @@ const el = (tag, cls, text) => {
   return node;
 };
 
+/** Иконка из спрайта в index.html. */
+function icon(name, size = 16) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.5');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', `#i-${name}`);
+  svg.append(use);
+  return svg;
+}
+
 const nf = new Intl.NumberFormat('ru-RU');
-/** Дробное число с запятой — как принято в русской типографике. */
 const fmtDec = (n, digits = 2) => n.toFixed(digits).replace('.', ',');
 const fmtInt = (n) => nf.format(Math.round(n));
 const fmtMoney = (n) => `${nf.format(Math.round(n))} ₽`;
+const fmtOdds = (total) => `1 к ${nf.format(total)}`;
 
 function fmtBig(n) {
-  if (n >= 1e9) return `${fmtDec(n / 1e9, 1)} млрд ₽`;
-  if (n >= 1e6) return `${(n / 1e6).toFixed(0)} млн ₽`;
-  return fmtMoney(n);
+  if (n >= 1e9) return `${fmtDec(n / 1e9, 1)} млрд`;
+  if (n >= 1e6) return `${Math.round(n / 1e6)} млн`;
+  return fmtInt(n);
 }
-
-/** Читаемая запись «1 к 8 145 060». */
-const fmtOdds = (total) => `1 к ${nf.format(total)}`;
 
 function haptic(kind = 'light') {
   try {
     tg?.HapticFeedback?.impactOccurred?.(kind);
-  } catch {
-    /* вне Telegram вибрации нет — это нормально */
-  }
+  } catch { /* вне Telegram вибрации нет */ }
 }
 
 async function loadJSON(name, { optional = false } = {}) {
-  // cache-busting по дате: данные обновляются раз в сутки, но Pages кэширует.
   const stamp = new Date().toISOString().slice(0, 10);
   try {
     const res = await fetch(`data/${name}?v=${stamp}`);
@@ -75,6 +93,140 @@ async function loadJSON(name, { optional = false } = {}) {
   }
 }
 
+// ---------------------------------------------------- строительные блоки
+
+function section(eyebrow, { accent = false } = {}) {
+  const node = el('div', 'section');
+  if (eyebrow) node.append(el('span', `eyebrow${accent ? ' eyebrow--accent' : ''}`, eyebrow));
+  return node;
+}
+
+/** Сетка «подпись / значение» — основной способ показа данных в этом языке. */
+function specGrid(items) {
+  const grid = el('div', 'spec');
+  items.forEach(({ k, v, tone }) => {
+    const cell = el('div', 'spec__cell');
+    cell.append(el('span', 'spec__k', k));
+    cell.append(el('span', `spec__v${tone ? ` is-${tone}` : ''}`, v));
+    grid.append(cell);
+  });
+  return grid;
+}
+
+function rowsList(items) {
+  const dl = el('dl', 'rows');
+  items.forEach(({ k, v, tone }) => {
+    const row = el('div');
+    row.append(el('dt', null, k));
+    row.append(el('dd', tone ? `is-${tone}` : null, v));
+    dl.append(row);
+  });
+  return dl;
+}
+
+function ballsNode(combo, { accent = false } = {}) {
+  const wrap = el('div', 'balls');
+  combo.forEach((n, i) => {
+    const b = el('div', `ball${accent ? ' ball--accent' : ''}`, String(n));
+    b.style.animationDelay = `${i * 45}ms`;
+    wrap.append(b);
+  });
+  return wrap;
+}
+
+function meterNode(percentile) {
+  const wrap = el('div', 'meter');
+  const track = el('div', 'meter__track');
+  const fill = el('div', 'meter__fill');
+  const pct = Math.round(percentile * 100);
+  fill.style.width = `${Math.max(pct, 1)}%`;
+  track.append(fill);
+
+  const label = el('div', 'meter__label');
+  const right = el('span');
+  right.append(el('b', null, String(pct)), document.createTextNode(' / 100'));
+  label.append(el('span', null, 'Незаметность'), right);
+  wrap.append(track, label);
+  return wrap;
+}
+
+/** Раскрытие «из чего сложилась оценка» — только сработавшие факторы. */
+function whyNode(breakdown) {
+  const details = el('details', 'why');
+  const summary = el('summary');
+  summary.append(document.createTextNode('Из чего сложилась оценка'));
+  const chev = icon('chevron', 12);
+  chev.classList.add('chev');
+  summary.append(chev);
+  details.append(summary);
+
+  const entries = Object.entries(breakdown)
+    .filter(([, v]) => Math.abs(v - 1) > 0.01)
+    .sort((a, b) => b[1] - a[1]);
+
+  if (!entries.length) {
+    details.append(el('p', 'muted', 'Ни один шаблон не сработал — комбинация ничем не выделяется.'));
+    return details;
+  }
+  details.append(rowsList(entries.map(([key, value]) => {
+    const worse = value > 1;
+    return {
+      k: FACTOR_LABELS[key] || key,
+      v: `${worse ? '×' : '÷'}${fmtDec(worse ? value : 1 / value)}`,
+      tone: worse ? 'accent' : 'good',
+    };
+  })));
+  details.append(el('p', 'muted',
+    '× — так выбирают чаще, это против нас. ÷ — так выбирают реже.'));
+  return details;
+}
+
+/** Полный разбор одной комбинации. */
+function analysisSection(combo, breakdown, { title } = {}) {
+  const node = section(title || null);
+  node.append(ballsNode(combo, { accent: true }));
+  node.append(meterNode(unpopularityPercentile(state.model, combo, 3000)));
+
+  const ev = evaluateEV(state.model, combo, state.jackpot);
+  const rivals = ev.expectedCoWinners;
+
+  node.append(specGrid([
+    {
+      k: 'Соперников',
+      v: rivals < 0.01 ? '< 0,01' : fmtDec(rivals),
+      tone: rivals < 0.5 ? 'good' : 'accent',
+    },
+    {
+      k: 'Ваша доля',
+      v: `${Math.round(ev.shareFactor * 100)}%`,
+      tone: ev.shareFactor > 0.8 ? 'good' : ev.shareFactor < 0.4 ? 'accent' : null,
+    },
+    {
+      k: 'К средней',
+      v: `×${fmtDec(ev.payoutAdvantage)}`,
+      tone: ev.payoutAdvantage >= 1 ? 'good' : 'accent',
+    },
+    { k: 'Выплата', v: fmtMoney(ev.evTotal + state.model.game.ticket_price_rub), tone: 'dim' },
+  ]));
+
+  let cls = 'note note--good';
+  let text = 'Такую комбинацию почти наверняка не поставил больше никто — джекпот делить не придётся.';
+  if (ev.shareFactor < 0.4) {
+    cls = 'note';
+    text = `Очень популярный шаблон. При выигрыше вы получите примерно ${Math.round(ev.shareFactor * 100)}% джекпота — остальное уйдёт тем, кто выбрал то же самое.`;
+  } else if (ev.shareFactor < 0.85) {
+    cls = 'note';
+    text = 'Комбинация умеренно популярна. Есть шанс поделить джекпот с кем-то ещё.';
+  }
+  const note = el('div', cls);
+  note.style.marginTop = '18px';
+  note.append(el('p', 'muted', text));
+  node.append(note);
+
+  node.append(whyNode(breakdown));
+  return node;
+}
+
 // ------------------------------------------------------------ навигация
 
 function initTabs() {
@@ -84,6 +236,7 @@ function initTabs() {
       const target = tab.dataset.view;
       tabs.forEach((t) => t.classList.toggle('is-active', t === tab));
       document.querySelectorAll('.view').forEach((view) => {
+        if (view.id === 'banners') return;
         view.hidden = view.id !== `view-${target}`;
       });
       window.scrollTo({ top: 0 });
@@ -92,112 +245,116 @@ function initTabs() {
   });
 }
 
-// ------------------------------------------------------- общие фрагменты
+// -------------------------------------------------------------- подписка
 
 /**
- * Шкала непопулярности. Показывает, какую долю случайных комбинаций наша
- * комбинация обходит по «незаметности» для других игроков.
+ * Спрашиваем воркер, оплачено ли у этого пользователя. Подпись initData
+ * проверяется на сервере — здесь ей верить нельзя, клиент можно подделать.
  */
-function gaugeNode(percentile) {
-  const wrap = el('div', 'gauge');
-  const track = el('div', 'gauge__track');
-  const fill = el('div', 'gauge__fill');
-  const pct = Math.round(percentile * 100);
-  fill.style.width = `${Math.max(pct, 2)}%`;
-  if (pct < 40) fill.classList.add('is-bad');
-  else if (pct < 70) fill.classList.add('is-mid');
-  track.append(fill);
-
-  const label = el('div', 'gauge__label');
-  const score = el('span');
-  score.append(el('b', null, String(pct)), document.createTextNode(' / 100'));
-  label.append(el('span', null, 'Незаметность'), score);
-  wrap.append(track, label);
-  return wrap;
-}
-
-function kvNode(key, value, tone) {
-  const row = el('div', 'kv');
-  row.append(el('span', 'kv__k', key));
-  const v = el('span', 'kv__v', value);
-  if (tone) v.classList.add(tone === 'good' ? 'is-good' : 'is-bad');
-  row.append(v);
-  return row;
-}
-
-function ballsNode(combo, soft = false) {
-  const wrap = el('div', 'ticket__nums');
-  combo.forEach((n) => wrap.append(el('span', soft ? 'ball ball--soft' : 'ball', String(n))));
-  return wrap;
-}
-
-/**
- * Раскрытие «почему такая оценка»: показываем только факторы, которые реально
- * сдвинули вес. Множитель > 1 означает «так делают многие» — это против нас.
- */
-function whyNode(breakdown) {
-  const details = el('details', 'why');
-  details.append(el('summary', null, 'Из чего сложилась оценка'));
-  const entries = Object.entries(breakdown)
-    .filter(([, v]) => Math.abs(v - 1) > 0.01)
-    .sort((a, b) => b[1] - a[1]);
-
-  if (!entries.length) {
-    details.append(el('p', 'muted', 'Ни один шаблон не сработал — комбинация ничем не выделяется.'));
-    return details;
+async function loadEntitlement() {
+  if (!CONFIG.WORKER_URL || !tg?.initData) return null;
+  try {
+    const res = await fetch(`${CONFIG.WORKER_URL}/api/entitlement`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: tg.initData }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
-  entries.forEach(([key, value]) => {
-    const worse = value > 1;
-    details.append(
-      kvNode(
-        FACTOR_LABELS[key] || key,
-        `${worse ? '×' : '÷'}${fmtDec(worse ? value : 1 / value)}`,
-        worse ? 'bad' : 'good',
-      ),
-    );
-  });
-  details.append(
-    el('p', 'muted', '× — так выбирают чаще (плохо для нас). ÷ — так выбирают реже (хорошо).'),
-  );
-  return details;
 }
 
-/** Карточка с полным разбором одной комбинации. */
-function analysisCard(combo, breakdown, { title, percentile } = {}) {
-  const card = el('div', 'ticket');
-  if (title) card.append(el('h3', null, title));
-  card.append(ballsNode(combo));
+async function buyPlan(planKey, button) {
+  if (!CONFIG.WORKER_URL || !tg?.initData) return;
+  button.disabled = true;
+  try {
+    const res = await fetch(`${CONFIG.WORKER_URL}/api/invoice`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: tg.initData, plan: planKey }),
+    });
+    const data = await res.json();
+    if (!data.link) throw new Error(data.error || 'нет ссылки');
 
-  const pct = percentile ?? unpopularityPercentile(state.model, combo, 3000);
-  card.append(gaugeNode(pct));
-
-  const ev = evaluateEV(state.model, combo, state.jackpot);
-  const rivals = ev.expectedCoWinners;
-
-  card.append(
-    kvNode('Ожидаемых совладельцев', rivals < 0.01 ? '< 0,01' : fmtDec(rivals)),
-    kvNode(
-      'Ваша доля джекпота при выигрыше',
-      `${Math.round(ev.shareFactor * 100)}%`,
-      ev.shareFactor > 0.8 ? 'good' : ev.shareFactor < 0.4 ? 'bad' : null,
-    ),
-    kvNode('Против средней комбинации', `×${fmtDec(ev.payoutAdvantage)}`,
-      ev.payoutAdvantage >= 1 ? 'good' : 'bad'),
-    kvNode('Ожидаемая выплата с билета', fmtMoney(ev.evTotal + state.model.game.ticket_price_rub)),
-  );
-
-  let tone = 'good';
-  let text = 'Такую комбинацию почти наверняка не поставил больше никто — джекпот делить не придётся.';
-  if (ev.shareFactor < 0.4) {
-    tone = 'bad';
-    text = `Очень популярный шаблон. При выигрыше вы получите примерно ${Math.round(ev.shareFactor * 100)}% джекпота — остальное уйдёт тем, кто выбрал то же самое.`;
-  } else if (ev.shareFactor < 0.85) {
-    tone = 'warn';
-    text = 'Комбинация умеренно популярна. Есть шанс поделить джекпот с кем-то ещё.';
+    // Оплата открывается внутри клиента Telegram: платёжные данные
+    // пользователя до нас не доходят вообще.
+    tg.openInvoice(data.link, async (status) => {
+      if (status === 'paid') {
+        haptic('medium');
+        state.entitlement = await loadEntitlement();
+        renderSupport();
+      }
+      button.disabled = false;
+    });
+  } catch (err) {
+    button.disabled = false;
+    const box = el('p', 'error', `Не удалось открыть оплату: ${err.message}`);
+    button.after(box);
   }
-  card.append(el('div', `verdict verdict--${tone}`, text));
-  card.append(whyNode(breakdown));
-  return card;
+}
+
+const isSubscribed = () => Boolean(state.entitlement?.active);
+
+/** Блок «поддержать и подписаться» на вкладке «Проверка». */
+function renderSupport() {
+  const host = $('#support-section');
+  host.replaceChildren();
+
+  const ent = state.entitlement;
+
+  if (isSubscribed()) {
+    host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
+    const note = el('div', 'note note--good');
+    const p = el('p');
+    p.append(icon('check', 14), document.createTextNode(` Активна до ${ent.until_text}.`));
+    note.append(p);
+    note.append(el('p', 'muted',
+      'Напоминаем то, за что вы НЕ платили: шанс выиграть не изменился и ' +
+      'измениться не может. Подписка влияет на размер выплаты, а не на вероятность.'));
+    host.append(note);
+  } else if (CONFIG.WORKER_URL && ent?.plans?.length) {
+    host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
+    host.append(el('h3', null, 'Снять ограничение'));
+    host.append(el('p', 'muted',
+      `Бесплатно — ${CONFIG.FREE_DAILY_LIMIT} комбинация в день. ` +
+      'По подписке — пакеты билетов с непересекающимися числами и ' +
+      'неограниченный подбор. Оплата звёздами внутри Telegram.'));
+
+    const plans = el('div', 'plans');
+    ent.plans.forEach((plan) => {
+      const btn = el('button', 'plan');
+      btn.type = 'button';
+      const body = el('div', 'plan__body');
+      body.append(el('span', 'plan__title', plan.title));
+      body.append(el('span', 'plan__meta', `${plan.days} дней`));
+      const price = el('span', 'plan__price');
+      price.append(document.createTextNode(String(plan.stars)), icon('star', 14));
+      btn.append(body, price);
+      btn.addEventListener('click', () => buyPlan(plan.key, btn));
+      plans.append(btn);
+    });
+    host.append(plans);
+  }
+
+  if (CONFIG.DONATE_URL) {
+    host.append(el('span', 'eyebrow'), el('h3', null, 'Поддержать проект'));
+    host.append(el('p', 'muted',
+      'Проект открытый и бесплатный в основе. Если он вам полезен — ' +
+      'можно поддержать разработку.'));
+    const btn = el('button', 'btn btn--ghost');
+    btn.type = 'button';
+    btn.append(icon('heart', 16), document.createTextNode('Поддержать на Boosty'));
+    btn.addEventListener('click', () => {
+      haptic('light');
+      // openLink открывает во внешнем браузере — так требует Telegram
+      // для платёжных страниц вне Mini App.
+      if (tg?.openLink) tg.openLink(CONFIG.DONATE_URL);
+      else window.open(CONFIG.DONATE_URL, '_blank', 'noopener');
+    });
+    host.append(btn);
+  }
 }
 
 // -------------------------------------------------------------- генератор
@@ -211,7 +368,6 @@ function initGenerator() {
     state.genCount = Number(chip.dataset.count);
     haptic('light');
   });
-
   $('#gen-run').addEventListener('click', runGenerator);
 }
 
@@ -222,13 +378,44 @@ function parseNumbers(raw, pool) {
   return [...new Set(nums)];
 }
 
+/**
+ * Мягкое ограничение бесплатного тарифа.
+ *
+ * Честно про его надёжность: генерация идёт целиком в браузере, поэтому обойти
+ * счётчик может любой, кто откроет консоль. Настоящая защита возможна только
+ * если считать на сервере, а это стоило бы приложению работы без сети. Мы
+ * сознательно выбрали работать всегда и ограничивать по-джентльменски.
+ */
+function freeLimitExceeded() {
+  if (isSubscribed()) return false;
+  return state.genCount > CONFIG.FREE_DAILY_LIMIT;
+}
+
 function runGenerator() {
   const errBox = $('#gen-error');
   const results = $('#gen-results');
   errBox.hidden = true;
+
+  if (freeLimitExceeded()) {
+    results.replaceChildren();
+    const node = section('Нужна подписка', { accent: true });
+    const note = el('div', 'note');
+    const p = el('p');
+    p.append(icon('lock', 14), document.createTextNode(
+      ` Без подписки доступна ${CONFIG.FREE_DAILY_LIMIT} комбинация за раз.`,
+    ));
+    note.append(p);
+    note.append(el('p', 'muted', CONFIG.WORKER_URL
+      ? 'Оформить можно во вкладке «Проверка», внизу.'
+      : 'Подписка ещё не подключена — выберите 1 комбинацию.'));
+    node.append(note);
+    results.append(node);
+    haptic('light');
+    return;
+  }
+
   results.replaceChildren(el('p', 'skeleton', 'Перебираем варианты…'));
 
-  // Отдаём кадр браузеру, чтобы успел отрисоваться индикатор.
   setTimeout(() => {
     try {
       const pool = state.model.game.pool;
@@ -243,26 +430,19 @@ function runGenerator() {
         candidates: 15000,
         maxOverlap: spread && state.genCount > 1 ? 2 : null,
       });
-
-      if (!picks.length) throw new Error('Не удалось подобрать комбинацию с такими ограничениями');
+      if (!picks.length) throw new Error('С такими ограничениями подобрать не удалось');
 
       results.replaceChildren();
       picks.forEach((pick, i) => {
-        results.append(
-          analysisCard(pick.combo, pick.breakdown, {
-            title: picks.length > 1 ? `Билет ${i + 1}` : null,
-          }),
-        );
+        results.append(analysisSection(pick.combo, pick.breakdown,
+          { title: picks.length > 1 ? `Билет ${i + 1} из ${picks.length}` : 'Результат' }));
       });
-      results.append(
-        el(
-          'p',
-          'muted',
-          'Каждая из этих комбинаций выигрывает ровно с той же вероятностью, ' +
-            'что и любая другая. Отличие только в том, сколько человек поставили ' +
-            'то же самое.',
-        ),
-      );
+      const tail = section(null);
+      tail.append(el('p', 'muted',
+        'Каждая из этих комбинаций выигрывает ровно с той же вероятностью, ' +
+        'что и любая другая. Отличие только в том, сколько человек поставили ' +
+        'то же самое.'));
+      results.append(tail);
       haptic('medium');
     } catch (err) {
       results.replaceChildren();
@@ -326,32 +506,25 @@ function renderSlip() {
     cell.setAttribute('aria-pressed', String(on));
     cell.disabled = full && !on;
   });
-  $('#slip-counter').textContent = `Выбрано ${state.selected.size} из ${pick}`;
+  $('#slip-counter').textContent = `${state.selected.size} / ${pick}`;
 
   const box = $('#check-result');
   if (!full) {
-    box.replaceChildren(
-      el('p', 'skeleton', `Отметьте ${pick - state.selected.size} чис${
-        pick - state.selected.size === 1 ? 'ло' : 'ла'
-      }, чтобы увидеть разбор.`),
-    );
+    box.replaceChildren(el('p', 'skeleton',
+      `Отметьте ещё ${pick - state.selected.size}, чтобы увидеть разбор`));
     return;
   }
 
   const combo = [...state.selected].sort((a, b) => a - b);
   box.replaceChildren(
-    analysisCard(combo, state.model.breakdown(combo), { title: 'Ваша комбинация' }),
-    jackpotControl(),
+    analysisSection(combo, state.model.breakdown(combo), { title: 'Ваша комбинация' }),
+    jackpotSection(),
   );
 }
 
-/** Поле «размер джекпота»: от него зависит вся арифметика выплаты. */
-function jackpotControl() {
-  const card = el('div', 'card');
-  card.append(el('h3', null, 'Размер джекпота'));
-  card.append(
-    el('p', 'muted', 'Подставьте текущий суперприз — расчёт доли пересчитается.'),
-  );
+function jackpotSection() {
+  const node = section('Размер джекпота');
+  node.append(el('p', 'muted', 'Подставьте текущий суперприз — расчёт доли пересчитается.'));
   const input = el('input');
   input.type = 'text';
   input.inputMode = 'numeric';
@@ -363,8 +536,8 @@ function jackpotControl() {
       renderSlip();
     }
   });
-  card.append(input);
-  return card;
+  node.append(input);
+  return node;
 }
 
 // ------------------------------------------------------------ статистика
@@ -375,42 +548,42 @@ function renderStats() {
   const uni = stats.uniformity;
 
   // На малом архиве статистика — это шум, и показывать её как знание нечестно.
-  // Графики оставляем (они правдиво отражают собранное), но снабжаем прямой
-  // оговоркой вместо вывода о равномерности.
   if (!state.meta.enough_for_stats) {
-    banner.className = 'banner banner--warn';
+    banner.className = 'note';
     banner.replaceChildren(
-      el('strong', null, 'Данных пока мало. '),
-      document.createTextNode(
-        `Собрано ${fmtInt(state.meta.draws_count)} тиражей из ` +
+      (() => {
+        const p = el('p');
+        p.append(el('strong', null, 'Данных пока мало. '));
+        p.append(document.createTextNode(
+          `Собрано ${fmtInt(state.meta.draws_count)} тиражей из ` +
           `${fmtInt(state.meta.min_draws_for_stats)}, нужных для выводов. ` +
-          'Архив пополняется автоматически каждый день. ' +
-          'Всё ниже — то, что уже собрано, а не закономерность.',
-      ),
+          'Архив пополняется каждый день. Всё ниже — то, что уже собрано, ' +
+          'а не закономерность.',
+        ));
+        return p;
+      })(),
     );
   } else {
-    banner.className = `banner ${uni.p_value >= 0.01 ? 'banner--good' : 'banner--warn'}`;
-    banner.replaceChildren(
-      el('strong', null, `Проверка хи-квадрат: p = ${String(uni.p_value).replace('.', ',')}. `),
-      document.createTextNode(uni.verdict),
-    );
+    banner.className = uni.p_value >= 0.01 ? 'note note--good' : 'note';
+    const p = el('p');
+    p.append(el('strong', null, `Хи-квадрат: p = ${String(uni.p_value).replace('.', ',')}. `));
+    p.append(document.createTextNode(uni.verdict));
+    banner.replaceChildren(p);
   }
 
-  // Гистограмма частот.
   const chart = $('#freq-chart');
   chart.replaceChildren();
   const counts = stats.numbers.map((x) => x.count);
   const maxCount = Math.max(...counts, 1);
   const expected = stats.numbers[0]?.expected || 0;
   const hot = new Set(stats.hot.map((x) => x.n));
-  const cold = new Set(stats.cold.map((x) => x.n));
 
-  stats.numbers.forEach((item) => {
+  stats.numbers.forEach((item, i) => {
     const bar = el('div', 'freq__bar');
     bar.style.height = `${(item.count / maxCount) * 100}%`;
+    bar.style.animationDelay = `${i * 8}ms`;
     if (hot.has(item.n)) bar.classList.add('is-hot');
-    if (cold.has(item.n)) bar.classList.add('is-cold');
-    bar.title = `${item.n}: ${item.count} раз (ожидалось ${item.expected})`;
+    bar.title = `${item.n}: ${item.count} (ожидалось ${item.expected})`;
     chart.append(bar);
   });
   const mean = el('div', 'freq__mean');
@@ -422,34 +595,30 @@ function renderStats() {
     list.replaceChildren();
     items.forEach((item) => {
       const li = el('li');
-      li.append(el('span', 'ball ball--soft', String(item.n)));
-      li.append(el('span', 'muted', suffix(item)));
+      li.append(el('span', 'ball ball--quiet', String(item.n)));
+      li.append(el('span', null, suffix(item)));
       list.append(li);
     });
   };
-  fillList('#list-hot', stats.hot, (x) => `${x.count} раз (${x.deviation > 0 ? '+' : ''}${x.deviation} к среднему)`);
-  fillList('#list-cold', stats.cold, (x) => `${x.count} раз (${x.deviation} к среднему)`);
+  fillList('#list-hot', stats.hot,
+    (x) => `${x.count} раз · ${x.deviation > 0 ? '+' : ''}${x.deviation} к среднему`);
+  fillList('#list-cold', stats.cold,
+    (x) => `${x.count} раз · ${x.deviation} к среднему`);
   fillList('#list-overdue', stats.overdue, (x) => `${x.gap} тиражей назад`);
 
-  const facts = $('#facts');
-  facts.replaceChildren();
-  const addFact = (term, value) => {
-    const row = el('div');
-    row.append(el('dt', null, term), el('dd', null, value));
-    facts.append(row);
-  };
-  addFact('Тиражей в выборке', fmtInt(stats.draws_analyzed));
-  addFact(
-    'Тиражей с парой соседних чисел',
-    `${Math.round(stats.consecutive_share * 100)}%`,
-  );
-  addFact('Средняя сумма шести чисел', String(stats.sums.mean).replace('.', ','));
-  addFact('Диапазон сумм (90% тиражей)', `${stats.sums.p05} – ${stats.sums.p95}`);
   const balanced = stats.parity['3_even_3_odd'] || 0;
-  addFact(
-    'Тиражей с балансом 3 чётных / 3 нечётных',
-    `${Math.round((balanced / stats.draws_analyzed) * 100)}%`,
-  );
+  const facts = rowsList([
+    { k: 'Тиражей в выборке', v: fmtInt(stats.draws_analyzed) },
+    { k: 'С парой соседних чисел', v: `${Math.round(stats.consecutive_share * 100)}%` },
+    { k: 'Средняя сумма шести чисел', v: String(stats.sums.mean).replace('.', ',') },
+    { k: 'Диапазон сумм (90%)', v: `${stats.sums.p05} – ${stats.sums.p95}` },
+    {
+      k: 'Баланс 3 чётных / 3 нечётных',
+      v: `${Math.round((balanced / stats.draws_analyzed) * 100)}%`,
+    },
+  ]);
+  facts.id = 'facts';
+  $('#facts').replaceWith(facts);
 }
 
 // -------------------------------------------------------------- проверка
@@ -459,44 +628,39 @@ function renderProof() {
   tbody.replaceChildren();
 
   if (!state.proof) {
-    $('#proof-note').textContent =
-      'Результаты бэктеста ещё не собраны. Запустите scripts/verify_randomness.py.';
+    $('#proof-note').textContent = 'Результаты бэктеста ещё не собраны.';
+    renderEvFacts();
     return;
   }
 
   $('#proof-baseline').textContent = fmtDec(state.proof.expected_by_chance, 3);
 
-  // Бэктест на коротком архиве не значит ничего: разброс перекроет любой
-  // эффект. Пока данных мало, показываем счётчик накопления, а не таблицу.
   if (state.proof.insufficient) {
     $('#proof-table-wrap').hidden = true;
-    $('#proof-note').replaceChildren(
-      el('strong', null, 'Бэктест ещё не запускался. '),
-      document.createTextNode(
-        `Нужно ${fmtInt(state.proof.draws_needed)} тиражей, собрано ` +
-          `${fmtInt(state.proof.draws)}. На коротком архиве разброс перекроет ` +
-          'любую разницу между стратегиями, и таблица врала бы в обе стороны. ' +
-          'Как только данных хватит, результат появится здесь автоматически — ' +
-          'какой бы он ни был.',
-      ),
-    );
+    const note = $('#proof-note');
+    note.replaceChildren();
+    note.append(el('strong', null, 'Бэктест ещё не запускался. '));
+    note.append(document.createTextNode(
+      `Нужно ${fmtInt(state.proof.draws_needed)} тиражей, собрано ` +
+      `${fmtInt(state.proof.draws)}. На коротком архиве разброс перекроет ` +
+      'любую разницу между стратегиями, и таблица врала бы в обе стороны. ' +
+      'Как только данных хватит, результат появится здесь автоматически — ' +
+      'какой бы он ни был.',
+    ));
     renderEvFacts();
     return;
   }
   $('#proof-table-wrap').hidden = false;
 
-  const rows = Object.entries(state.proof.results).sort(
-    (a, b) => (b[1].mean_matches || 0) - (a[1].mean_matches || 0),
-  );
-  rows.forEach(([name, res]) => {
-    const tr = el('tr');
-    tr.append(el('td', null, name));
-    tr.append(el('td', null, fmtDec(res.mean_matches ?? 0, 3)));
-    const p = el('td', res.significant ? 'is-flag' : null,
-      fmtDec(res.p_value ?? 1, 3));
-    tr.append(p);
-    tbody.append(tr);
-  });
+  Object.entries(state.proof.results)
+    .sort((a, b) => (b[1].mean_matches || 0) - (a[1].mean_matches || 0))
+    .forEach(([name, res]) => {
+      const tr = el('tr');
+      tr.append(el('td', null, name));
+      tr.append(el('td', null, fmtDec(res.mean_matches ?? 0, 3)));
+      tr.append(el('td', res.significant ? 'is-flag' : null, fmtDec(res.p_value ?? 1, 3)));
+      tbody.append(tr);
+    });
 
   $('#proof-note').textContent = state.proof.any_significant
     ? 'Одна из стратегий формально прошла порог значимости. При восьми проверках сразу это ожидаемая случайность, а не находка.'
@@ -505,22 +669,17 @@ function renderProof() {
   renderEvFacts();
 }
 
-/** Экономика игры — тоже часть честного разговора, показываем её всегда. */
 function renderEvFacts() {
-  const evFacts = $('#ev-facts');
-  evFacts.replaceChildren();
-  const addFact = (term, value) => {
-    const row = el('div');
-    row.append(el('dt', null, term), el('dd', null, value));
-    evFacts.append(row);
-  };
   const game = state.model.game;
   const sample = evaluateEV(state.model, [4, 17, 23, 31, 38, 44], state.jackpot);
-  addFact('Цена билета', fmtMoney(game.ticket_price_rub));
-  addFact('Шанс сорвать джекпот', fmtOdds(state.model.totalCombinations));
-  addFact('Возврат игроку при джекпоте ' + fmtBig(state.jackpot),
-    `${Math.round(sample.rtp * 100)}%`);
-  addFact('Джекпот, при котором билет окупается', fmtBig(breakevenJackpot(state.model)));
+  const evFacts = rowsList([
+    { k: 'Цена билета', v: fmtMoney(game.ticket_price_rub) },
+    { k: 'Шанс сорвать джекпот', v: fmtOdds(state.model.totalCombinations) },
+    { k: `Возврат при джекпоте ${fmtBig(state.jackpot)} ₽`, v: `${Math.round(sample.rtp * 100)}%`, tone: 'accent' },
+    { k: 'Джекпот безубыточности', v: `${fmtBig(breakevenJackpot(state.model))} ₽` },
+  ]);
+  evFacts.id = 'ev-facts';
+  $('#ev-facts').replaceWith(evFacts);
 }
 
 // ------------------------------------------------------------------ старт
@@ -533,11 +692,13 @@ function renderMeta() {
   const when = new Date(meta.generated_at);
   const date = Number.isNaN(when.getTime())
     ? meta.generated_at
-    : when.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-  $('#data-meta').textContent =
-    `${fmtInt(meta.draws_count)} тиражей · обновлено ${date}`;
+    : when.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  $('#data-meta').textContent = `${fmtInt(meta.draws_count)} тиражей · ${date}`;
 
-  if (meta.synthetic) $('#synthetic-banner').hidden = false;
+  if (meta.synthetic) {
+    $('#banners').hidden = false;
+    $('#synthetic-banner').hidden = false;
+  }
 }
 
 function fail(message) {
@@ -551,15 +712,18 @@ async function main() {
   try {
     tg?.ready?.();
     tg?.expand?.();
-    // Тема приложения фиксированная, чёрная. Просим Telegram покрасить свою
-    // шапку и нижнюю кромку в тот же чёрный, иначе на светлой теме клиента
-    // вокруг Mini App останется белая рамка.
-    tg?.setHeaderColor?.('#000000');
-    tg?.setBackgroundColor?.('#000000');
-    tg?.setBottomBarColor?.('#000000');
-  } catch {
-    /* открыто вне Telegram */
-  }
+    // Тема следует за клиентом Telegram — но только если мы действительно
+    // внутри него. Вне Telegram SDK отдаёт platform: 'unknown' и colorScheme:
+    // 'light', и слепое доверие этому перебивало бы системную тёмную тему у
+    // тех, кто открыл приложение по ссылке в браузере.
+    const inTelegram = Boolean(tg) && tg.platform && tg.platform !== 'unknown';
+    if (inTelegram) {
+      document.documentElement.dataset.theme = tg.colorScheme;
+      tg.onEvent?.('themeChanged', () => {
+        document.documentElement.dataset.theme = tg.colorScheme;
+      });
+    }
+  } catch { /* открыто вне Telegram */ }
 
   initTabs();
 
@@ -581,10 +745,14 @@ async function main() {
     initSlip();
     renderStats();
     renderProof();
+
+    // Подписка грузится последней: без неё приложение полностью рабочее.
+    state.entitlement = await loadEntitlement();
+    renderSupport();
   } catch (err) {
     fail(
       `${err.message}\n\nЕсли вы открыли файл напрямую с диска, запустите ` +
-        'локальный сервер: python -m http.server 8000 из папки docs.',
+      'локальный сервер: python -m http.server 8000 из папки docs.',
     );
   }
 }

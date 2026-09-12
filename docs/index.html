@@ -3,46 +3,109 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#000000">
-<title>Лотерейный аналитик</title>
+<meta name="color-scheme" content="light dark">
+<title>Лотерейный аналитик — Sane Labs</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="styles.css">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
-<!-- Пятна света под интерфейсом: именно их размывает стекло панелей. -->
-<div class="ambient" aria-hidden="true"></div>
+<!-- Спрайт иконок: один набор символов на всё приложение вместо повторения
+     разметки в каждом месте использования. Обводка наследует currentColor,
+     поэтому иконки автоматически подхватывают цвет темы. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="i-mark">
+      <circle cx="12" cy="12" r="9.2" stroke-dasharray="2.4 2.6"/>
+      <circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/>
+    </g>
+    <g id="i-dice">
+      <rect x="3.6" y="3.6" width="16.8" height="16.8" rx="4"/>
+      <circle cx="8.6" cy="8.6" r="1.15" fill="currentColor" stroke="none"/>
+      <circle cx="15.4" cy="15.4" r="1.15" fill="currentColor" stroke="none"/>
+      <circle cx="15.4" cy="8.6" r="1.15" fill="currentColor" stroke="none"/>
+    </g>
+    <g id="i-slip">
+      <rect x="4" y="3.2" width="16" height="17.6" rx="2.4"/>
+      <path d="M7.8 9.2h8.4M7.8 13h8.4M7.8 16.6h4.6"/>
+    </g>
+    <g id="i-bars">
+      <path d="M4.5 20V12.4M9.5 20V4.6M14.5 20v-5.2M19.5 20V8.6"/>
+    </g>
+    <g id="i-flask">
+      <path d="M9.6 3.2v5.4L4.9 17.4A2 2 0 0 0 6.7 20.4h10.6a2 2 0 0 0 1.8-3l-4.7-8.8V3.2"/>
+      <path d="M8.4 3.2h7.2M7.6 14.4h8.8"/>
+    </g>
+    <g id="i-star">
+      <path d="M12 3.4l2.66 5.4 5.96.87-4.31 4.2 1.02 5.93L12 17l-5.33 2.8 1.02-5.93-4.31-4.2 5.96-.87z"/>
+    </g>
+    <g id="i-heart">
+      <path d="M12 20.3l-1.35-1.23C5.9 14.76 3 12.14 3 8.9 3 6.3 5.04 4.3 7.6 4.3c1.45 0 2.84.67 3.75 1.74l.65.77.65-.77A4.94 4.94 0 0 1 16.4 4.3C18.96 4.3 21 6.3 21 8.9c0 3.24-2.9 5.86-7.65 10.18z"/>
+    </g>
+    <g id="i-arrow">
+      <path d="M6.6 17.4L17.4 6.6M9.2 6.6h8.2v8.2"/>
+    </g>
+    <g id="i-chevron">
+      <path d="M6.4 9.4l5.6 5.4 5.6-5.4"/>
+    </g>
+    <g id="i-shuffle">
+      <path d="M3.6 6.8h3.2l9.6 10.4h3.6M3.6 17.2h3.2l3.5-3.8M14.2 8.2l2.2-1 3.6 1"/>
+      <path d="M17.6 14.6l2.8 2.6-2.8 2.6"/>
+    </g>
+    <g id="i-close">
+      <path d="M6.8 6.8l10.4 10.4M17.2 6.8L6.8 17.2"/>
+    </g>
+    <g id="i-lock">
+      <rect x="4.8" y="10.4" width="14.4" height="9.6" rx="2.2"/>
+      <path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"/>
+    </g>
+    <g id="i-check">
+      <path d="M5.4 12.6l4.4 4.4L18.6 8"/>
+    </g>
+  </defs>
+</svg>
 
 <div class="app" id="app">
 
   <header class="topbar">
-    <h1 id="game-title">Лотерейный аналитик</h1>
-    <p class="topbar__sub" id="data-meta">Загрузка данных…</p>
+    <svg class="topbar__mark" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.4" style="color:var(--accent)" aria-hidden="true">
+      <use href="#i-mark"/>
+    </svg>
+    <div class="topbar__text">
+      <h1 id="game-title">Лотерейный аналитик</h1>
+      <p class="topbar__sub" id="data-meta">Загрузка данных…</p>
+    </div>
   </header>
 
-  <div class="banner banner--warn" id="synthetic-banner" hidden>
-    <strong>Демо-данные.</strong> Загружена синтетическая история тиражей,
-    а не реальная.
+  <div class="view" id="banners" hidden>
+    <div class="note" id="synthetic-banner" hidden>
+      <p><strong>Демо-данные.</strong> Загружена синтетическая история тиражей,
+      а не реальная.</p>
+    </div>
   </div>
 
   <!-- ===================== ПОДБОР ===================== -->
   <section class="view" id="view-generate">
 
-    <div class="card card--accent">
+    <div class="section">
+      <span class="eyebrow eyebrow--accent">Метод</span>
       <h2>Комбинации, которые не ставит никто</h2>
-      <p class="muted">
+      <p class="lede">
         Шанс выиграть у любой комбинации одинаков и равен
         <b id="odds-line">1 к 8 145 060</b>. Изменить его нельзя.
-        Но джекпот делится между всеми, кто угадал — а сотни тысяч людей
-        ставят дни рождения и узоры на бланке. Мы подбираем комбинацию,
-        которую, скорее всего, не поставил больше никто.
+        Но джекпот делится между всеми, кто угадал, — а сотни тысяч людей
+        ставят дни рождения и узоры на бланке.
       </p>
     </div>
 
-    <div class="card">
+    <div class="section">
       <div class="field">
-        <label>Сколько комбинаций</label>
+        <label class="eyebrow" for="gen-count">Сколько комбинаций</label>
         <div class="chips" id="gen-count" role="group" aria-label="Сколько комбинаций">
           <button class="chip is-active" data-count="1" type="button">1</button>
           <button class="chip" data-count="3" type="button">3</button>
@@ -52,13 +115,13 @@
       </div>
 
       <div class="field">
-        <label for="gen-include">Оставить мои числа</label>
-        <input id="gen-include" type="text" inputmode="numeric" placeholder="например, 7 23">
+        <label class="eyebrow" for="gen-include">Оставить мои числа</label>
+        <input id="gen-include" type="text" inputmode="numeric" placeholder="7 23">
       </div>
 
       <div class="field">
-        <label for="gen-exclude">Исключить числа</label>
-        <input id="gen-exclude" type="text" inputmode="numeric" placeholder="например, 13">
+        <label class="eyebrow" for="gen-exclude">Исключить числа</label>
+        <input id="gen-exclude" type="text" inputmode="numeric" placeholder="13">
       </div>
 
       <label class="switch">
@@ -67,7 +130,11 @@
         <span>Разные числа в разных билетах</span>
       </label>
 
-      <button class="btn" id="gen-run" type="button">Подобрать</button>
+      <button class="btn btn--accent" id="gen-run" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-dice"/></svg>
+        Подобрать
+      </button>
       <p class="error" id="gen-error" hidden></p>
     </div>
 
@@ -77,17 +144,26 @@
   <!-- ===================== МОЯ КОМБИНАЦИЯ ===================== -->
   <section class="view" id="view-check" hidden>
 
-    <div class="card">
+    <div class="section">
+      <span class="eyebrow eyebrow--accent">Бланк</span>
       <h2>Проверить свою комбинацию</h2>
       <p class="muted">
         Отметьте числа так же, как на бланке. Покажем, насколько часто такую
         комбинацию выбирают другие и во что это обойдётся при выигрыше.
       </p>
       <div class="slip" id="slip" role="group" aria-label="Игровой бланк"></div>
-      <div class="slip-footer">
-        <span id="slip-counter" class="muted">Выбрано 0 из 6</span>
-        <button class="btn btn--ghost btn--sm" id="slip-random" type="button">Случайно</button>
-        <button class="btn btn--ghost btn--sm" id="slip-clear" type="button">Сброс</button>
+      <div class="slip-foot">
+        <span id="slip-counter" class="muted">0 / 6</span>
+        <button class="btn btn--ghost btn--sm" id="slip-random" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-shuffle"/></svg>
+          Случайно
+        </button>
+        <button class="btn btn--ghost btn--sm" id="slip-clear" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" aria-hidden="true"><use href="#i-close"/></svg>
+          Сброс
+        </button>
       </div>
     </div>
 
@@ -97,33 +173,35 @@
   <!-- ===================== СТАТИСТИКА ===================== -->
   <section class="view" id="view-stats" hidden>
 
-    <div class="banner banner--info" id="uniformity-banner">
-      <span class="spinner"></span> Проверяем данные…
+    <div class="section">
+      <span class="eyebrow eyebrow--accent">Данные</span>
+      <div class="note" id="uniformity-banner">
+        <p><span class="spinner"></span> Проверяем данные…</p>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>Частота выпадения чисел</h2>
+    <div class="section">
+      <span class="eyebrow">Частота выпадения</span>
+      <h3>Что уже выпало</h3>
       <p class="muted">
-        Столбики показывают, что уже выпало. Они <b>не говорят</b>, что выпадет
-        дальше: шар не помнит прошлых тиражей. Пунктир — сколько раз число
-        должно было выпасть в среднем.
+        Столбики показывают историю. Они <b>не говорят</b>, что выпадет дальше:
+        шар не помнит прошлых тиражей. Пунктир — среднее ожидание.
       </p>
       <div class="freq" id="freq-chart"></div>
     </div>
 
-    <div class="grid2">
-      <div class="card">
-        <h3>Чаще всего</h3>
-        <ul class="numlist" id="list-hot"></ul>
-      </div>
-      <div class="card">
-        <h3>Реже всего</h3>
-        <ul class="numlist" id="list-cold"></ul>
-      </div>
+    <div class="section">
+      <span class="eyebrow">Чаще всего</span>
+      <ul class="numlist" id="list-hot"></ul>
     </div>
 
-    <div class="card">
-      <h3>Давно не выпадали</h3>
+    <div class="section">
+      <span class="eyebrow">Реже всего</span>
+      <ul class="numlist" id="list-cold"></ul>
+    </div>
+
+    <div class="section">
+      <span class="eyebrow">Давно не выпадали</span>
       <p class="muted">
         Любимая цифра «систем игры». Во вкладке «Проверка» видно, что ставка
         на такие числа не работает — мы это измерили.
@@ -131,33 +209,30 @@
       <ul class="numlist" id="list-overdue"></ul>
     </div>
 
-    <div class="card">
-      <h2>Факты против интуиции</h2>
-      <dl class="facts" id="facts"></dl>
+    <div class="section">
+      <span class="eyebrow">Факты против интуиции</span>
+      <dl class="rows" id="facts"></dl>
     </div>
   </section>
 
   <!-- ===================== ПРОВЕРКА ===================== -->
   <section class="view" id="view-proof" hidden>
 
-    <div class="card card--accent">
+    <div class="section">
+      <span class="eyebrow eyebrow--accent">Эксперимент</span>
       <h2>Можно ли предсказать тираж?</h2>
-      <p class="muted">
+      <p class="lede">
         Нам постоянно пишут: «сделайте ИИ, обученный на выигрышных билетах».
         Мы его сделали — несколько моделей, включая обучаемые. И проверили
         на тиражах, которых они не видели. Вот результат, как есть.
       </p>
     </div>
 
-    <div class="card">
+    <div class="section">
       <div class="bigstat">
         <span class="bigstat__value" id="proof-baseline">0,800</span>
-        <span class="bigstat__label">совпадений на тираж даёт случайный выбор</span>
+        <span class="bigstat__label">совпадений даёт случайный выбор</span>
       </div>
-      <p class="muted">
-        Любая модель, которая действительно что-то знает, должна давать
-        заметно больше.
-      </p>
       <div class="table-wrap" id="proof-table-wrap">
         <table class="table" id="proof-table">
           <thead>
@@ -169,8 +244,8 @@
       <p class="muted" id="proof-note"></p>
     </div>
 
-    <div class="card">
-      <h3>Почему так</h3>
+    <div class="section">
+      <span class="eyebrow">Почему так</span>
       <p class="muted">
         Тираж — это выборка из равномерного распределения. Модель, обученная на
         любом количестве прошлых тиражей, в пределе сходится ровно к нему:
@@ -183,53 +258,51 @@
       </p>
     </div>
 
-    <div class="card">
-      <h3>Сколько на самом деле стоит игра</h3>
-      <dl class="facts" id="ev-facts"></dl>
-      <p class="muted">
+    <div class="section">
+      <span class="eyebrow">Экономика игры</span>
+      <dl class="rows" id="ev-facts"></dl>
+      <p class="muted" style="margin-top:14px">
         Ожидаемая выплата ниже цены билета — так устроена любая лотерея.
         Если вы всё равно играете, единственное, что в вашей власти, — не
         делить выигрыш с сотней других людей.
       </p>
     </div>
 
-    <div class="card card--muted">
-      <h3>Играйте ответственно</h3>
-      <p class="muted">
-        Лотерея — развлечение с отрицательным матожиданием, а не способ
-        заработка. Не ставьте больше, чем готовы потерять.
-        <a href="https://www.stoloto.ru/responsible-gaming" target="_blank" rel="noopener noreferrer">Ответственная игра</a>.
-      </p>
+    <div class="section">
+      <div class="note note--quiet">
+        <span class="eyebrow">Ответственная игра</span>
+        <p class="muted">
+          Лотерея — развлечение с отрицательным матожиданием, а не способ
+          заработка. Не ставьте больше, чем готовы потерять.
+        </p>
+        <a class="link" href="https://www.stoloto.ru/responsible-gaming"
+           target="_blank" rel="noopener noreferrer">
+          Памятка Столото
+          <svg class="arw" width="12" height="12" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </div>
     </div>
+
+    <div class="section" id="support-section"></div>
   </section>
 
   <nav class="tabbar" id="tabbar">
     <button class="tab is-active" data-view="generate" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 3.5l1.9 4.9 4.9 1.9-4.9 1.9-1.9 4.9-1.9-4.9-4.9-1.9 4.9-1.9z"/>
-        <path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>
-      </svg>
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-dice"/></svg>
       <span>Подбор</span>
     </button>
     <button class="tab" data-view="check" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/>
-        <path d="M8 12.2l2.6 2.6L16 9.4"/>
-      </svg>
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-slip"/></svg>
       <span>Моя</span>
     </button>
     <button class="tab" data-view="stats" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 20V11M9.3 20V4M14.7 20v-6M20 20V8"/>
-      </svg>
-      <span>Статистика</span>
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-bars"/></svg>
+      <span>Данные</span>
     </button>
     <button class="tab" data-view="proof" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="8.5"/>
-        <path d="M9.6 9.4a2.5 2.5 0 114 2.3c-.9.6-1.6 1-1.6 2"/>
-        <path d="M12 16.6v.01"/>
-      </svg>
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-flask"/></svg>
       <span>Проверка</span>
     </button>
   </nav>
