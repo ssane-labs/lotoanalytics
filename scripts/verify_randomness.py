@@ -259,13 +259,33 @@ def main() -> int:
         return 2
 
     draws: list[Draw] = [r.numbers for r in records]
-    if len(draws) <= args.warmup + 50:
+    needed = args.warmup + 51
+    if len(draws) < needed:
+        # Не ошибка, а нормальное состояние молодого архива. Записываем факт,
+        # чтобы Mini App показал «накапливаем данные», а не пустую таблицу.
         print(
-            f"Мало данных: {len(draws)} тиражей при warmup={args.warmup}. "
-            f"Нужно минимум {args.warmup + 51}.",
+            f"Мало данных для бэктеста: {len(draws)} из {needed} тиражей.",
             file=sys.stderr,
         )
-        return 1
+        if args.out:
+            os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+            with open(args.out, "w", encoding="utf-8") as fh:
+                json.dump(
+                    {
+                        "source": source,
+                        "draws": len(draws),
+                        "game": game.key,
+                        "insufficient": True,
+                        "draws_needed": needed,
+                        "expected_by_chance": theoretical_stats(game.pick, game.pool)[0],
+                        "results": {},
+                    },
+                    fh,
+                    ensure_ascii=False,
+                    indent=2,
+                )
+            print(f"Записано состояние «мало данных»: {args.out}")
+        return 0
 
     try_add_ml_strategy()
 
@@ -309,6 +329,7 @@ def main() -> int:
         "draws": len(draws),
         "game": game.key,
         "expected_by_chance": expected,
+        "insufficient": False,
         "any_significant": any_significant,
         "results": results,
     }

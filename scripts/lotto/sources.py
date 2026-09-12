@@ -226,6 +226,85 @@ def fetch_stoloto(
 
 
 # ---------------------------------------------------------------------------
+# lotocafe.ru — независимый агрегатор
+# ---------------------------------------------------------------------------
+
+_MONTHS_RU = {
+    "января": 1, "февраля": 2, "марта": 3, "апреля": 4, "мая": 5, "июня": 6,
+    "июля": 7, "августа": 8, "сентября": 9, "октября": 10, "ноября": 11,
+    "декабря": 12,
+}
+
+_LOTOCAFE_ROW = re.compile(
+    r"Тираж\s+(?P<draw>\d{3,7})\s+"
+    r"(?P<day>\d{1,2})\s+(?P<month>[а-яё]+)\s+"
+    r"(?P<nums>(?:\d{1,2}\s+){5}\d{1,2})",
+    re.IGNORECASE,
+)
+
+LOTOCAFE_URL = "https://lotocafe.ru/archive-6-iz-45"
+
+
+def fetch_lotocafe(pick: int = 6, pool: int = 45) -> list[DrawRecord]:
+    """Последние тиражи со страницы-списка lotocafe.ru.
+
+    Осознанное ограничение: забираем ровно одну страницу — те ~12 тиражей,
+    что отдаются в HTML. Подгрузка остальных идёт через /wp-admin/admin-ajax.php,
+    а robots.txt сайта запрещает весь /wp-. Массовую выкачку истории отсюда
+    делать нельзя, и мы её не делаем.
+
+    Для ежедневного обновления этого достаточно с запасом: в «6 из 45»
+    проводится порядка десяти тиражей в сутки. История накапливается в
+    data/draws_6x45.csv от запуска к запуску, а разовый бэкфилл делается
+    импортом официального архива (см. load_csv).
+    """
+    html = _http_get(LOTOCAFE_URL)
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = re.sub(r"&nbsp;?", " ", text)
+    text = re.sub(r"\s+", " ", text)
+
+    today = date.today()
+    found: dict[int, DrawRecord] = {}
+
+    for match in _LOTOCAFE_ROW.finditer(text):
+        month = _MONTHS_RU.get(match["month"].lower())
+        if not month:
+            continue
+        # Год на странице не указан. Берём текущий, а если дата оказалась в
+        # будущем — значит, это декабрь прошлого года.
+        year = today.year
+        try:
+            when = date(year, month, int(match["day"]))
+        except ValueError:
+            continue
+        if when > today:
+            when = date(year - 1, month, int(match["day"]))
+
+        nums = tuple(sorted(int(x) for x in match["nums"].split()))
+        try:
+            rec = DrawRecord(int(match["draw"]), when.isoformat(), nums)
+            _validate(rec, pick, pool)
+        except SourceUnavailable:
+            continue
+        found.setdefault(rec.draw_id, rec)
+
+    if not found:
+        raise SourceUnavailable(
+            f"Не удалось разобрать {LOTOCAFE_URL} — вероятно, изменилась вёрстка."
+        )
+    return sorted(found.values(), key=lambda r: r.draw_id)
+
+
+def merge(*groups: Sequence[DrawRecord]) -> list[DrawRecord]:
+    """Объединить наборы тиражей по номеру; более поздний источник побеждает."""
+    merged: dict[int, DrawRecord] = {}
+    for group in groups:
+        for rec in group:
+            merged[rec.draw_id] = rec
+    return sorted(merged.values(), key=lambda r: r.draw_id)
+
+
+# ---------------------------------------------------------------------------
 # Синтетика для локальной разработки
 # ---------------------------------------------------------------------------
 

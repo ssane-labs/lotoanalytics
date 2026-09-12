@@ -29,8 +29,10 @@ from lotto import stats as lstats  # noqa: E402
 from lotto.popularity import load_game, load_params, mean_weight  # noqa: E402
 from lotto.sources import (  # noqa: E402
     SourceUnavailable,
+    fetch_lotocafe,
     fetch_stoloto,
     load_csv,
+    merge,
     save_csv,
     synthetic,
 )
@@ -41,6 +43,12 @@ DATA_DIR = os.path.join(ROOT, "docs", "data")
 # Сколько последних тиражей отдаём клиенту для фактора «повтор выпавшей
 # комбинации». Больше не нужно: люди переставляют недавние тиражи.
 HISTORY_FOR_MODEL = 400
+
+# Ниже этих порогов показывать статистику и бэктест нечестно: на десятке
+# тиражей любая «закономерность» — чистый шум. Интерфейс в таком случае
+# честно пишет, сколько данных накоплено, вместо красивых, но пустых графиков.
+MIN_DRAWS_FOR_STATS = 200
+MIN_DRAWS_FOR_BACKTEST = 300
 
 
 def write_json(name: str, payload: dict) -> str:
@@ -75,21 +83,46 @@ def main() -> int:
     game = load_game(args.game, params)
 
     # --- данные ---------------------------------------------------------
-    source = None
-    records = None
+    # Архив накапливается: каждый прогон добавляет новые тиражи к тому, что
+    # уже собрано, и никогда не затирает историю. Иначе один сбойный запрос
+    # к сайту обнулил бы месяцы накопленных данных.
+    cache_path = os.path.join(ROOT, "data", f"draws_{args.game}.csv")
+    collected: list = []
+    sources_used: list[str] = []
     errors: list[str] = []
 
-    if args.csv and os.path.exists(args.csv):
-        records, source = load_csv(args.csv, game.pick, game.pool), "csv"
-    elif args.fetch:
-        try:
-            records, source = fetch_stoloto(args.game, pick=game.pick, pool=game.pool), "stoloto"
-        except SourceUnavailable as exc:
-            errors.append(str(exc))
+    if os.path.exists(cache_path):
+        cached = load_csv(cache_path, game.pick, game.pool)
+        collected = merge(collected, cached)
+        sources_used.append("архив")
+        print(f"Архив: {len(cached)} тиражей")
 
-    if records is None:
+    if args.csv and os.path.exists(args.csv):
+        imported = load_csv(args.csv, game.pick, game.pool)
+        before = len(collected)
+        collected = merge(collected, imported)
+        sources_used.append("csv")
+        print(f"Импорт {os.path.basename(args.csv)}: {len(imported)} тиражей, "
+              f"новых {len(collected) - before}")
+
+    if args.fetch:
+        for name, fetcher in (
+            ("stoloto", lambda: fetch_stoloto(args.game, pick=game.pick, pool=game.pool)),
+            ("lotocafe", lambda: fetch_lotocafe(pick=game.pick, pool=game.pool)),
+        ):
+            try:
+                fresh = fetcher()
+            except SourceUnavailable as exc:
+                errors.append(f"{name}: {exc}")
+                continue
+            before = len(collected)
+            collected = merge(collected, fresh)
+            sources_used.append(name)
+            print(f"{name}: получено {len(fresh)}, новых {len(collected) - before}")
+
+    if not collected:
         if not args.allow_synthetic:
-            print("ОШИБКА: нет источника данных.", file=sys.stderr)
+            print("ОШИБКА: нет ни одного тиража.", file=sys.stderr)
             for err in errors:
                 print(f"  {err}", file=sys.stderr)
             print(
@@ -100,21 +133,20 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
-        records, source = synthetic(1500, game.pick, game.pool), "synthetic"
+        collected = synthetic(1500, game.pick, game.pool)
+        sources_used = ["synthetic"]
 
+    records = collected
     draws = [r.numbers for r in records]
-    is_synthetic = source == "synthetic"
+    is_synthetic = sources_used == ["synthetic"]
+    source = "+".join(sources_used)
 
-    print(f"Источник: {source}, тиражей: {len(draws)}")
+    print(f"\nИсточник: {source}, всего тиражей: {len(draws)}")
     if is_synthetic:
         print("ВНИМАНИЕ: данные синтетические. Публиковать в прод нельзя.")
-
-    # Кэшируем разобранные данные в CSV, чтобы следующий прогон не зависел
-    # от доступности сайта.
-    if source == "stoloto":
-        cache = os.path.join(ROOT, "data", f"draws_{args.game}.csv")
-        save_csv(cache, records)
-        print(f"Кэш сохранён: {os.path.relpath(cache, ROOT)}")
+    else:
+        save_csv(cache_path, records)
+        print(f"Архив сохранён: {os.path.relpath(cache_path, ROOT)}")
 
     # --- расчёты --------------------------------------------------------
     print("\nСчитаю нормировку модели популярности...")
@@ -137,6 +169,9 @@ def main() -> int:
             "source": source,
             "synthetic": is_synthetic,
             "draws_count": len(draws),
+            "enough_for_stats": len(draws) >= MIN_DRAWS_FOR_STATS,
+            "enough_for_backtest": len(draws) >= MIN_DRAWS_FOR_BACKTEST,
+            "min_draws_for_stats": MIN_DRAWS_FOR_STATS,
             "latest_draw": records[-1].to_dict() if records else None,
             "games": [args.game],
             "disclaimer": (

@@ -109,7 +109,9 @@ function gaugeNode(percentile) {
   track.append(fill);
 
   const label = el('div', 'gauge__label');
-  label.append(el('span', null, 'Незаметность для других игроков'), el('span', null, `${pct} / 100`));
+  const score = el('span');
+  score.append(el('b', null, String(pct)), document.createTextNode(' / 100'));
+  label.append(el('span', null, 'Незаметность'), score);
   wrap.append(track, label);
   return wrap;
 }
@@ -173,7 +175,7 @@ function analysisCard(combo, breakdown, { title, percentile } = {}) {
   const rivals = ev.expectedCoWinners;
 
   card.append(
-    kvNode('Ожидаемых совладельцев джекпота', rivals < 0.01 ? 'меньше 0,01' : fmtDec(rivals)),
+    kvNode('Ожидаемых совладельцев', rivals < 0.01 ? '< 0,01' : fmtDec(rivals)),
     kvNode(
       'Ваша доля джекпота при выигрыше',
       `${Math.round(ev.shareFactor * 100)}%`,
@@ -372,11 +374,27 @@ function renderStats() {
   const banner = $('#uniformity-banner');
   const uni = stats.uniformity;
 
-  banner.className = `banner ${uni.p_value >= 0.01 ? 'banner--good' : 'banner--warn'}`;
-  banner.replaceChildren(
-    el('strong', null, `Проверка хи-квадрат: p = ${String(uni.p_value).replace('.', ',')}. `),
-    document.createTextNode(uni.verdict),
-  );
+  // На малом архиве статистика — это шум, и показывать её как знание нечестно.
+  // Графики оставляем (они правдиво отражают собранное), но снабжаем прямой
+  // оговоркой вместо вывода о равномерности.
+  if (!state.meta.enough_for_stats) {
+    banner.className = 'banner banner--warn';
+    banner.replaceChildren(
+      el('strong', null, 'Данных пока мало. '),
+      document.createTextNode(
+        `Собрано ${fmtInt(state.meta.draws_count)} тиражей из ` +
+          `${fmtInt(state.meta.min_draws_for_stats)}, нужных для выводов. ` +
+          'Архив пополняется автоматически каждый день. ' +
+          'Всё ниже — то, что уже собрано, а не закономерность.',
+      ),
+    );
+  } else {
+    banner.className = `banner ${uni.p_value >= 0.01 ? 'banner--good' : 'banner--warn'}`;
+    banner.replaceChildren(
+      el('strong', null, `Проверка хи-квадрат: p = ${String(uni.p_value).replace('.', ',')}. `),
+      document.createTextNode(uni.verdict),
+    );
+  }
 
   // Гистограмма частот.
   const chart = $('#freq-chart');
@@ -448,6 +466,25 @@ function renderProof() {
 
   $('#proof-baseline').textContent = fmtDec(state.proof.expected_by_chance, 3);
 
+  // Бэктест на коротком архиве не значит ничего: разброс перекроет любой
+  // эффект. Пока данных мало, показываем счётчик накопления, а не таблицу.
+  if (state.proof.insufficient) {
+    $('#proof-table-wrap').hidden = true;
+    $('#proof-note').replaceChildren(
+      el('strong', null, 'Бэктест ещё не запускался. '),
+      document.createTextNode(
+        `Нужно ${fmtInt(state.proof.draws_needed)} тиражей, собрано ` +
+          `${fmtInt(state.proof.draws)}. На коротком архиве разброс перекроет ` +
+          'любую разницу между стратегиями, и таблица врала бы в обе стороны. ' +
+          'Как только данных хватит, результат появится здесь автоматически — ' +
+          'какой бы он ни был.',
+      ),
+    );
+    renderEvFacts();
+    return;
+  }
+  $('#proof-table-wrap').hidden = false;
+
   const rows = Object.entries(state.proof.results).sort(
     (a, b) => (b[1].mean_matches || 0) - (a[1].mean_matches || 0),
   );
@@ -465,7 +502,11 @@ function renderProof() {
     ? 'Одна из стратегий формально прошла порог значимости. При восьми проверках сразу это ожидаемая случайность, а не находка.'
     : `Ни одна стратегия не обошла случайный выбор. Проверено на ${fmtInt(state.proof.draws)} тиражах.`;
 
-  // Экономика игры — тоже часть честного разговора.
+  renderEvFacts();
+}
+
+/** Экономика игры — тоже часть честного разговора, показываем её всегда. */
+function renderEvFacts() {
   const evFacts = $('#ev-facts');
   evFacts.replaceChildren();
   const addFact = (term, value) => {
@@ -510,7 +551,12 @@ async function main() {
   try {
     tg?.ready?.();
     tg?.expand?.();
-    tg?.setHeaderColor?.('secondary_bg_color');
+    // Тема приложения фиксированная, чёрная. Просим Telegram покрасить свою
+    // шапку и нижнюю кромку в тот же чёрный, иначе на светлой теме клиента
+    // вокруг Mini App останется белая рамка.
+    tg?.setHeaderColor?.('#000000');
+    tg?.setBackgroundColor?.('#000000');
+    tg?.setBottomBarColor?.('#000000');
   } catch {
     /* открыто вне Telegram */
   }

@@ -3,29 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
 <title>Лотерейный аналитик</title>
 <link rel="stylesheet" href="styles.css">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
 
+<!-- Пятна света под интерфейсом: именно их размывает стекло панелей. -->
+<div class="ambient" aria-hidden="true"></div>
+
 <div class="app" id="app">
 
   <header class="topbar">
-    <div class="topbar__title">
-      <h1 id="game-title">Лотерейный аналитик</h1>
-      <p class="topbar__sub" id="data-meta">Загрузка данных…</p>
-    </div>
+    <h1 id="game-title">Лотерейный аналитик</h1>
+    <p class="topbar__sub" id="data-meta">Загрузка данных…</p>
   </header>
 
   <div class="banner banner--warn" id="synthetic-banner" hidden>
-    <strong>Демо-данные.</strong> Загружена синтетическая история тиражей, а не
-    реальная. Цифры на экранах ничего не значат до первой сборки с настоящим
-    архивом.
+    <strong>Демо-данные.</strong> Загружена синтетическая история тиражей,
+    а не реальная.
   </div>
 
-  <!-- ===================== ГЕНЕРАТОР ===================== -->
+  <!-- ===================== ПОДБОР ===================== -->
   <section class="view" id="view-generate">
 
     <div class="card card--accent">
@@ -41,31 +42,32 @@
 
     <div class="card">
       <div class="field">
-        <label for="gen-count">Сколько комбинаций</label>
-        <div class="chips" id="gen-count" role="group">
-          <button class="chip is-active" data-count="1">1</button>
-          <button class="chip" data-count="3">3</button>
-          <button class="chip" data-count="5">5</button>
-          <button class="chip" data-count="10">10</button>
+        <label>Сколько комбинаций</label>
+        <div class="chips" id="gen-count" role="group" aria-label="Сколько комбинаций">
+          <button class="chip is-active" data-count="1" type="button">1</button>
+          <button class="chip" data-count="3" type="button">3</button>
+          <button class="chip" data-count="5" type="button">5</button>
+          <button class="chip" data-count="10" type="button">10</button>
         </div>
       </div>
 
       <div class="field">
-        <label for="gen-include">Оставить мои числа <span class="muted">(через пробел, необязательно)</span></label>
-        <input id="gen-include" type="text" inputmode="numeric" placeholder="например: 7 23">
+        <label for="gen-include">Оставить мои числа</label>
+        <input id="gen-include" type="text" inputmode="numeric" placeholder="например, 7 23">
       </div>
 
       <div class="field">
-        <label for="gen-exclude">Исключить числа <span class="muted">(необязательно)</span></label>
-        <input id="gen-exclude" type="text" inputmode="numeric" placeholder="например: 13">
+        <label for="gen-exclude">Исключить числа</label>
+        <input id="gen-exclude" type="text" inputmode="numeric" placeholder="например, 13">
       </div>
 
       <label class="switch">
         <input type="checkbox" id="gen-spread" checked>
+        <span class="switch__track"></span>
         <span>Разные числа в разных билетах</span>
       </label>
 
-      <button class="btn btn--primary" id="gen-run">Подобрать</button>
+      <button class="btn" id="gen-run" type="button">Подобрать</button>
       <p class="error" id="gen-error" hidden></p>
     </div>
 
@@ -78,14 +80,14 @@
     <div class="card">
       <h2>Проверить свою комбинацию</h2>
       <p class="muted">
-        Отметьте числа так же, как на бланке. Мы покажем, насколько часто
-        такую комбинацию выбирают другие и во что это обойдётся при выигрыше.
+        Отметьте числа так же, как на бланке. Покажем, насколько часто такую
+        комбинацию выбирают другие и во что это обойдётся при выигрыше.
       </p>
       <div class="slip" id="slip" role="group" aria-label="Игровой бланк"></div>
       <div class="slip-footer">
         <span id="slip-counter" class="muted">Выбрано 0 из 6</span>
-        <button class="btn btn--ghost btn--sm" id="slip-clear">Очистить</button>
-        <button class="btn btn--ghost btn--sm" id="slip-random">Случайно</button>
+        <button class="btn btn--ghost btn--sm" id="slip-random" type="button">Случайно</button>
+        <button class="btn btn--ghost btn--sm" id="slip-clear" type="button">Сброс</button>
       </div>
     </div>
 
@@ -123,8 +125,8 @@
     <div class="card">
       <h3>Давно не выпадали</h3>
       <p class="muted">
-        Любимая цифра «систем игры». Ниже, во вкладке «Проверка», видно, что
-        ставка на такие числа не работает — мы это измерили.
+        Любимая цифра «систем игры». Во вкладке «Проверка» видно, что ставка
+        на такие числа не работает — мы это измерили.
       </p>
       <ul class="numlist" id="list-overdue"></ul>
     </div>
@@ -149,14 +151,14 @@
 
     <div class="card">
       <div class="bigstat">
-        <span class="bigstat__value" id="proof-baseline">0.800</span>
+        <span class="bigstat__value" id="proof-baseline">0,800</span>
         <span class="bigstat__label">совпадений на тираж даёт случайный выбор</span>
       </div>
       <p class="muted">
         Любая модель, которая действительно что-то знает, должна давать
-        заметно больше. Ни одна не даёт.
+        заметно больше.
       </p>
-      <div class="table-wrap">
+      <div class="table-wrap" id="proof-table-wrap">
         <table class="table" id="proof-table">
           <thead>
             <tr><th>Стратегия</th><th>Совпадений</th><th>p-value</th></tr>
@@ -194,25 +196,41 @@
     <div class="card card--muted">
       <h3>Играйте ответственно</h3>
       <p class="muted">
-        Лотерея — это развлечение с отрицательным матожиданием, а не способ
-        заработка. Не ставьте больше, чем готовы потерять. Если игра перестала
-        быть развлечением — <a href="https://www.stoloto.ru/responsible-gaming" target="_blank" rel="noopener noreferrer">ответственная игра</a>.
+        Лотерея — развлечение с отрицательным матожиданием, а не способ
+        заработка. Не ставьте больше, чем готовы потерять.
+        <a href="https://www.stoloto.ru/responsible-gaming" target="_blank" rel="noopener noreferrer">Ответственная игра</a>.
       </p>
     </div>
   </section>
 
   <nav class="tabbar" id="tabbar">
-    <button class="tab is-active" data-view="generate">
-      <span class="tab__ico">✦</span><span>Подбор</span>
+    <button class="tab is-active" data-view="generate" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3.5l1.9 4.9 4.9 1.9-4.9 1.9-1.9 4.9-1.9-4.9-4.9-1.9 4.9-1.9z"/>
+        <path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>
+      </svg>
+      <span>Подбор</span>
     </button>
-    <button class="tab" data-view="check">
-      <span class="tab__ico">▦</span><span>Моя</span>
+    <button class="tab" data-view="check" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/>
+        <path d="M8 12.2l2.6 2.6L16 9.4"/>
+      </svg>
+      <span>Моя</span>
     </button>
-    <button class="tab" data-view="stats">
-      <span class="tab__ico">▤</span><span>Статистика</span>
+    <button class="tab" data-view="stats" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 20V11M9.3 20V4M14.7 20v-6M20 20V8"/>
+      </svg>
+      <span>Статистика</span>
     </button>
-    <button class="tab" data-view="proof">
-      <span class="tab__ico">?</span><span>Проверка</span>
+    <button class="tab" data-view="proof" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="8.5"/>
+        <path d="M9.6 9.4a2.5 2.5 0 114 2.3c-.9.6-1.6 1-1.6 2"/>
+        <path d="M12 16.6v.01"/>
+      </svg>
+      <span>Проверка</span>
     </button>
   </nav>
 
