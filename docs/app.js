@@ -14,8 +14,8 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js';
-import { CONFIG } from './config.js';
+} from './model.js?v=06b1bede';
+import { CONFIG } from './config.js?v=06b1bede';
 
 const GAME = '6x45';
 const DEFAULT_JACKPOT = 300_000_000;
