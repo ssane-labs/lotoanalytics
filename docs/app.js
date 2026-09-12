@@ -14,8 +14,8 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=06b1bede';
-import { CONFIG } from './config.js?v=06b1bede';
+} from './model.js?v=83426fb7';
+import { CONFIG } from './config.js?v=83426fb7';
 
 const GAME = '6x45';
 const DEFAULT_JACKPOT = 300_000_000;
@@ -31,6 +31,7 @@ const state = {
   genCount: 1,
   /** Подписка: null пока не проверяли, иначе ответ воркера. */
   entitlement: null,
+  entitlementError: null,
   usedToday: 0,
 };
 
@@ -252,16 +253,32 @@ function initTabs() {
  * проверяется на сервере — здесь ей верить нельзя, клиент можно подделать.
  */
 async function loadEntitlement() {
-  if (!CONFIG.WORKER_URL || !tg?.initData) return null;
+  if (!CONFIG.WORKER_URL) {
+    state.entitlementError = 'Сервер подписок не настроен.';
+    return null;
+  }
+  if (!tg?.initData) {
+    // Подпись пользователя выдаёт только клиент Telegram. В обычном браузере
+    // её нет, и подтвердить покупку нечем — это не поломка.
+    state.entitlementError = 'Подписка доступна только внутри Telegram.';
+    return null;
+  }
   try {
     const res = await fetch(`${CONFIG.WORKER_URL}/api/entitlement`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ initData: tg.initData }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      state.entitlementError = `Сервер подписок ответил ${res.status}.`;
+      return null;
+    }
+    state.entitlementError = null;
     return await res.json();
-  } catch {
+  } catch (err) {
+    // Ошибку показываем, а не прячем: молчаливый сбой здесь означает просто
+    // исчезнувший блок подписки, и причину потом не найти.
+    state.entitlementError = `Нет связи с сервером подписок: ${err.message}`;
     return null;
   }
 }
@@ -302,13 +319,16 @@ function renderSubscribe() {
   const host = $('#subscribe-section');
   const ent = state.entitlement;
 
-  // Без воркера или вне Telegram покупать нечем — блок не показываем вовсе.
-  if (!CONFIG.WORKER_URL || !ent) {
-    host.hidden = true;
-    return;
-  }
   host.hidden = false;
   host.replaceChildren();
+
+  if (!ent) {
+    host.append(el('span', 'eyebrow', 'Подписка'));
+    const note = el('div', 'note note--quiet');
+    note.append(el('p', 'muted', state.entitlementError || 'Подписка недоступна.'));
+    host.append(note);
+    return;
+  }
 
   if (isSubscribed()) {
     host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
@@ -418,7 +438,7 @@ function runGenerator() {
     ));
     note.append(p);
     note.append(el('p', 'muted', CONFIG.WORKER_URL
-      ? 'Оформить можно во вкладке «Проверка», внизу.'
+      ? 'Тарифы — ниже на этом экране.'
       : 'Подписка ещё не подключена — выберите 1 комбинацию.'));
     node.append(note);
     results.append(node);
@@ -712,12 +732,6 @@ function renderMeta() {
     $('#synthetic-banner').hidden = false;
   }
 
-  if (CONFIG.DONATE_URL) {
-    const btn = $('#donate-top');
-    btn.hidden = false;
-    btn.append(icon('heart', 17));
-    btn.addEventListener('click', openDonate);
-  }
 }
 
 /** Boosty открывается во внешнем браузере: внутри Mini App платить нельзя. */

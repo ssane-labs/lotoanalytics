@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="styles.css?v=06b1bede">
+<link rel="stylesheet" href="styles.css?v=83426fb7">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -71,18 +71,6 @@
 
 <div class="app" id="app">
 
-  <header class="topbar">
-    <svg class="topbar__mark" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         stroke-width="1.4" style="color:var(--accent)" aria-hidden="true">
-      <use href="#i-mark"/>
-    </svg>
-    <div class="topbar__text">
-      <h1 id="game-title">Лотерейный аналитик</h1>
-      <p class="topbar__sub" id="data-meta">Загрузка данных…</p>
-    </div>
-    <button class="topbar__donate" id="donate-top" type="button"
-            title="Поддержать проект" aria-label="Поддержать проект" hidden></button>
-  </header>
 
   <div class="view" id="banners" hidden>
     <div class="note" id="synthetic-banner" hidden>
@@ -95,7 +83,7 @@
   <section class="view" id="view-generate">
 
     <div class="section">
-      <span class="eyebrow eyebrow--accent">Метод</span>
+      <span class="eyebrow eyebrow--accent" id="game-title">Спортлото «6 из 45»</span>
       <h2>Комбинации, которые не ставит никто</h2>
       <p class="lede">
         Шанс выиграть у любой комбинации одинаков и равен
@@ -103,6 +91,7 @@
         Но джекпот делится между всеми, кто угадал, — а сотни тысяч людей
         ставят дни рождения и узоры на бланке.
       </p>
+      <p class="meta" id="data-meta">Загрузка данных…</p>
     </div>
 
     <div class="section">
@@ -317,6 +306,6 @@
 
 <div class="fatal" id="fatal" hidden></div>
 
-<script type="module" src="app.js?v=06b1bede"></script>
+<script type="module" src="app.js?v=83426fb7"></script>
 </body>
 </html>
