@@ -52,6 +52,9 @@ scripts/verify_randomness.py --csv data/draws_6x45.csv`.
 
 ## Запуск
 
+Пошаговая инструкция по развёртыванию — в [DEPLOY.md](DEPLOY.md).
+
+
 Нужны только бесплатные сервисы. Домен покупать не надо: `логин.github.io` —
 уже валидный HTTPS-домен, Telegram его принимает.
 
