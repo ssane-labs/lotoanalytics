@@ -284,7 +284,7 @@ async function buyPlan(planKey, button) {
       if (status === 'paid') {
         haptic('medium');
         state.entitlement = await loadEntitlement();
-        renderSupport();
+        renderSubscribe();
       }
       button.disabled = false;
     });
@@ -297,12 +297,18 @@ async function buyPlan(planKey, button) {
 
 const isSubscribed = () => Boolean(state.entitlement?.active);
 
-/** Блок «поддержать и подписаться» на вкладке «Проверка». */
-function renderSupport() {
-  const host = $('#support-section');
-  host.replaceChildren();
-
+/** Подписка — на вкладке подбора, где пользователь упирается в лимит. */
+function renderSubscribe() {
+  const host = $('#subscribe-section');
   const ent = state.entitlement;
+
+  // Без воркера или вне Telegram покупать нечем — блок не показываем вовсе.
+  if (!CONFIG.WORKER_URL || !ent) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+  host.replaceChildren();
 
   if (isSubscribed()) {
     host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
@@ -314,43 +320,53 @@ function renderSupport() {
       'Напоминаем то, за что вы НЕ платили: шанс выиграть не изменился и ' +
       'измениться не может. Подписка влияет на размер выплаты, а не на вероятность.'));
     host.append(note);
-  } else if (CONFIG.WORKER_URL && ent?.plans?.length) {
-    host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
-    host.append(el('h3', null, 'Снять ограничение'));
-    host.append(el('p', 'muted',
-      `Бесплатно — ${CONFIG.FREE_DAILY_LIMIT} комбинация в день. ` +
-      'По подписке — пакеты билетов с непересекающимися числами и ' +
-      'неограниченный подбор. Оплата звёздами внутри Telegram.'));
-
-    const plans = el('div', 'plans');
-    ent.plans.forEach((plan) => {
-      const btn = el('button', 'plan');
-      btn.type = 'button';
-      const body = el('div', 'plan__body');
-      body.append(el('span', 'plan__title', plan.title));
-      body.append(el('span', 'plan__meta', `${plan.days} дней`));
-      const price = el('span', 'plan__price');
-      price.append(document.createTextNode(String(plan.stars)), icon('star', 14));
-      btn.append(body, price);
-      btn.addEventListener('click', () => buyPlan(plan.key, btn));
-      plans.append(btn);
-    });
-    host.append(plans);
+    return;
   }
 
-  if (CONFIG.DONATE_URL) {
-    const head = el('h3', null, 'Поддержать проект');
-    head.style.marginTop = '26px';
-    host.append(head);
-    host.append(el('p', 'muted',
-      'Проект открытый и бесплатный в основе. Если он вам полезен — ' +
-      'можно поддержать разработку.'));
-    const btn = el('button', 'btn btn--ghost');
+  if (!ent.plans?.length) {
+    host.hidden = true;
+    return;
+  }
+
+  host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
+  host.append(el('h3', null, 'Снять ограничение'));
+  host.append(el('p', 'muted',
+    `Бесплатно — ${CONFIG.FREE_DAILY_LIMIT} комбинация за раз. ` +
+    'По подписке — пакеты билетов с непересекающимися числами и ' +
+    'неограниченный подбор. Оплата звёздами внутри Telegram.'));
+
+  const plans = el('div', 'plans');
+  ent.plans.forEach((plan) => {
+    const btn = el('button', 'plan');
     btn.type = 'button';
-    btn.append(icon('heart', 16), document.createTextNode('Поддержать на Boosty'));
-    btn.addEventListener('click', openDonate);
-    host.append(btn);
-  }
+    const body = el('div', 'plan__body');
+    body.append(el('span', 'plan__title', plan.title));
+    body.append(el('span', 'plan__meta', `${plan.days} дней`));
+    const price = el('span', 'plan__price');
+    price.append(document.createTextNode(String(plan.stars)), icon('star', 14));
+    btn.append(body, price);
+    btn.addEventListener('click', () => buyPlan(plan.key, btn));
+    plans.append(btn);
+  });
+  host.append(plans);
+}
+
+/** Донат — отдельно от подписки: это не покупка доступа. */
+function renderDonate() {
+  const host = $('#support-section');
+  host.replaceChildren();
+  if (!CONFIG.DONATE_URL) return;
+
+  host.append(el('span', 'eyebrow', 'Поддержка'));
+  host.append(el('h3', null, 'Поддержать проект'));
+  host.append(el('p', 'muted',
+    'Проект открытый и бесплатный в основе. Если он вам полезен — ' +
+    'можно поддержать разработку.'));
+  const btn = el('button', 'btn btn--ghost');
+  btn.type = 'button';
+  btn.append(icon('heart', 16), document.createTextNode('Поддержать на Boosty'));
+  btn.addEventListener('click', openDonate);
+  host.append(btn);
 }
 
 // -------------------------------------------------------------- генератор
@@ -755,10 +771,11 @@ async function main() {
     initSlip();
     renderStats();
     renderProof();
+    renderDonate();
 
     // Подписка грузится последней: без неё приложение полностью рабочее.
     state.entitlement = await loadEntitlement();
-    renderSupport();
+    renderSubscribe();
   } catch (err) {
     fail(
       `${err.message}\n\nЕсли вы открыли файл напрямую с диска, запустите ` +

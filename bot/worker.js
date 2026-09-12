@@ -124,18 +124,28 @@ const fmtDate = (ts) =>
 
 // ------------------------------------------------------------------- API
 
+// Mini App живёт на github.io, воркер — на workers.dev. Это разные источники,
+// поэтому браузер сначала шлёт preflight-запрос OPTIONS и пропускает POST
+// только если в ответе перечислены и разрешённые методы, и заголовки.
+const CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'content-type',
+  'access-control-max-age': '86400',
+};
+
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
     headers: {
       'content-type': 'application/json; charset=utf-8',
-      // Mini App живёт на github.io, воркер — на workers.dev: без CORS
-      // браузер не даст сделать запрос.
-      'access-control-allow-origin': '*',
-      'access-control-allow-headers': 'content-type',
+      ...CORS,
       'cache-control': 'no-store',
     },
   });
+
+/** Ответ на preflight. Статус 204 запрещает тело: с телом Response падает. */
+const preflight = () => new Response(null, { status: 204, headers: CORS });
 
 async function handleEntitlement(request, env) {
   const body = await request.json().catch(() => ({}));
@@ -279,7 +289,7 @@ export default {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
-      return json({}, 204);
+      return preflight();
     }
     if (url.pathname === '/health') {
       return new Response('ok');
