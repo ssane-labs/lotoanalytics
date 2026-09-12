@@ -50,18 +50,31 @@ async function verifyInitData(initData, env) {
   const hash = params.get('hash');
   if (!hash) return null;
   params.delete('hash');
-  params.delete('signature');
 
-  const checkString = [...params.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n');
+  const pairs = [...params.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const build = (entries) => entries.map(([k, v]) => `${k}=${v}`).join('\n');
+
+  // Поле signature Telegram добавил позже основного протокола, и клиенты
+  // расходятся в том, входит ли оно в подписываемую строку: документация
+  // требует убирать только hash, но часть версий считает хэш без signature.
+  // Проверяем оба варианта — совпадение любого означает подпись тем же
+  // ботом, поэтому строгость проверки от этого не падает.
+  const candidates = [build(pairs)];
+  if (params.has('signature')) {
+    candidates.push(build(pairs.filter(([k]) => k !== 'signature')));
+  }
 
   // Порядок именно такой: сначала ключ выводится из строки "WebAppData",
   // и только потом им подписывается сама строка данных.
   const secret = await hmac(enc.encode('WebAppData'), env.BOT_TOKEN);
-  const computed = toHex(await hmac(secret, checkString));
-  if (!safeEqual(computed, hash)) return null;
+  let matched = false;
+  for (const checkString of candidates) {
+    if (safeEqual(toHex(await hmac(secret, checkString)), hash)) {
+      matched = true;
+      break;
+    }
+  }
+  if (!matched) return null;
 
   // Просроченная подпись равнозначна отсутствию подписи: перехваченный
   // однажды initData иначе работал бы вечно.

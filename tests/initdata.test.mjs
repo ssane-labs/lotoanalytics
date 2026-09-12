@@ -94,6 +94,54 @@ await check('пустая строка и мусор отклоняются', as
   assert.equal(await verifyInitData('не-урл-вообще', env), null);
 });
 
+// Поле signature появляется в initData настоящих клиентов, но не в
+// синтетических данных — из-за чего тесты проходили, а живой Telegram
+// получал 401. Ниже закреплены оба варианта подсчёта хэша.
+
+await check('initData с signature принимается (хэш включает signature)', async () => {
+  const fields = {
+    auth_date: String(Math.floor(Date.now() / 1000)),
+    chat_instance: '-1234567890',
+    chat_type: 'private',
+    query_id: 'AAReal',
+    signature: 'SomeEd25519SignatureValue',
+    user: JSON.stringify({ id: 777001, first_name: 'Тест' }),
+  };
+  const data = new URLSearchParams({ ...fields, hash: sign(fields) }).toString();
+  assert.equal((await verifyInitData(data, env))?.id, 777001);
+});
+
+await check('initData с signature принимается (хэш без signature)', async () => {
+  const fields = {
+    auth_date: String(Math.floor(Date.now() / 1000)),
+    query_id: 'AAReal',
+    signature: 'SomeEd25519SignatureValue',
+    user: JSON.stringify({ id: 777001, first_name: 'Тест' }),
+  };
+  const withoutSignature = { ...fields };
+  delete withoutSignature.signature;
+  const data = new URLSearchParams({
+    ...fields,
+    hash: sign(withoutSignature),
+  }).toString();
+  assert.equal((await verifyInitData(data, env))?.id, 777001);
+});
+
+await check('подделка при наличии signature отклоняется', async () => {
+  const fields = {
+    auth_date: String(Math.floor(Date.now() / 1000)),
+    signature: 'SomeEd25519SignatureValue',
+    user: JSON.stringify({ id: 777001, first_name: 'Тест' }),
+  };
+  const data = new URLSearchParams({ ...fields, hash: '0'.repeat(64) }).toString();
+  assert.equal(await verifyInitData(data, env), null);
+  const wrongToken = new URLSearchParams({
+    ...fields,
+    hash: sign(fields, TOKEN + 'x'),
+  }).toString();
+  assert.equal(await verifyInitData(wrongToken, env), null);
+});
+
 await check('данные без поля user отклоняются', async () => {
   const fields = { auth_date: String(Math.floor(Date.now() / 1000)), query_id: 'x' };
   const data = new URLSearchParams({ ...fields, hash: sign(fields) }).toString();
