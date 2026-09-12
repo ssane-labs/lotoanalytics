@@ -6,6 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# В публичном репозитории PR может открыть кто угодно. Тестам ничего писать
+# не нужно, поэтому выдаём минимум явно, а не полагаемся на настройку репозитория.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
