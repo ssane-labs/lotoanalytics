@@ -14,8 +14,8 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=83426fb7';
-import { CONFIG } from './config.js?v=83426fb7';
+} from './model.js?v=dabd13ae';
+import { CONFIG } from './config.js?v=dabd13ae';
 
 const GAME = '6x45';
 const DEFAULT_JACKPOT = 300_000_000;
@@ -283,32 +283,53 @@ async function loadEntitlement() {
   }
 }
 
-async function buyPlan(planKey, button) {
-  if (!CONFIG.WORKER_URL || !tg?.initData) return;
-  button.disabled = true;
-  try {
-    const res = await fetch(`${CONFIG.WORKER_URL}/api/invoice`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ initData: tg.initData, plan: planKey }),
-    });
-    const data = await res.json();
-    if (!data.link) throw new Error(data.error || 'нет ссылки');
+/**
+ * Открывает оплату. Ссылка приходит заранее вместе с данными о подписке —
+ * в момент нажатия сети не требуется. Запрос остаётся только на случай,
+ * если заранее ссылку получить не удалось.
+ */
+async function buyPlan(plan, button) {
+  const errorBox = button.parentElement.parentElement;
+  const showError = (text) => {
+    const old = errorBox.querySelector('.error');
+    if (old) old.remove();
+    errorBox.append(el('p', 'error', text));
+  };
 
-    // Оплата открывается внутри клиента Telegram: платёжные данные
-    // пользователя до нас не доходят вообще.
-    tg.openInvoice(data.link, async (status) => {
+  let link = plan.link;
+
+  if (!link) {
+    button.disabled = true;
+    try {
+      const res = await fetch(`${CONFIG.WORKER_URL}/api/invoice`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ initData: tg.initData, plan: plan.key }),
+      });
+      const data = await res.json().catch(() => ({}));
+      link = data.link;
+      if (!link) throw new Error(data.error || `сервер ответил ${res.status}`);
+    } catch (err) {
+      button.disabled = false;
+      showError(`Не удалось получить счёт: ${err.message}`);
+      return;
+    }
+    button.disabled = false;
+  }
+
+  try {
+    tg.openInvoice(link, async (status) => {
       if (status === 'paid') {
         haptic('medium');
         state.entitlement = await loadEntitlement();
         renderSubscribe();
+      } else if (status === 'failed') {
+        showError('Telegram не смог провести оплату. Попробуйте ещё раз.');
       }
-      button.disabled = false;
+      // cancelled — пользователь передумал, это не ошибка
     });
   } catch (err) {
-    button.disabled = false;
-    const box = el('p', 'error', `Не удалось открыть оплату: ${err.message}`);
-    button.after(box);
+    showError(`Не удалось открыть оплату: ${err.message}`);
   }
 }
 
@@ -365,7 +386,7 @@ function renderSubscribe() {
     const price = el('span', 'plan__price');
     price.append(document.createTextNode(String(plan.stars)), icon('star', 14));
     btn.append(body, price);
-    btn.addEventListener('click', () => buyPlan(plan.key, btn));
+    btn.addEventListener('click', () => buyPlan(plan, btn));
     plans.append(btn);
   });
   host.append(plans);

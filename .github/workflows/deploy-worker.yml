@@ -1,0 +1,69 @@
+name: Публикация воркера
+
+# Избавляет от ручной вставки кода в панель Cloudflare. Каждый push, который
+# трогает воркер, публикует его сам.
+#
+# Разовая настройка (делается один раз, потом не нужна):
+#
+# 1. Cloudflare -> значок профиля справа вверху -> Profile -> API Tokens
+#    -> Create Token -> шаблон "Edit Cloudflare Workers" -> Continue -> Create.
+#    Скопируйте показанный токен: второй раз его не покажут.
+#
+# 2. Узнайте Account ID: Cloudflare -> Workers & Pages, идентификатор виден в
+#    адресной строке сразу после dash.cloudflare.com/
+#
+# 3. GitHub -> Settings -> Secrets and variables -> Actions -> New repository
+#    secret, дважды:
+#       CLOUDFLARE_API_TOKEN   — токен из шага 1
+#       CLOUDFLARE_ACCOUNT_ID  — идентификатор из шага 2
+#
+# Дальше публикация идёт сама. Секреты воркера (BOT_TOKEN, WEBHOOK_SECRET) и
+# привязка KV живут в Cloudflare и этим процессом не затрагиваются.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bot/worker.js'
+      - 'bot/verify.js'
+      - 'bot/wrangler.toml'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Публикуем из исходников, а не из склейки: wrangler умеет импорты сам.
+      # Но склейка обязана быть свежей — её вставляют вручную, если Actions
+      # недоступен, и разошедшаяся копия хуже, чем её отсутствие.
+      - name: Собранный файл не отстал от исходников
+        run: python bot/build_bundle.py --check
+
+      - name: Проверить, что секреты заданы
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "::error::Не задан секрет CLOUDFLARE_API_TOKEN. См. инструкцию в начале этого файла."
+            exit 1
+          fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::error::Не задан секрет CLOUDFLARE_ACCOUNT_ID. См. инструкцию в начале этого файла."
+            exit 1
+          fi
+
+      - name: Опубликовать воркер
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: bot
+          command: deploy

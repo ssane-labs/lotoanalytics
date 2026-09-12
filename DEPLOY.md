@@ -110,6 +110,22 @@ python bot/setup_telegram.py webhook https://ВАШ-АДРЕС.workers.dev ВА�
 
 ---
 
+## Автопубликация воркера (чтобы больше не вставлять код руками)
+
+`.github/workflows/deploy-worker.yml` публикует воркер сам при каждом
+изменении его исходников. Нужна разовая настройка — два секрета в GitHub:
+
+1. Cloudflare → профиль справа вверху → **Profile** → **API Tokens** →
+   **Create Token** → шаблон **Edit Cloudflare Workers** → Create.
+   Скопируйте токен сразу: повторно его не покажут.
+2. Account ID виден в адресной строке после `dash.cloudflare.com/`
+3. GitHub → **Settings** → **Secrets and variables** → **Actions** →
+   **New repository secret**, дважды:
+   `CLOUDFLARE_API_TOKEN` и `CLOUDFLARE_ACCOUNT_ID`
+
+После этого правки воркера доезжают в прод сами. Секреты воркера и привязка
+KV живут в Cloudflare и этим не затрагиваются.
+
 ## Изменение кода воркера
 
 Правьте `bot/worker.js` и `bot/verify.js` — это исходники. Затем

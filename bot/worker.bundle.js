@@ -244,6 +244,21 @@ async function handleEntitlement(request, env) {
   if (!user) return json({ error: 'invalid initData' }, 401);
 
   const sub = await getSubscription(env, user.id);
+
+  // Ссылки на оплату готовим заранее, вместе с ответом о подписке. Если
+  // запрашивать их в момент нажатия, любой сбой сети именно в эту секунду
+  // оставляет пользователя с ошибкой вместо оплаты — а мобильный webview
+  // как раз в этот момент уходит в фон под платёжный экран.
+  const plans = await Promise.all(
+    Object.entries(PLANS).map(async ([key, p]) => ({
+      key,
+      title: p.title,
+      stars: p.stars,
+      days: p.days,
+      link: sub.active ? null : await createInvoiceLink(env, key, user.id),
+    })),
+  );
+
   return json({
     user_id: user.id,
     active: sub.active,
@@ -251,10 +266,36 @@ async function handleEntitlement(request, env) {
     until_text: sub.until ? fmtDate(sub.until) : null,
     plan: sub.plan ?? null,
     free_daily_limit: FREE_DAILY_LIMIT,
-    plans: Object.entries(PLANS).map(([key, p]) => ({
-      key, title: p.title, stars: p.stars, days: p.days,
-    })),
+    plans,
   });
+}
+
+/**
+ * Ссылка на оплату для Telegram.WebApp.openInvoice. Оплата проходит внутри
+ * клиента Telegram, платёжные данные пользователя до нас не доходят.
+ *
+ * Возвращает null вместо исключения: несозданная ссылка одного тарифа не
+ * должна ронять весь ответ о подписке.
+ */
+async function createInvoiceLink(env, planKey, userId) {
+  const plan = PLANS[planKey];
+  if (!plan) return null;
+  try {
+    const res = await tg(env, 'createInvoiceLink', {
+      title: plan.title,
+      description:
+        'Пакеты билетов с непересекающимися числами, неограниченный подбор ' +
+        'и сохранение комбинаций. Вероятность выигрыша не меняется.',
+      payload: JSON.stringify({ plan: planKey, uid: userId }),
+      provider_token: '', // для Stars токен провайдера не нужен
+      currency: 'XTR',
+      prices: [{ label: plan.title, amount: plan.stars }],
+    });
+    return res.ok ? res.result : null;
+  } catch (err) {
+    console.error('createInvoiceLink failed', err);
+    return null;
+  }
 }
 
 async function handleInvoice(request, env) {
@@ -266,22 +307,9 @@ async function handleInvoice(request, env) {
   const plan = PLANS[planKey];
   if (!plan) return json({ error: 'unknown plan' }, 400);
 
-  // createInvoiceLink возвращает ссылку, которую Mini App открывает через
-  // Telegram.WebApp.openInvoice — оплата проходит внутри клиента Telegram,
-  // и платёжные данные пользователя до нас не доходят вообще.
-  const res = await tg(env, 'createInvoiceLink', {
-    title: plan.title,
-    description:
-      'Пакеты билетов с непересекающимися числами, неограниченный подбор ' +
-      'и сохранение комбинаций. Вероятность выигрыша не меняется.',
-    payload: JSON.stringify({ plan: planKey, uid: user.id }),
-    provider_token: '', // для Stars токен провайдера не нужен
-    currency: 'XTR',
-    prices: [{ label: plan.title, amount: plan.stars }],
-  });
-
-  if (!res.ok) return json({ error: 'invoice failed' }, 502);
-  return json({ link: res.result, plan: planKey, stars: plan.stars });
+  const link = await createInvoiceLink(env, planKey, user.id);
+  if (!link) return json({ error: 'invoice failed' }, 502);
+  return json({ link, plan: planKey, stars: plan.stars });
 }
 
 // --------------------------------------------------------------- вебхук
@@ -389,8 +417,19 @@ export default {
       return new Response('Этот адрес принимает только POST.', { status: 405 });
     }
 
-    if (url.pathname === '/api/entitlement') return handleEntitlement(request, env);
-    if (url.pathname === '/api/invoice') return handleInvoice(request, env);
+    if (url.pathname === '/api/entitlement' || url.pathname === '/api/invoice') {
+      // Без этого перехвата сбой внутри обработчика уходит наружу как ответ
+      // Cloudflare без заголовков CORS, и браузер сообщает «Load failed», не
+      // показывая ни кода, ни причины.
+      try {
+        return url.pathname === '/api/invoice'
+          ? await handleInvoice(request, env)
+          : await handleEntitlement(request, env);
+      } catch (err) {
+        console.error(`${url.pathname} failed`, err);
+        return json({ error: 'internal', detail: String(err && err.message) }, 500);
+      }
+    }
 
     // Дальше — только вебхук Telegram. Заголовок с секретом подтверждает, что
     // апдейт действительно от Telegram, а не подделан кем угодно.
