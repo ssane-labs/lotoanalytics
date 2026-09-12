@@ -49,5 +49,8 @@ jobs:
       - name: Python и JS должны считать одинаково
         run: node tests/parity.test.mjs
 
+      - name: Подпись initData нельзя подделать
+        run: node tests/initdata.test.mjs
+
       - name: Сборка данных не должна падать
         run: python scripts/build_data.py --allow-synthetic --mc-samples 20000

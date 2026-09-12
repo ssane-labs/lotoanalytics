@@ -1,9 +1,11 @@
 # Конфигурация Cloudflare Workers.
 #
-# Токен бота и секрет вебхука здесь НЕ ХРАНЯТСЯ. Они задаются командами:
+# Токен бота и секрет вебхука здесь НЕ ХРАНЯТСЯ. Они задаются отдельно:
 #   wrangler secret put BOT_TOKEN
 #   wrangler secret put WEBHOOK_SECRET
-# Всё, что попадает в этот файл, уходит в git — значит, секретов тут быть не может.
+# либо в панели Cloudflare: Workers -> ваш воркер -> Settings -> Variables ->
+# Secrets. Всё, что попадает в этот файл, уходит в публичный git, значит
+# секретов тут быть не может.
 
 name = "loto-analytics-bot"
 main = "worker.js"
@@ -12,3 +14,13 @@ compatibility_date = "2025-01-01"
 [vars]
 # Адрес Mini App на GitHub Pages. Слэш на конце обязателен.
 MINIAPP_URL = "https://ssane-labs.github.io/lotoanalytics/"
+
+# Страница для донатов. ЗАМЕНИТЕ на свой адрес Boosty.
+DONATE_URL = "https://boosty.to/ЗАМЕНИТЕ-НА-СВОЙ-АДРЕС"
+
+# Хранилище подписок: кто и до какого момента оплатил.
+# Создать:  wrangler kv namespace create SUBS
+# и подставить выданный id ниже (или создать в панели: Storage & Databases -> KV).
+[[kv_namespaces]]
+binding = "SUBS"
+id = "ЗАМЕНИТЕ-НА-ID-KV-NAMESPACE"
