@@ -339,20 +339,16 @@ function renderSupport() {
   }
 
   if (CONFIG.DONATE_URL) {
-    host.append(el('span', 'eyebrow'), el('h3', null, 'Поддержать проект'));
+    const head = el('h3', null, 'Поддержать проект');
+    head.style.marginTop = '26px';
+    host.append(head);
     host.append(el('p', 'muted',
       'Проект открытый и бесплатный в основе. Если он вам полезен — ' +
       'можно поддержать разработку.'));
     const btn = el('button', 'btn btn--ghost');
     btn.type = 'button';
     btn.append(icon('heart', 16), document.createTextNode('Поддержать на Boosty'));
-    btn.addEventListener('click', () => {
-      haptic('light');
-      // openLink открывает во внешнем браузере — так требует Telegram
-      // для платёжных страниц вне Mini App.
-      if (tg?.openLink) tg.openLink(CONFIG.DONATE_URL);
-      else window.open(CONFIG.DONATE_URL, '_blank', 'noopener');
-    });
+    btn.addEventListener('click', openDonate);
     host.append(btn);
   }
 }
@@ -699,6 +695,20 @@ function renderMeta() {
     $('#banners').hidden = false;
     $('#synthetic-banner').hidden = false;
   }
+
+  if (CONFIG.DONATE_URL) {
+    const btn = $('#donate-top');
+    btn.hidden = false;
+    btn.append(icon('heart', 17));
+    btn.addEventListener('click', openDonate);
+  }
+}
+
+/** Boosty открывается во внешнем браузере: внутри Mini App платить нельзя. */
+function openDonate() {
+  haptic('light');
+  if (tg?.openLink) tg.openLink(CONFIG.DONATE_URL);
+  else window.open(CONFIG.DONATE_URL, '_blank', 'noopener');
 }
 
 function fail(message) {

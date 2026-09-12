@@ -158,6 +158,23 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.topbar__donate {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  padding: 0;
+  color: var(--ink-3);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color 0.3s ease, border-color 0.3s ease, transform 0.25s var(--ease);
+}
+.topbar__donate:hover { color: var(--accent); border-color: var(--accent); }
+.topbar__donate:active { transform: scale(0.92); }
+.topbar__donate[hidden] { display: none; }
+
 .topbar__sub {
   margin: 1px 0 0;
   font-family: var(--mono);
