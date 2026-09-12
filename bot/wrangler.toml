@@ -1,0 +1,14 @@
+# Конфигурация Cloudflare Workers.
+#
+# Токен бота и секрет вебхука здесь НЕ ХРАНЯТСЯ. Они задаются командами:
+#   wrangler secret put BOT_TOKEN
+#   wrangler secret put WEBHOOK_SECRET
+# Всё, что попадает в этот файл, уходит в git — значит, секретов тут быть не может.
+
+name = "loto-analytics-bot"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Адрес Mini App на GitHub Pages. Слэш на конце обязателен.
+MINIAPP_URL = "https://ЗАМЕНИТЕ-НА-ЛОГИН.github.io/lotoanalytics/"

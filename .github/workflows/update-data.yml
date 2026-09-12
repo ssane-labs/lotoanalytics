@@ -1,0 +1,64 @@
+name: Обновление данных
+
+# Раз в сутки тянем свежие тиражи, пересчитываем статистику и коммитим
+# результат в docs/data/. GitHub Pages раздаёт папку docs/ как есть, поэтому
+# отдельный деплой не нужен: коммит = публикация.
+
+on:
+  schedule:
+    - cron: '17 4 * * *'   # 04:17 UTC ежедневно
+  workflow_dispatch:        # и кнопкой из вкладки Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Установить зависимости
+        run: pip install -r requirements.txt
+
+      - name: Собрать данные
+        id: build
+        run: |
+          # Сначала пробуем сеть. Если разбор архива сломался, откатываемся на
+          # закоммиченный CSV — приложение продолжит работать на прошлых данных.
+          if python scripts/build_data.py --fetch; then
+            echo "source=network" >> "$GITHUB_OUTPUT"
+          elif [ -f data/draws_6x45.csv ]; then
+            echo "::warning::Разбор архива Столото не сработал, беру кэш data/draws_6x45.csv"
+            python scripts/build_data.py --csv data/draws_6x45.csv
+            echo "source=cache" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Нет ни сети, ни кэша. Скачайте архив вручную и закоммитьте в data/draws_6x45.csv"
+            exit 1
+          fi
+
+      - name: Проверить предсказуемость на свежих данных
+        run: |
+          python scripts/verify_randomness.py \
+            --csv data/draws_6x45.csv \
+            --out docs/data/6x45_randomness.json
+
+      - name: Закоммитить, если что-то изменилось
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data data
+          if git diff --staged --quiet; then
+            echo "Изменений нет — новых тиражей не появилось."
+          else
+            git commit -m "Данные: обновление тиражей (источник: ${{ steps.build.outputs.source }})"
+            git push
+          fi

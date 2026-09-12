@@ -1,0 +1,6 @@
+# Репозиторий разрабатывается на Windows, а выполняется на ubuntu-runner'ах
+# GitHub Actions. Без этого bash-шаги в workflow получили бы CRLF и упали.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

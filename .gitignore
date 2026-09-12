@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+node_modules/
+.wrangler/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Черновые выгрузки архива; в репозиторий попадает только
+# нормализованный data/draws_6x45.csv, который пишет build_data.py
+data/raw/

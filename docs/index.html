@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Лотерейный аналитик</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <header class="topbar">
+    <div class="topbar__title">
+      <h1 id="game-title">Лотерейный аналитик</h1>
+      <p class="topbar__sub" id="data-meta">Загрузка данных…</p>
+    </div>
+  </header>
+
+  <div class="banner banner--warn" id="synthetic-banner" hidden>
+    <strong>Демо-данные.</strong> Загружена синтетическая история тиражей, а не
+    реальная. Цифры на экранах ничего не значат до первой сборки с настоящим
+    архивом.
+  </div>
+
+  <!-- ===================== ГЕНЕРАТОР ===================== -->
+  <section class="view" id="view-generate">
+
+    <div class="card card--accent">
+      <h2>Комбинации, которые не ставит никто</h2>
+      <p class="muted">
+        Шанс выиграть у любой комбинации одинаков и равен
+        <b id="odds-line">1 к 8 145 060</b>. Изменить его нельзя.
+        Но джекпот делится между всеми, кто угадал — а сотни тысяч людей
+        ставят дни рождения и узоры на бланке. Мы подбираем комбинацию,
+        которую, скорее всего, не поставил больше никто.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label for="gen-count">Сколько комбинаций</label>
+        <div class="chips" id="gen-count" role="group">
+          <button class="chip is-active" data-count="1">1</button>
+          <button class="chip" data-count="3">3</button>
+          <button class="chip" data-count="5">5</button>
+          <button class="chip" data-count="10">10</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="gen-include">Оставить мои числа <span class="muted">(через пробел, необязательно)</span></label>
+        <input id="gen-include" type="text" inputmode="numeric" placeholder="например: 7 23">
+      </div>
+
+      <div class="field">
+        <label for="gen-exclude">Исключить числа <span class="muted">(необязательно)</span></label>
+        <input id="gen-exclude" type="text" inputmode="numeric" placeholder="например: 13">
+      </div>
+
+      <label class="switch">
+        <input type="checkbox" id="gen-spread" checked>
+        <span>Разные числа в разных билетах</span>
+      </label>
+
+      <button class="btn btn--primary" id="gen-run">Подобрать</button>
+      <p class="error" id="gen-error" hidden></p>
+    </div>
+
+    <div id="gen-results"></div>
+  </section>
+
+  <!-- ===================== МОЯ КОМБИНАЦИЯ ===================== -->
+  <section class="view" id="view-check" hidden>
+
+    <div class="card">
+      <h2>Проверить свою комбинацию</h2>
+      <p class="muted">
+        Отметьте числа так же, как на бланке. Мы покажем, насколько часто
+        такую комбинацию выбирают другие и во что это обойдётся при выигрыше.
+      </p>
+      <div class="slip" id="slip" role="group" aria-label="Игровой бланк"></div>
+      <div class="slip-footer">
+        <span id="slip-counter" class="muted">Выбрано 0 из 6</span>
+        <button class="btn btn--ghost btn--sm" id="slip-clear">Очистить</button>
+        <button class="btn btn--ghost btn--sm" id="slip-random">Случайно</button>
+      </div>
+    </div>
+
+    <div id="check-result"></div>
+  </section>
+
+  <!-- ===================== СТАТИСТИКА ===================== -->
+  <section class="view" id="view-stats" hidden>
+
+    <div class="banner banner--info" id="uniformity-banner">
+      <span class="spinner"></span> Проверяем данные…
+    </div>
+
+    <div class="card">
+      <h2>Частота выпадения чисел</h2>
+      <p class="muted">
+        Столбики показывают, что уже выпало. Они <b>не говорят</b>, что выпадет
+        дальше: шар не помнит прошлых тиражей. Пунктир — сколько раз число
+        должно было выпасть в среднем.
+      </p>
+      <div class="freq" id="freq-chart"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Чаще всего</h3>
+        <ul class="numlist" id="list-hot"></ul>
+      </div>
+      <div class="card">
+        <h3>Реже всего</h3>
+        <ul class="numlist" id="list-cold"></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Давно не выпадали</h3>
+      <p class="muted">
+        Любимая цифра «систем игры». Ниже, во вкладке «Проверка», видно, что
+        ставка на такие числа не работает — мы это измерили.
+      </p>
+      <ul class="numlist" id="list-overdue"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Факты против интуиции</h2>
+      <dl class="facts" id="facts"></dl>
+    </div>
+  </section>
+
+  <!-- ===================== ПРОВЕРКА ===================== -->
+  <section class="view" id="view-proof" hidden>
+
+    <div class="card card--accent">
+      <h2>Можно ли предсказать тираж?</h2>
+      <p class="muted">
+        Нам постоянно пишут: «сделайте ИИ, обученный на выигрышных билетах».
+        Мы его сделали — несколько моделей, включая обучаемые. И проверили
+        на тиражах, которых они не видели. Вот результат, как есть.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="bigstat">
+        <span class="bigstat__value" id="proof-baseline">0.800</span>
+        <span class="bigstat__label">совпадений на тираж даёт случайный выбор</span>
+      </div>
+      <p class="muted">
+        Любая модель, которая действительно что-то знает, должна давать
+        заметно больше. Ни одна не даёт.
+      </p>
+      <div class="table-wrap">
+        <table class="table" id="proof-table">
+          <thead>
+            <tr><th>Стратегия</th><th>Совпадений</th><th>p-value</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted" id="proof-note"></p>
+    </div>
+
+    <div class="card">
+      <h3>Почему так</h3>
+      <p class="muted">
+        Тираж — это выборка из равномерного распределения. Модель, обученная на
+        любом количестве прошлых тиражей, в пределе сходится ровно к нему:
+        «все комбинации равновероятны». Всё, что модель находит сверх этого, —
+        шум обучающей выборки, и на новых данных он не воспроизводится.
+      </p>
+      <p class="muted">
+        Поэтому мы не продаём предсказания. Мы считаем то, что действительно
+        считается: сколько человек поставит ту же комбинацию, что и вы.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Сколько на самом деле стоит игра</h3>
+      <dl class="facts" id="ev-facts"></dl>
+      <p class="muted">
+        Ожидаемая выплата ниже цены билета — так устроена любая лотерея.
+        Если вы всё равно играете, единственное, что в вашей власти, — не
+        делить выигрыш с сотней других людей.
+      </p>
+    </div>
+
+    <div class="card card--muted">
+      <h3>Играйте ответственно</h3>
+      <p class="muted">
+        Лотерея — это развлечение с отрицательным матожиданием, а не способ
+        заработка. Не ставьте больше, чем готовы потерять. Если игра перестала
+        быть развлечением — <a href="https://www.stoloto.ru/responsible-gaming" target="_blank" rel="noopener noreferrer">ответственная игра</a>.
+      </p>
+    </div>
+  </section>
+
+  <nav class="tabbar" id="tabbar">
+    <button class="tab is-active" data-view="generate">
+      <span class="tab__ico">✦</span><span>Подбор</span>
+    </button>
+    <button class="tab" data-view="check">
+      <span class="tab__ico">▦</span><span>Моя</span>
+    </button>
+    <button class="tab" data-view="stats">
+      <span class="tab__ico">▤</span><span>Статистика</span>
+    </button>
+    <button class="tab" data-view="proof">
+      <span class="tab__ico">?</span><span>Проверка</span>
+    </button>
+  </nav>
+
+</div>
+
+<div class="fatal" id="fatal" hidden></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

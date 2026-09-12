@@ -1,0 +1,8406 @@
+{
+ "note": "Эталон Python-модели. Сгенерирован tests/make_vectors.py. past_winners намеренно пуст: фактор history проверяется отдельно, он зависит от загруженных данных.",
+ "game": "6x45",
+ "vectors": [
+  {
+   "combo": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "breakdown": {
+    "numbers": 34.67197850000001,
+    "consecutive": 60.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.0059792579777953,
+    "parity": 1.3,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 9576.45819298454
+  },
+  {
+   "combo": [
+    5,
+    10,
+    15,
+    20,
+    25,
+    30
+   ],
+   "breakdown": {
+    "numbers": 15.129182640624999,
+    "consecutive": 1.25,
+    "arithmetic": 25.0,
+    "grid": 8.0,
+    "sum": 1.3253287692397218,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6516.62082782831
+  },
+  {
+   "combo": [
+    1,
+    6,
+    11,
+    16,
+    21,
+    26
+   ],
+   "breakdown": {
+    "numbers": 13.384199625,
+    "consecutive": 1.25,
+    "arithmetic": 25.0,
+    "grid": 8.0,
+    "sum": 1.1936021203109355,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5192.00794159607
+  },
+  {
+   "combo": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    45
+   ],
+   "breakdown": {
+    "numbers": 10.307885500000003,
+    "consecutive": 12.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.081688714053626,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 294.3579780532254
+  },
+  {
+   "combo": [
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.03522990625000002,
+    "consecutive": 60.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.0001043352058014,
+    "parity": 1.3,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 9.673732265551132
+  },
+  {
+   "combo": [
+    2,
+    4,
+    6,
+    8,
+    10,
+    12
+   ],
+   "breakdown": {
+    "numbers": 40.089475140625005,
+    "consecutive": 1.25,
+    "arithmetic": 25.0,
+    "grid": 1.0,
+    "sum": 1.0287794979899592,
+    "parity": 0.7,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 1443.5130538448598
+  },
+  {
+   "combo": [
+    1,
+    3,
+    5,
+    7,
+    9,
+    11
+   ],
+   "breakdown": {
+    "numbers": 36.11558900000001,
+    "consecutive": 1.25,
+    "arithmetic": 25.0,
+    "grid": 1.0,
+    "sum": 1.019098860168187,
+    "parity": 0.7,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 1288.1874454470953
+  },
+  {
+   "combo": [
+    3,
+    7,
+    11,
+    13,
+    21,
+    33
+   ],
+   "breakdown": {
+    "numbers": 3.6072095999999996,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2371421613161762,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.9048021957564014
+  },
+  {
+   "combo": [
+    1,
+    13,
+    26,
+    39,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.2767065812500001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1187022522322116,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.30955227565185056
+  },
+  {
+   "combo": [
+    1,
+    7,
+    13,
+    19,
+    25,
+    31
+   ],
+   "breakdown": {
+    "numbers": 8.042577612499999,
+    "consecutive": 1.25,
+    "arithmetic": 25.0,
+    "grid": 6.0,
+    "sum": 1.2838910659355869,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1355.2604026214283
+  },
+  {
+   "combo": [
+    8,
+    16,
+    24,
+    32,
+    40,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.8236280937500001,
+    "consecutive": 1.25,
+    "arithmetic": 3.0,
+    "grid": 1.0,
+    "sum": 1.1401492941191838,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.4650298479777026
+  },
+  {
+   "combo": [
+    4,
+    17,
+    23,
+    31,
+    38,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1812833328426666,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.2749792735014323
+  },
+  {
+   "combo": [
+    5,
+    8,
+    11,
+    20,
+    25,
+    27
+   ],
+   "breakdown": {
+    "numbers": 16.172574546875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 25.95477996738761
+  },
+  {
+   "combo": [
+    19,
+    21,
+    23,
+    28,
+    33,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.7102786250000002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1136283635754225,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.3807684830209674
+  },
+  {
+   "combo": [
+    9,
+    10,
+    15,
+    23,
+    27,
+    36
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3493949871862194,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.743712943804331
+  },
+  {
+   "combo": [
+    1,
+    3,
+    10,
+    25,
+    32,
+    34
+   ],
+   "breakdown": {
+    "numbers": 2.401910500000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3253287692397218,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.17289676603207
+  },
+  {
+   "combo": [
+    4,
+    14,
+    16,
+    20,
+    42,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.726367024283046
+  },
+  {
+   "combo": [
+    12,
+    14,
+    22,
+    27,
+    32,
+    38
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.2553465739166259,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.889757984087566
+  },
+  {
+   "combo": [
+    4,
+    11,
+    15,
+    18,
+    23,
+    25
+   ],
+   "breakdown": {
+    "numbers": 12.675801671875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 20.34293565011461
+  },
+  {
+   "combo": [
+    3,
+    5,
+    6,
+    30,
+    35,
+    40
+   ],
+   "breakdown": {
+    "numbers": 3.0569770000000007,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3498486486510077,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 11.80166493908463
+  },
+  {
+   "combo": [
+    2,
+    8,
+    17,
+    21,
+    26,
+    39
+   ],
+   "breakdown": {
+    "numbers": 4.749232125000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.389577645180065
+  },
+  {
+   "combo": [
+    1,
+    5,
+    21,
+    26,
+    31,
+    45
+   ],
+   "breakdown": {
+    "numbers": 4.749232125000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3321536006031727,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 17.39844335740227
+  },
+  {
+   "combo": [
+    7,
+    8,
+    25,
+    27,
+    37,
+    41
+   ],
+   "breakdown": {
+    "numbers": 2.70620659375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2553465739166259,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.397227175774645
+  },
+  {
+   "combo": [
+    10,
+    15,
+    20,
+    23,
+    39,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.2122857308994217,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.687727764519719
+  },
+  {
+   "combo": [
+    1,
+    4,
+    12,
+    21,
+    22,
+    43
+   ],
+   "breakdown": {
+    "numbers": 6.059365125000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.378520271342317
+  },
+  {
+   "combo": [
+    1,
+    3,
+    26,
+    33,
+    39,
+    41
+   ],
+   "breakdown": {
+    "numbers": 1.1035805000000003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.747926679734186
+  },
+  {
+   "combo": [
+    19,
+    29,
+    31,
+    37,
+    38,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.5072149843750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0235361771551164,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5191528861029797
+  },
+  {
+   "combo": [
+    7,
+    13,
+    21,
+    27,
+    37,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.7505751,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2247585197006767,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8043640923501639
+  },
+  {
+   "combo": [
+    1,
+    8,
+    11,
+    17,
+    24,
+    37
+   ],
+   "breakdown": {
+    "numbers": 6.134424828125001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.925461868909611
+  },
+  {
+   "combo": [
+    18,
+    20,
+    23,
+    33,
+    35,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.783877703125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0901551225362425,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.0681853668795784
+  },
+  {
+   "combo": [
+    3,
+    14,
+    15,
+    34,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.5596855000000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8865899090621355
+  },
+  {
+   "combo": [
+    8,
+    18,
+    24,
+    31,
+    32,
+    35
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2371421613161762,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.1106718686182373
+  },
+  {
+   "combo": [
+    1,
+    8,
+    23,
+    26,
+    30,
+    35
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.554072987925911
+  },
+  {
+   "combo": [
+    4,
+    5,
+    19,
+    24,
+    30,
+    42
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3445923830918118,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.716152453478677
+  },
+  {
+   "combo": [
+    10,
+    11,
+    12,
+    14,
+    19,
+    23
+   ],
+   "breakdown": {
+    "numbers": 16.172574546875,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2432716765251552,
+    "parity": 1.3,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 58.551304071249334
+  },
+  {
+   "combo": [
+    1,
+    2,
+    3,
+    17,
+    22,
+    23
+   ],
+   "breakdown": {
+    "numbers": 16.694270500000002,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1187022522322116,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 26.14628521081328
+  },
+  {
+   "combo": [
+    9,
+    13,
+    18,
+    26,
+    32,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.72949916875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.515484014877334
+  },
+  {
+   "combo": [
+    5,
+    8,
+    11,
+    15,
+    35,
+    37
+   ],
+   "breakdown": {
+    "numbers": 2.3268507968750005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3426602333352067,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.9052125423354997
+  },
+  {
+   "combo": [
+    3,
+    17,
+    19,
+    26,
+    28,
+    45
+   ],
+   "breakdown": {
+    "numbers": 3.8900455000000003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.294069837086064
+  },
+  {
+   "combo": [
+    1,
+    10,
+    25,
+    30,
+    35,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.860298596019621
+  },
+  {
+   "combo": [
+    10,
+    15,
+    20,
+    21,
+    38,
+    39
+   ],
+   "breakdown": {
+    "numbers": 1.4119338750000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.3257706762110164
+  },
+  {
+   "combo": [
+    7,
+    8,
+    23,
+    25,
+    36,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.70620659375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.497565463506927
+  },
+  {
+   "combo": [
+    16,
+    20,
+    24,
+    38,
+    42,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.5072149843750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0531889202936668,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.46741905153184093
+  },
+  {
+   "combo": [
+    7,
+    8,
+    21,
+    32,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.8495107500000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2060438198374723,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.3319113468998953
+  },
+  {
+   "combo": [
+    33,
+    36,
+    37,
+    39,
+    41,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.04277917187500002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0013979533568427,
+    "parity": 1.0,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 0.068542360259081
+  },
+  {
+   "combo": [
+    1,
+    16,
+    18,
+    23,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.8103062337549782
+  },
+  {
+   "combo": [
+    1,
+    12,
+    17,
+    37,
+    41,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.8256567343750002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.2576069146904667
+  },
+  {
+   "combo": [
+    3,
+    8,
+    21,
+    26,
+    38,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.5579960000000004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.2366288193153303
+  },
+  {
+   "combo": [
+    11,
+    13,
+    18,
+    21,
+    33,
+    40
+   ],
+   "breakdown": {
+    "numbers": 0.9949232999999997,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3042332710641509,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.622015087521174
+  },
+  {
+   "combo": [
+    4,
+    12,
+    27,
+    30,
+    31,
+    34
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.428087592216226
+  },
+  {
+   "combo": [
+    17,
+    30,
+    40,
+    41,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.24486240625000005,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.005046759243222,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.3199276182206778
+  },
+  {
+   "combo": [
+    2,
+    4,
+    10,
+    25,
+    29,
+    32
+   ],
+   "breakdown": {
+    "numbers": 7.321732859375002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.019669637306427
+  },
+  {
+   "combo": [
+    1,
+    4,
+    11,
+    20,
+    31,
+    40
+   ],
+   "breakdown": {
+    "numbers": 7.80744978125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3321536006031727,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 16.90117379863354
+  },
+  {
+   "combo": [
+    1,
+    11,
+    13,
+    19,
+    26,
+    29
+   ],
+   "breakdown": {
+    "numbers": 5.4199979562500005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.299403237724861,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.803453616016725
+  },
+  {
+   "combo": [
+    9,
+    11,
+    13,
+    17,
+    27,
+    34
+   ],
+   "breakdown": {
+    "numbers": 2.0558612937500005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3426602333352067,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.4504040054639944
+  },
+  {
+   "combo": [
+    1,
+    2,
+    8,
+    13,
+    37,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.1874962687500004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.5693376090478248
+  },
+  {
+   "combo": [
+    15,
+    16,
+    17,
+    27,
+    33,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.066586671875,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2247585197006767,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.543497486310282
+  },
+  {
+   "combo": [
+    11,
+    17,
+    26,
+    28,
+    30,
+    44
+   ],
+   "breakdown": {
+    "numbers": 3.7684815781250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1874225475685212,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.5934749949527856
+  },
+  {
+   "combo": [
+    10,
+    29,
+    30,
+    35,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.0307218668710438,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9076703258616747
+  },
+  {
+   "combo": [
+    2,
+    4,
+    9,
+    39,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.3407215937500003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.247031410260915
+  },
+  {
+   "combo": [
+    4,
+    16,
+    30,
+    31,
+    38,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1573059554891891,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9744643744391013
+  },
+  {
+   "combo": [
+    4,
+    7,
+    24,
+    28,
+    39,
+    40
+   ],
+   "breakdown": {
+    "numbers": 3.4442629375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.383913568080453
+  },
+  {
+   "combo": [
+    23,
+    30,
+    37,
+    38,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.24486240625000005,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.007059586226765,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.32056834357679964
+  },
+  {
+   "combo": [
+    4,
+    15,
+    24,
+    33,
+    37,
+    38
+   ],
+   "breakdown": {
+    "numbers": 1.000119828125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.5842757181820541
+  },
+  {
+   "combo": [
+    3,
+    11,
+    14,
+    29,
+    41,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.5772955000000006,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.5205555340995174
+  },
+  {
+   "combo": [
+    1,
+    17,
+    18,
+    24,
+    35,
+    36
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3253287692397218,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.9394636352925474
+  },
+  {
+   "combo": [
+    8,
+    15,
+    30,
+    31,
+    34,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.151496559067981,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9645530400886089
+  },
+  {
+   "combo": [
+    13,
+    18,
+    22,
+    39,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.21687813125000008,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0663738661345796,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.2890914641263817
+  },
+  {
+   "combo": [
+    8,
+    10,
+    15,
+    21,
+    28,
+    40
+   ],
+   "breakdown": {
+    "numbers": 6.04447725,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.347586216496765,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.181817785035337
+  },
+  {
+   "combo": [
+    3,
+    6,
+    10,
+    14,
+    31,
+    37
+   ],
+   "breakdown": {
+    "numbers": 6.332309500000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3088739159046086,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.46831643947555
+  },
+  {
+   "combo": [
+    13,
+    21,
+    27,
+    32,
+    40,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.22843590000000005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.081688714053626,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.3088706686433535
+  },
+  {
+   "combo": [
+    10,
+    14,
+    27,
+    28,
+    34,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1751935971684175,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.004982243176275
+  },
+  {
+   "combo": [
+    2,
+    9,
+    24,
+    27,
+    31,
+    45
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.285109490270283
+  },
+  {
+   "combo": [
+    7,
+    12,
+    13,
+    36,
+    41,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.4389138875000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2122857308994217,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5320890429098442
+  },
+  {
+   "combo": [
+    5,
+    11,
+    20,
+    23,
+    30,
+    45
+   ],
+   "breakdown": {
+    "numbers": 4.8080627031250005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 17.364866770390535
+  },
+  {
+   "combo": [
+    7,
+    18,
+    19,
+    20,
+    26,
+    43
+   ],
+   "breakdown": {
+    "numbers": 5.591940406249999,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.409077012398278
+  },
+  {
+   "combo": [
+    3,
+    22,
+    33,
+    35,
+    40,
+    41
+   ],
+   "breakdown": {
+    "numbers": 0.417571,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0901551225362425,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.45521716467258133
+  },
+  {
+   "combo": [
+    1,
+    9,
+    10,
+    23,
+    25,
+    33
+   ],
+   "breakdown": {
+    "numbers": 11.315405328125001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3088739159046086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 14.810438881870843
+  },
+  {
+   "combo": [
+    12,
+    15,
+    17,
+    20,
+    30,
+    38
+   ],
+   "breakdown": {
+    "numbers": 4.497865109375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.430201111280537
+  },
+  {
+   "combo": [
+    6,
+    11,
+    21,
+    30,
+    32,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.5093086250000005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.401340533383115
+  },
+  {
+   "combo": [
+    2,
+    5,
+    11,
+    15,
+    19,
+    38
+   ],
+   "breakdown": {
+    "numbers": 6.134424828125001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2493438352641433,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.580007302386589
+  },
+  {
+   "combo": [
+    6,
+    11,
+    16,
+    22,
+    26,
+    27
+   ],
+   "breakdown": {
+    "numbers": 12.675801671875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 37.23396931682436
+  },
+  {
+   "combo": [
+    3,
+    5,
+    9,
+    18,
+    24,
+    25
+   ],
+   "breakdown": {
+    "numbers": 16.694270500000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2122857308994217,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 20.238225914925156
+  },
+  {
+   "combo": [
+    10,
+    15,
+    27,
+    37,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.8236280937500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.0901551225362425,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.469176560032389
+  },
+  {
+   "combo": [
+    12,
+    17,
+    24,
+    35,
+    36,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.123895484690475,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9455077219647738
+  },
+  {
+   "combo": [
+    14,
+    19,
+    21,
+    23,
+    28,
+    34
+   ],
+   "breakdown": {
+    "numbers": 2.917534125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.112185081846985
+  },
+  {
+   "combo": [
+    6,
+    9,
+    16,
+    26,
+    27,
+    39
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.043258390340728
+  },
+  {
+   "combo": [
+    9,
+    15,
+    18,
+    24,
+    40,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.17138315625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2371421613161762,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.3578870637108316
+  },
+  {
+   "combo": [
+    7,
+    14,
+    20,
+    30,
+    41,
+    44
+   ],
+   "breakdown": {
+    "numbers": 2.1210808437499997,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1874225475685212,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.1482740238555165
+  },
+  {
+   "combo": [
+    6,
+    19,
+    30,
+    34,
+    35,
+    37
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1573059554891891,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9736151915337639
+  },
+  {
+   "combo": [
+    1,
+    10,
+    14,
+    23,
+    30,
+    42
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3493949871862194,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.679641179755414
+  },
+  {
+   "combo": [
+    19,
+    28,
+    31,
+    34,
+    36,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.5072149843750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0327669715708248,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.65479360418539
+  },
+  {
+   "combo": [
+    1,
+    7,
+    20,
+    22,
+    31,
+    32
+   ],
+   "breakdown": {
+    "numbers": 7.134544656249999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.48621313393712
+  },
+  {
+   "combo": [
+    19,
+    23,
+    29,
+    31,
+    34,
+    39
+   ],
+   "breakdown": {
+    "numbers": 1.3372031406250002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.0858547004617598,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.9930228682296818
+  },
+  {
+   "combo": [
+    5,
+    11,
+    20,
+    24,
+    31,
+    36
+   ],
+   "breakdown": {
+    "numbers": 4.8080627031250005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3379502017092255,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.453541253149636
+  },
+  {
+   "combo": [
+    20,
+    21,
+    35,
+    36,
+    40,
+    41
+   ],
+   "breakdown": {
+    "numbers": 0.20264475000000004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0307218668710438,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.27153148754110085
+  },
+  {
+   "combo": [
+    5,
+    13,
+    32,
+    38,
+    39,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.10495766875000004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.11636418526944187
+  },
+  {
+   "combo": [
+    14,
+    15,
+    21,
+    28,
+    32,
+    38
+   ],
+   "breakdown": {
+    "numbers": 1.1066508750000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2371421613161762,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.3690844553199377
+  },
+  {
+   "combo": [
+    3,
+    7,
+    32,
+    33,
+    35,
+    37
+   ],
+   "breakdown": {
+    "numbers": 0.520421,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2432716765251552,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6470246891688979
+  },
+  {
+   "combo": [
+    3,
+    8,
+    14,
+    26,
+    27,
+    40
+   ],
+   "breakdown": {
+    "numbers": 6.316751,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.35,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.52761385
+  },
+  {
+   "combo": [
+    9,
+    10,
+    11,
+    22,
+    27,
+    36
+   ],
+   "breakdown": {
+    "numbers": 6.134424828125001,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3486401916555268,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.05710001413604
+  },
+  {
+   "combo": [
+    7,
+    12,
+    14,
+    25,
+    34,
+    35
+   ],
+   "breakdown": {
+    "numbers": 2.70620659375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3379502017092255,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.707000555367044
+  },
+  {
+   "combo": [
+    4,
+    5,
+    9,
+    12,
+    16,
+    35
+   ],
+   "breakdown": {
+    "numbers": 9.341521234375001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1936021203109355,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 14.495077417963518
+  },
+  {
+   "combo": [
+    5,
+    6,
+    19,
+    31,
+    35,
+    38
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.858732238062068
+  },
+  {
+   "combo": [
+    3,
+    22,
+    32,
+    37,
+    42,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.21229450000000005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.0628805976541258,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8066762455132949
+  },
+  {
+   "combo": [
+    1,
+    15,
+    36,
+    37,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.24546551562500007,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0901551225362425,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.2675954892645939
+  },
+  {
+   "combo": [
+    15,
+    22,
+    27,
+    28,
+    34,
+    37
+   ],
+   "breakdown": {
+    "numbers": 1.3372031406250002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1457755489127326,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9917750611946716
+  },
+  {
+   "combo": [
+    6,
+    20,
+    22,
+    28,
+    29,
+    33
+   ],
+   "breakdown": {
+    "numbers": 6.951246078124999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.997658926198032
+  },
+  {
+   "combo": [
+    4,
+    6,
+    16,
+    18,
+    34,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.6629921184929715
+  },
+  {
+   "combo": [
+    10,
+    11,
+    16,
+    19,
+    33,
+    43
+   ],
+   "breakdown": {
+    "numbers": 2.818519515625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.7248190113149517
+  },
+  {
+   "combo": [
+    5,
+    21,
+    22,
+    30,
+    36,
+    41
+   ],
+   "breakdown": {
+    "numbers": 1.4119338750000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1936021203109355,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.1908734470204863
+  },
+  {
+   "combo": [
+    5,
+    12,
+    15,
+    16,
+    33,
+    42
+   ],
+   "breakdown": {
+    "numbers": 3.364039421875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.887427332268702
+  },
+  {
+   "combo": [
+    5,
+    7,
+    8,
+    11,
+    23,
+    42
+   ],
+   "breakdown": {
+    "numbers": 9.730466968750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.492859608559458
+  },
+  {
+   "combo": [
+    3,
+    4,
+    6,
+    21,
+    22,
+    45
+   ],
+   "breakdown": {
+    "numbers": 5.240532000000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3088739159046086,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.916954332342437
+  },
+  {
+   "combo": [
+    3,
+    15,
+    22,
+    33,
+    39,
+    41
+   ],
+   "breakdown": {
+    "numbers": 0.8649685,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2060438198374723,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.3039873922238607
+  },
+  {
+   "combo": [
+    11,
+    16,
+    19,
+    34,
+    38,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.5421953281250002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1631968883616444,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.7883498981990261
+  },
+  {
+   "combo": [
+    1,
+    7,
+    11,
+    22,
+    35,
+    41
+   ],
+   "breakdown": {
+    "numbers": 2.89284153125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3498486486510077,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.881122789649155
+  },
+  {
+   "combo": [
+    2,
+    3,
+    6,
+    12,
+    32,
+    41
+   ],
+   "breakdown": {
+    "numbers": 3.0645065000000016,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.934492516851537
+  },
+  {
+   "combo": [
+    19,
+    21,
+    22,
+    29,
+    36,
+    39
+   ],
+   "breakdown": {
+    "numbers": 1.1066508750000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1292041048457726,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.249634710681166
+  },
+  {
+   "combo": [
+    12,
+    20,
+    22,
+    33,
+    40,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.2728797812500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.7640161559312166
+  },
+  {
+   "combo": [
+    3,
+    9,
+    12,
+    14,
+    22,
+    43
+   ],
+   "breakdown": {
+    "numbers": 6.332309500000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.557526480582307
+  },
+  {
+   "combo": [
+    1,
+    12,
+    28,
+    35,
+    39,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.8256567343750002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1691620328606616,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.5686555722613271
+  },
+  {
+   "combo": [
+    10,
+    12,
+    14,
+    18,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.4632236455915075
+  },
+  {
+   "combo": [
+    2,
+    23,
+    24,
+    31,
+    33,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.6366795468750004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1936021203109355,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.09129018704962
+  },
+  {
+   "combo": [
+    7,
+    12,
+    14,
+    18,
+    22,
+    40
+   ],
+   "breakdown": {
+    "numbers": 9.080329562499998,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.280330758314655
+  },
+  {
+   "combo": [
+    7,
+    15,
+    16,
+    17,
+    35,
+    36
+   ],
+   "breakdown": {
+    "numbers": 2.1210808437499997,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.9804669815324507
+  },
+  {
+   "combo": [
+    1,
+    6,
+    19,
+    34,
+    36,
+    37
+   ],
+   "breakdown": {
+    "numbers": 0.8256567343750002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.4141902621986717
+  },
+  {
+   "combo": [
+    5,
+    14,
+    25,
+    27,
+    39,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2060438198374723,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.5720192497356673
+  },
+  {
+   "combo": [
+    4,
+    5,
+    10,
+    22,
+    41,
+    44
+   ],
+   "breakdown": {
+    "numbers": 2.777209015625001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.722693961188679
+  },
+  {
+   "combo": [
+    3,
+    16,
+    17,
+    33,
+    35,
+    40
+   ],
+   "breakdown": {
+    "numbers": 1.1008689999999999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2612677154280358,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.3884905286155462
+  },
+  {
+   "combo": [
+    16,
+    22,
+    23,
+    33,
+    37,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.783877703125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.094589090880788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.1154311771529084
+  },
+  {
+   "combo": [
+    1,
+    9,
+    15,
+    23,
+    24,
+    25
+   ],
+   "breakdown": {
+    "numbers": 15.129182640624999,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 27.30679237265252
+  },
+  {
+   "combo": [
+    4,
+    8,
+    11,
+    13,
+    19,
+    30
+   ],
+   "breakdown": {
+    "numbers": 6.9151698062500015,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.692778733932744
+  },
+  {
+   "combo": [
+    8,
+    12,
+    17,
+    23,
+    35,
+    36
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3253287692397218,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.750350155373249
+  },
+  {
+   "combo": [
+    1,
+    6,
+    11,
+    16,
+    27,
+    31
+   ],
+   "breakdown": {
+    "numbers": 16.172574546875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.2612677154280358,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 56.09435191614825
+  },
+  {
+   "combo": [
+    2,
+    7,
+    15,
+    23,
+    33,
+    36
+   ],
+   "breakdown": {
+    "numbers": 4.18231928125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3493949871862194,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.054500841163777
+  },
+  {
+   "combo": [
+    2,
+    7,
+    9,
+    18,
+    22,
+    36
+   ],
+   "breakdown": {
+    "numbers": 9.10269490625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 14.482571608837212
+  },
+  {
+   "combo": [
+    1,
+    3,
+    7,
+    23,
+    28,
+    34
+   ],
+   "breakdown": {
+    "numbers": 7.872601000000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.634452611969461
+  },
+  {
+   "combo": [
+    6,
+    12,
+    18,
+    33,
+    38,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.276014953125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9435743227034483
+  },
+  {
+   "combo": [
+    4,
+    6,
+    15,
+    19,
+    28,
+    45
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3498486486510077,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.587764069818094
+  },
+  {
+   "combo": [
+    20,
+    30,
+    35,
+    39,
+    41,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.19239189062500006,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0113804286187191,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.2529558106440018
+  },
+  {
+   "combo": [
+    19,
+    24,
+    32,
+    37,
+    39,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.19239189062500006,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0251899540244023,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.24654779188063955
+  },
+  {
+   "combo": [
+    4,
+    13,
+    15,
+    28,
+    37,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.72949916875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.160647924468505
+  },
+  {
+   "combo": [
+    5,
+    8,
+    9,
+    32,
+    42,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.0534241093750003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.3524818026677154
+  },
+  {
+   "combo": [
+    4,
+    15,
+    21,
+    24,
+    30,
+    44
+   ],
+   "breakdown": {
+    "numbers": 3.722371125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.022773723418561
+  },
+  {
+   "combo": [
+    6,
+    13,
+    14,
+    24,
+    31,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.9232250812499998,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3288656857666359,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.555707816478875
+  },
+  {
+   "combo": [
+    15,
+    16,
+    17,
+    22,
+    31,
+    34
+   ],
+   "breakdown": {
+    "numbers": 3.525353734375,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3088739159046086,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.39792325601382
+  },
+  {
+   "combo": [
+    20,
+    23,
+    30,
+    32,
+    36,
+    39
+   ],
+   "breakdown": {
+    "numbers": 0.5072149843750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0663738661345796,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6761010048116991
+  },
+  {
+   "combo": [
+    16,
+    28,
+    32,
+    38,
+    39,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.19239189062500006,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0219719593306937,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.19661911742136784
+  },
+  {
+   "combo": [
+    1,
+    5,
+    10,
+    33,
+    43,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.6280190781250004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3042332710641509,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.1233166476178127
+  },
+  {
+   "combo": [
+    4,
+    14,
+    18,
+    21,
+    22,
+    29
+   ],
+   "breakdown": {
+    "numbers": 9.813523875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.102863102694785
+  },
+  {
+   "combo": [
+    6,
+    10,
+    17,
+    19,
+    31,
+    32
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3486401916555268,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.061195861980302
+  },
+  {
+   "combo": [
+    3,
+    7,
+    17,
+    22,
+    35,
+    39
+   ],
+   "breakdown": {
+    "numbers": 2.340503,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.938586120103472
+  },
+  {
+   "combo": [
+    2,
+    13,
+    18,
+    20,
+    22,
+    29
+   ],
+   "breakdown": {
+    "numbers": 5.070320668749999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.37586307089806
+  },
+  {
+   "combo": [
+    3,
+    4,
+    7,
+    24,
+    26,
+    37
+   ],
+   "breakdown": {
+    "numbers": 7.872601000000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3088739159046086,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.3955147289919
+  },
+  {
+   "combo": [
+    3,
+    5,
+    18,
+    28,
+    30,
+    34
+   ],
+   "breakdown": {
+    "numbers": 4.9631615,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.35,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.37533503125
+  },
+  {
+   "combo": [
+    5,
+    11,
+    14,
+    27,
+    38,
+    40
+   ],
+   "breakdown": {
+    "numbers": 2.32113371875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3088739159046086,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.936865992172625
+  },
+  {
+   "combo": [
+    6,
+    11,
+    14,
+    19,
+    40,
+    44
+   ],
+   "breakdown": {
+    "numbers": 2.32113371875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.810472332060619
+  },
+  {
+   "combo": [
+    1,
+    20,
+    22,
+    28,
+    34,
+    35
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.1904295560968796
+  },
+  {
+   "combo": [
+    13,
+    20,
+    22,
+    24,
+    41,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.5717696187500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1457755489127326,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.0645694292592212
+  },
+  {
+   "combo": [
+    3,
+    12,
+    27,
+    30,
+    34,
+    35
+   ],
+   "breakdown": {
+    "numbers": 1.8825785000000004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.1287411920048194
+  },
+  {
+   "combo": [
+    2,
+    5,
+    15,
+    26,
+    35,
+    43
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.6472339484618805
+  },
+  {
+   "combo": [
+    5,
+    7,
+    12,
+    25,
+    43,
+    44
+   ],
+   "breakdown": {
+    "numbers": 3.452746343750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3042332710641509,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.503186658063851
+  },
+  {
+   "combo": [
+    3,
+    4,
+    11,
+    12,
+    20,
+    21
+   ],
+   "breakdown": {
+    "numbers": 14.768772000000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1346236796068025,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 21.784097958888093
+  },
+  {
+   "combo": [
+    4,
+    17,
+    19,
+    21,
+    23,
+    38
+   ],
+   "breakdown": {
+    "numbers": 3.7223711250000004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.347586216496765,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.270270025919447
+  },
+  {
+   "combo": [
+    14,
+    24,
+    25,
+    30,
+    33,
+    41
+   ],
+   "breakdown": {
+    "numbers": 2.066586671875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.123895484690475,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.0194156580143776
+  },
+  {
+   "combo": [
+    4,
+    18,
+    26,
+    27,
+    30,
+    34
+   ],
+   "breakdown": {
+    "numbers": 4.497865109375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.798739693034319
+  },
+  {
+   "combo": [
+    4,
+    17,
+    20,
+    25,
+    27,
+    30
+   ],
+   "breakdown": {
+    "numbers": 11.858008015624998,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 25.940971456623316
+  },
+  {
+   "combo": [
+    15,
+    18,
+    27,
+    29,
+    30,
+    40
+   ],
+   "breakdown": {
+    "numbers": 4.486813843749999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1691620328606616,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.81955611301394
+  },
+  {
+   "combo": [
+    2,
+    12,
+    14,
+    24,
+    31,
+    45
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.577703453298811
+  },
+  {
+   "combo": [
+    5,
+    7,
+    22,
+    23,
+    24,
+    37
+   ],
+   "breakdown": {
+    "numbers": 7.134544656249999,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.35,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.484289400312498
+  },
+  {
+   "combo": [
+    6,
+    36,
+    38,
+    42,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.09310760937500002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0089982804727982,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.093945417758308
+  },
+  {
+   "combo": [
+    13,
+    18,
+    20,
+    21,
+    34,
+    35
+   ],
+   "breakdown": {
+    "numbers": 0.4731886500000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.7864133266390493
+  },
+  {
+   "combo": [
+    7,
+    8,
+    10,
+    16,
+    31,
+    39
+   ],
+   "breakdown": {
+    "numbers": 9.10269490625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3426602333352067,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.888374406846273
+  },
+  {
+   "combo": [
+    12,
+    13,
+    16,
+    20,
+    32,
+    35
+   ],
+   "breakdown": {
+    "numbers": 0.72949916875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9740158441975454
+  },
+  {
+   "combo": [
+    13,
+    21,
+    24,
+    27,
+    34,
+    36
+   ],
+   "breakdown": {
+    "numbers": 0.4731886500000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1936021203109355,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9177983359139875
+  },
+  {
+   "combo": [
+    4,
+    12,
+    17,
+    32,
+    41,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.8256567343750002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.6348889890976068
+  },
+  {
+   "combo": [
+    6,
+    7,
+    8,
+    13,
+    22,
+    25
+   ],
+   "breakdown": {
+    "numbers": 10.2612197125,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1936021203109355,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 22.29102076258579
+  },
+  {
+   "combo": [
+    8,
+    24,
+    32,
+    42,
+    43,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.24546551562500007,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0307218668710438,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.35420934432444884
+  },
+  {
+   "combo": [
+    10,
+    12,
+    13,
+    28,
+    30,
+    39
+   ],
+   "breakdown": {
+    "numbers": 2.45376993125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.2427836098506644
+  },
+  {
+   "combo": [
+    12,
+    13,
+    31,
+    32,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.3521720125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.094589090880788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5011287358948423
+  },
+  {
+   "combo": [
+    3,
+    12,
+    17,
+    23,
+    34,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.8825785000000004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.0905213384454795
+  },
+  {
+   "combo": [
+    16,
+    23,
+    25,
+    32,
+    38,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.5072149843750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0776576696765645,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8882316918907213
+  },
+  {
+   "combo": [
+    1,
+    25,
+    26,
+    35,
+    39,
+    40
+   ],
+   "breakdown": {
+    "numbers": 0.8236280937500001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1292041048457726,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.930044224328799
+  },
+  {
+   "combo": [
+    21,
+    26,
+    27,
+    31,
+    35,
+    36
+   ],
+   "breakdown": {
+    "numbers": 1.1066508750000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.081688714053626,
+    "parity": 1.0,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 4.213622201835448
+  },
+  {
+   "combo": [
+    10,
+    12,
+    14,
+    31,
+    34,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.4476568517551125
+  },
+  {
+   "combo": [
+    15,
+    19,
+    21,
+    30,
+    36,
+    39
+   ],
+   "breakdown": {
+    "numbers": 1.1066508750000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1631968883616444,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.609066067878364
+  },
+  {
+   "combo": [
+    1,
+    7,
+    8,
+    19,
+    30,
+    32
+   ],
+   "breakdown": {
+    "numbers": 9.10269490625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.255994583600163
+  },
+  {
+   "combo": [
+    4,
+    9,
+    11,
+    14,
+    25,
+    35
+   ],
+   "breakdown": {
+    "numbers": 6.134424828125001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.925461868909611
+  },
+  {
+   "combo": [
+    13,
+    18,
+    29,
+    31,
+    33,
+    34
+   ],
+   "breakdown": {
+    "numbers": 0.88364395625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1751935971684175,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.0384527195615694
+  },
+  {
+   "combo": [
+    1,
+    3,
+    18,
+    20,
+    31,
+    45
+   ],
+   "breakdown": {
+    "numbers": 4.9631615,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.35,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.37533503125
+  },
+  {
+   "combo": [
+    1,
+    9,
+    12,
+    16,
+    31,
+    43
+   ],
+   "breakdown": {
+    "numbers": 7.321732859375002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3445923830918118,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.305932792185825
+  },
+  {
+   "combo": [
+    7,
+    21,
+    22,
+    25,
+    36,
+    37
+   ],
+   "breakdown": {
+    "numbers": 1.7553772500000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2371421613161762,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.171651204990246
+  },
+  {
+   "combo": [
+    2,
+    16,
+    17,
+    27,
+    39,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.182673714260953
+  },
+  {
+   "combo": [
+    1,
+    7,
+    8,
+    14,
+    22,
+    34
+   ],
+   "breakdown": {
+    "numbers": 9.10269490625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2247585197006767,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 11.148603138665642
+  },
+  {
+   "combo": [
+    10,
+    16,
+    22,
+    24,
+    34,
+    41
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2432716765251552,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.651411691744967
+  },
+  {
+   "combo": [
+    7,
+    9,
+    12,
+    32,
+    34,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.3096624062500004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3042332710641509,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.697289531256259
+  },
+  {
+   "combo": [
+    7,
+    14,
+    17,
+    18,
+    24,
+    26
+   ],
+   "breakdown": {
+    "numbers": 14.742388343749996,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3288656857666359,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 19.590653996255398
+  },
+  {
+   "combo": [
+    5,
+    12,
+    29,
+    30,
+    42,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1457755489127326,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.242259285107616
+  },
+  {
+   "combo": [
+    3,
+    18,
+    23,
+    30,
+    37,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.4755345000000002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2060438198374723,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.891783805108209
+  },
+  {
+   "combo": [
+    2,
+    13,
+    27,
+    29,
+    35,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.72949916875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.230967201371718,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.1224869376989774
+  },
+  {
+   "combo": [
+    6,
+    11,
+    14,
+    33,
+    37,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.069093609375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.20129516229024
+  },
+  {
+   "combo": [
+    7,
+    8,
+    16,
+    27,
+    29,
+    39
+   ],
+   "breakdown": {
+    "numbers": 7.134544656249999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.56345963095459
+  },
+  {
+   "combo": [
+    9,
+    19,
+    24,
+    29,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.161299288176565
+  },
+  {
+   "combo": [
+    1,
+    6,
+    7,
+    10,
+    25,
+    44
+   ],
+   "breakdown": {
+    "numbers": 11.613783156250001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 19.130496677600906
+  },
+  {
+   "combo": [
+    2,
+    4,
+    16,
+    18,
+    24,
+    29
+   ],
+   "breakdown": {
+    "numbers": 15.129182640624999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 23.96263977128966
+  },
+  {
+   "combo": [
+    3,
+    5,
+    12,
+    24,
+    25,
+    37
+   ],
+   "breakdown": {
+    "numbers": 6.332309500000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3288656857666359,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.414788806204085
+  },
+  {
+   "combo": [
+    2,
+    4,
+    18,
+    26,
+    38,
+    40
+   ],
+   "breakdown": {
+    "numbers": 2.77038540625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.2366032359423564
+  },
+  {
+   "combo": [
+    9,
+    13,
+    23,
+    27,
+    32,
+    35
+   ],
+   "breakdown": {
+    "numbers": 0.72949916875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.1756065608351385
+  },
+  {
+   "combo": [
+    15,
+    19,
+    20,
+    27,
+    32,
+    33
+   ],
+   "breakdown": {
+    "numbers": 2.066586671875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2493438352641433,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.5818773185460744
+  },
+  {
+   "combo": [
+    7,
+    9,
+    26,
+    32,
+    34,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.0264921562500002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2060438198374723,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.01174109688005
+  },
+  {
+   "combo": [
+    11,
+    12,
+    22,
+    25,
+    27,
+    35
+   ],
+   "breakdown": {
+    "numbers": 4.8080627031250005,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.354103019301977
+  },
+  {
+   "combo": [
+    6,
+    8,
+    11,
+    12,
+    38,
+    39
+   ],
+   "breakdown": {
+    "numbers": 2.9687406718750013,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.347586216496765,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.000634009772097
+  },
+  {
+   "combo": [
+    13,
+    20,
+    24,
+    25,
+    26,
+    30
+   ],
+   "breakdown": {
+    "numbers": 3.9740351187499994,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.201560269960471
+  },
+  {
+   "combo": [
+    8,
+    17,
+    27,
+    32,
+    36,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1457755489127326,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.204893653249452
+  },
+  {
+   "combo": [
+    13,
+    16,
+    17,
+    33,
+    35,
+    37
+   ],
+   "breakdown": {
+    "numbers": 0.33517529375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.40842035146481226
+  },
+  {
+   "combo": [
+    15,
+    26,
+    29,
+    30,
+    40,
+    41
+   ],
+   "breakdown": {
+    "numbers": 1.70189490625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0628805976541258,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.351584397629366
+  },
+  {
+   "combo": [
+    11,
+    13,
+    18,
+    22,
+    32,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.61120200625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.2697298503026313
+  },
+  {
+   "combo": [
+    14,
+    15,
+    18,
+    20,
+    30,
+    34
+   ],
+   "breakdown": {
+    "numbers": 3.525353734375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3253287692397218,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.672252725913876
+  },
+  {
+   "combo": [
+    1,
+    6,
+    7,
+    21,
+    33,
+    35
+   ],
+   "breakdown": {
+    "numbers": 4.41605175,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.8183402768583345
+  },
+  {
+   "combo": [
+    10,
+    22,
+    24,
+    33,
+    39,
+    40
+   ],
+   "breakdown": {
+    "numbers": 1.2728797812500001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1187022522322116,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.42397347810522
+  },
+  {
+   "combo": [
+    6,
+    8,
+    13,
+    20,
+    26,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.45376993125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3486401916555268,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.136565937949461
+  },
+  {
+   "combo": [
+    6,
+    16,
+    17,
+    34,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.8236280937500001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1751935971684175,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9679224622230292
+  },
+  {
+   "combo": [
+    2,
+    9,
+    12,
+    14,
+    20,
+    41
+   ],
+   "breakdown": {
+    "numbers": 7.321732859375002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 11.846519004827606
+  },
+  {
+   "combo": [
+    10,
+    17,
+    18,
+    19,
+    26,
+    40
+   ],
+   "breakdown": {
+    "numbers": 5.724555593749999,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3288656857666359,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.650031692716952
+  },
+  {
+   "combo": [
+    9,
+    26,
+    28,
+    31,
+    33,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.6366795468750004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0991553170392176,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.622650429095265
+  },
+  {
+   "combo": [
+    13,
+    14,
+    23,
+    38,
+    40,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.27602671250000005,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.1038520984389613,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8714210242404322
+  },
+  {
+   "combo": [
+    9,
+    16,
+    25,
+    26,
+    32,
+    35
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.8103062337549782
+  },
+  {
+   "combo": [
+    8,
+    18,
+    21,
+    29,
+    36,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.411933875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1936021203109355,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.738591808775607
+  },
+  {
+   "combo": [
+    11,
+    12,
+    14,
+    24,
+    28,
+    31
+   ],
+   "breakdown": {
+    "numbers": 12.675801671875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3493949871862194,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 17.104663234594824
+  },
+  {
+   "combo": [
+    1,
+    6,
+    14,
+    18,
+    30,
+    34
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.451160286944395
+  },
+  {
+   "combo": [
+    2,
+    12,
+    27,
+    29,
+    31,
+    45
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2493438352641433,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.961942315135841
+  },
+  {
+   "combo": [
+    9,
+    18,
+    22,
+    24,
+    39,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.1874225475685212,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.571076207431286
+  },
+  {
+   "combo": [
+    1,
+    4,
+    6,
+    9,
+    23,
+    26
+   ],
+   "breakdown": {
+    "numbers": 24.627646890625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.123895484690475,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 44.97821435075289
+  },
+  {
+   "combo": [
+    2,
+    3,
+    17,
+    21,
+    35,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.5579960000000004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3493949871862194,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.1023519924561818
+  },
+  {
+   "combo": [
+    13,
+    20,
+    21,
+    33,
+    39,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.27738645,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.30753206167255653
+  },
+  {
+   "combo": [
+    1,
+    2,
+    9,
+    16,
+    24,
+    37
+   ],
+   "breakdown": {
+    "numbers": 7.321732859375002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2432716765251552,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 11.833774013287822
+  },
+  {
+   "combo": [
+    5,
+    10,
+    17,
+    19,
+    31,
+    41
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.65697922148147
+  },
+  {
+   "combo": [
+    4,
+    8,
+    11,
+    16,
+    25,
+    44
+   ],
+   "breakdown": {
+    "numbers": 6.134424828125001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.238234725940108
+  },
+  {
+   "combo": [
+    11,
+    16,
+    23,
+    27,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.81926696875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.151496559067981,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.6185995681770766
+  },
+  {
+   "combo": [
+    15,
+    16,
+    20,
+    21,
+    37,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.1066508750000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2185276154913858,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.7530300474637677
+  },
+  {
+   "combo": [
+    15,
+    16,
+    26,
+    41,
+    42,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.5072149843750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0502155207874049,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.692490563656536
+  },
+  {
+   "combo": [
+    2,
+    17,
+    24,
+    25,
+    29,
+    40
+   ],
+   "breakdown": {
+    "numbers": 5.724555593749999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.299403237724861,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.670057894971126
+  },
+  {
+   "combo": [
+    4,
+    10,
+    28,
+    34,
+    38,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.8256567343750002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1812833328426666,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.2191681737081155
+  },
+  {
+   "combo": [
+    9,
+    16,
+    20,
+    36,
+    42,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1187022522322116,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9049411284177082
+  },
+  {
+   "combo": [
+    5,
+    6,
+    37,
+    38,
+    43,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.31318014062500016,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.094589090880788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.44564463503122714
+  },
+  {
+   "combo": [
+    2,
+    22,
+    26,
+    31,
+    32,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.1936021203109355,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.480055317945738
+  },
+  {
+   "combo": [
+    12,
+    31,
+    33,
+    35,
+    39,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.3793557968750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0307218668710438,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.48876289395419076
+  },
+  {
+   "combo": [
+    5,
+    13,
+    21,
+    23,
+    37,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.60372345,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6723753493472718
+  },
+  {
+   "combo": [
+    4,
+    7,
+    12,
+    13,
+    38,
+    40
+   ],
+   "breakdown": {
+    "numbers": 1.878986725,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.347586216496765,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.5320966115903976
+  },
+  {
+   "combo": [
+    9,
+    13,
+    22,
+    40,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.3521720125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0991553170392176,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.4838646750647211
+  },
+  {
+   "combo": [
+    4,
+    6,
+    13,
+    14,
+    41,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.9307403187500001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.6288947020719091
+  },
+  {
+   "combo": [
+    2,
+    4,
+    14,
+    32,
+    37,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.8256567343750002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3253287692397218,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.0092332148551937
+  },
+  {
+   "combo": [
+    4,
+    14,
+    16,
+    27,
+    28,
+    45
+   ],
+   "breakdown": {
+    "numbers": 4.497865109375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.907110103710562
+  },
+  {
+   "combo": [
+    4,
+    15,
+    31,
+    35,
+    37,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1346236796068025,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.917820296601766
+  },
+  {
+   "combo": [
+    10,
+    13,
+    18,
+    22,
+    26,
+    29
+   ],
+   "breakdown": {
+    "numbers": 5.070320668749999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.35,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.556166128515624
+  },
+  {
+   "combo": [
+    2,
+    19,
+    22,
+    31,
+    37,
+    38
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.230967201371718,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.730177906532352
+  },
+  {
+   "combo": [
+    1,
+    9,
+    13,
+    15,
+    19,
+    33
+   ],
+   "breakdown": {
+    "numbers": 3.79218989375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2493438352641433,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.145530432669105
+  },
+  {
+   "combo": [
+    3,
+    17,
+    22,
+    26,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.4755345000000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2060438198374723,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.3134270440865676
+  },
+  {
+   "combo": [
+    2,
+    7,
+    10,
+    28,
+    32,
+    34
+   ],
+   "breakdown": {
+    "numbers": 3.452746343750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.810263360368163
+  },
+  {
+   "combo": [
+    1,
+    2,
+    14,
+    27,
+    36,
+    41
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3486401916555268,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.816315671785632
+  },
+  {
+   "combo": [
+    19,
+    22,
+    34,
+    35,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.19239189062500006,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0269366223861687,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.2568465618328048
+  },
+  {
+   "combo": [
+    2,
+    18,
+    36,
+    38,
+    39,
+    41
+   ],
+   "breakdown": {
+    "numbers": 0.24546551562500007,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0901551225362425,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.2675954892645939
+  },
+  {
+   "combo": [
+    3,
+    11,
+    17,
+    27,
+    35,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.5772955000000006,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.7864381333084944
+  },
+  {
+   "combo": [
+    4,
+    23,
+    24,
+    26,
+    32,
+    38
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2432716765251552,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.1211293533959736
+  },
+  {
+   "combo": [
+    1,
+    4,
+    8,
+    14,
+    17,
+    33
+   ],
+   "breakdown": {
+    "numbers": 11.315405328125001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1691620328606616,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 21.498006231118605
+  },
+  {
+   "combo": [
+    1,
+    3,
+    10,
+    11,
+    21,
+    27
+   ],
+   "breakdown": {
+    "numbers": 14.768772,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1457755489127326,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 16.921697845066994
+  },
+  {
+   "combo": [
+    19,
+    35,
+    36,
+    39,
+    41,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.07297623437500002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0076609335257172,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.07353530045550405
+  },
+  {
+   "combo": [
+    9,
+    14,
+    15,
+    19,
+    27,
+    28
+   ],
+   "breakdown": {
+    "numbers": 11.858008015624998,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3445923830918118,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.944187256451023
+  },
+  {
+   "combo": [
+    2,
+    18,
+    20,
+    34,
+    41,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1631968883616444,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9409337494633537
+  },
+  {
+   "combo": [
+    9,
+    28,
+    30,
+    36,
+    40,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.8236280937500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0446420883547891,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.0754957148533428
+  },
+  {
+   "combo": [
+    6,
+    19,
+    31,
+    37,
+    38,
+    39
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.004451552318481
+  },
+  {
+   "combo": [
+    6,
+    11,
+    26,
+    38,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.8804300312500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1292041048457726,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.2427315066462399
+  },
+  {
+   "combo": [
+    1,
+    2,
+    21,
+    26,
+    31,
+    42
+   ],
+   "breakdown": {
+    "numbers": 4.749232125000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 18.285656655516913
+  },
+  {
+   "combo": [
+    9,
+    19,
+    23,
+    34,
+    39,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.1187022522322116,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9908704825189583
+  },
+  {
+   "combo": [
+    5,
+    14,
+    18,
+    35,
+    42,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1691620328606616,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.2294867998804995
+  },
+  {
+   "combo": [
+    11,
+    21,
+    35,
+    37,
+    41,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.17020162500000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0446420883547891,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.17779978098137872
+  },
+  {
+   "combo": [
+    2,
+    18,
+    21,
+    35,
+    36,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.5355611250000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1874225475685212,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6359373554261634
+  },
+  {
+   "combo": [
+    2,
+    4,
+    21,
+    24,
+    27,
+    28
+   ],
+   "breakdown": {
+    "numbers": 12.520702875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3288656857666359,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 16.638332412267165
+  },
+  {
+   "combo": [
+    6,
+    14,
+    15,
+    24,
+    27,
+    31
+   ],
+   "breakdown": {
+    "numbers": 11.858008015624998,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3498486486510077,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 20.80847092425949
+  },
+  {
+   "combo": [
+    14,
+    15,
+    24,
+    26,
+    27,
+    32
+   ],
+   "breakdown": {
+    "numbers": 3.525353734375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.563200631887396
+  },
+  {
+   "combo": [
+    1,
+    13,
+    19,
+    31,
+    40,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.9284534874999999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2432716765251552,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.44289990497469
+  },
+  {
+   "combo": [
+    11,
+    15,
+    23,
+    27,
+    36,
+    37
+   ],
+   "breakdown": {
+    "numbers": 1.4294240468750004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.230967201371718,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.7595741185551546
+  },
+  {
+   "combo": [
+    11,
+    13,
+    19,
+    20,
+    25,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.6113507437499996,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.1230246979117164
+  },
+  {
+   "combo": [
+    2,
+    10,
+    17,
+    18,
+    26,
+    31
+   ],
+   "breakdown": {
+    "numbers": 15.129182640624999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 19.993995717627627
+  },
+  {
+   "combo": [
+    3,
+    15,
+    21,
+    33,
+    41,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.7158359999999999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1751935971684175,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.7360901483448199
+  },
+  {
+   "combo": [
+    2,
+    8,
+    10,
+    11,
+    19,
+    20
+   ],
+   "breakdown": {
+    "numbers": 20.633974421875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1292041048457726,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 23.299968616463925
+  },
+  {
+   "combo": [
+    10,
+    16,
+    21,
+    28,
+    31,
+    33
+   ],
+   "breakdown": {
+    "numbers": 5.752755374999999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.051926070475716
+  },
+  {
+   "combo": [
+    5,
+    6,
+    15,
+    18,
+    32,
+    43
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3498486486510077,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.8197353039448005
+  },
+  {
+   "combo": [
+    2,
+    8,
+    15,
+    25,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.5219380825163142
+  },
+  {
+   "combo": [
+    8,
+    19,
+    33,
+    34,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.48281646875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.07000061927105,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6715980967237901
+  },
+  {
+   "combo": [
+    3,
+    5,
+    23,
+    30,
+    35,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.8825785000000004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.033823382800358
+  },
+  {
+   "combo": [
+    9,
+    27,
+    28,
+    33,
+    40,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.2728797812500001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.07000061927105,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.7705768004536286
+  },
+  {
+   "combo": [
+    8,
+    12,
+    13,
+    27,
+    36,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.9307403187500001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2892204528205788,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.5599082917564187
+  },
+  {
+   "combo": [
+    5,
+    8,
+    10,
+    16,
+    34,
+    44
+   ],
+   "breakdown": {
+    "numbers": 2.777209015625001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3498486486510077,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.686014795953503
+  },
+  {
+   "combo": [
+    20,
+    31,
+    34,
+    38,
+    40,
+    44
+   ],
+   "breakdown": {
+    "numbers": 0.24486240625000005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0113804286187191,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.30956130673216997
+  },
+  {
+   "combo": [
+    2,
+    5,
+    20,
+    33,
+    36,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.276014953125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.0478302478967554
+  },
+  {
+   "combo": [
+    5,
+    13,
+    21,
+    25,
+    35,
+    40
+   ],
+   "breakdown": {
+    "numbers": 0.7683753,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.2892204528205788,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.7241641685559075
+  },
+  {
+   "combo": [
+    5,
+    15,
+    16,
+    30,
+    40,
+    43
+   ],
+   "breakdown": {
+    "numbers": 2.17138315625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.230967201371718,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.644498138290587
+  },
+  {
+   "combo": [
+    13,
+    17,
+    19,
+    34,
+    41,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.21687813125000008,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1292041048457726,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.24489967605878032
+  },
+  {
+   "combo": [
+    6,
+    11,
+    21,
+    22,
+    30,
+    33
+   ],
+   "breakdown": {
+    "numbers": 6.149497125000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.762275025080871
+  },
+  {
+   "combo": [
+    1,
+    2,
+    12,
+    15,
+    25,
+    34
+   ],
+   "breakdown": {
+    "numbers": 7.321732859375002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2432716765251552,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 11.833774013287822
+  },
+  {
+   "combo": [
+    1,
+    5,
+    15,
+    16,
+    40,
+    43
+   ],
+   "breakdown": {
+    "numbers": 2.7703854062499995,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3493949871862194,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.7383441797676076
+  },
+  {
+   "combo": [
+    5,
+    7,
+    16,
+    24,
+    28,
+    43
+   ],
+   "breakdown": {
+    "numbers": 7.134544656249999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.607766417421399
+  },
+  {
+   "combo": [
+    4,
+    9,
+    28,
+    29,
+    30,
+    42
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.225954909892014
+  },
+  {
+   "combo": [
+    18,
+    28,
+    32,
+    38,
+    41,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.19239189062500006,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.019098860168187,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5391824802142352
+  },
+  {
+   "combo": [
+    11,
+    17,
+    31,
+    36,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.5421953281250002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0663738661345796,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5781829282527634
+  },
+  {
+   "combo": [
+    8,
+    9,
+    11,
+    15,
+    18,
+    45
+   ],
+   "breakdown": {
+    "numbers": 6.134424828125001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3288656857666359,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.151826656010206
+  },
+  {
+   "combo": [
+    3,
+    13,
+    22,
+    23,
+    32,
+    38
+   ],
+   "breakdown": {
+    "numbers": 0.6309182000000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3253287692397218,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.3914577586812507
+  },
+  {
+   "combo": [
+    10,
+    21,
+    24,
+    25,
+    41,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.4119338750000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1401492941191838,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.609815410924214
+  },
+  {
+   "combo": [
+    2,
+    20,
+    30,
+    40,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.8236280937500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.0663738661345796,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.415312555120415
+  },
+  {
+   "combo": [
+    2,
+    3,
+    19,
+    24,
+    39,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.8825785000000004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.4879246527189056
+  },
+  {
+   "combo": [
+    2,
+    15,
+    17,
+    25,
+    32,
+    35
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.858642824470123
+  },
+  {
+   "combo": [
+    2,
+    17,
+    22,
+    27,
+    29,
+    32
+   ],
+   "breakdown": {
+    "numbers": 4.497865109375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3321536006031727,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 21.420853741720613
+  },
+  {
+   "combo": [
+    2,
+    15,
+    28,
+    41,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.6471363593750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0858547004617598,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9135048749671709
+  },
+  {
+   "combo": [
+    6,
+    16,
+    22,
+    30,
+    39,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1751935971684175,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.5062278039703436
+  },
+  {
+   "combo": [
+    3,
+    4,
+    5,
+    7,
+    11,
+    40
+   ],
+   "breakdown": {
+    "numbers": 13.665358,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1292041048457726,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 21.60336968690182
+  },
+  {
+   "combo": [
+    1,
+    27,
+    33,
+    37,
+    40,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.48281646875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0628805976541258,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6414703210778182
+  },
+  {
+   "combo": [
+    2,
+    10,
+    18,
+    24,
+    35,
+    40
+   ],
+   "breakdown": {
+    "numbers": 2.77038540625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3321536006031727,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.613223617493026
+  },
+  {
+   "combo": [
+    4,
+    22,
+    28,
+    33,
+    37,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.000119828125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1292041048457726,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.4116742690704984
+  },
+  {
+   "combo": [
+    6,
+    13,
+    31,
+    33,
+    37,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.42763744375000007,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.151496559067981,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6155288062584404
+  },
+  {
+   "combo": [
+    2,
+    25,
+    32,
+    40,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.3124106562500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0446420883547891,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5303306456000966
+  },
+  {
+   "combo": [
+    12,
+    21,
+    22,
+    33,
+    37,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.8276853750000003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.9176359904745641
+  },
+  {
+   "combo": [
+    9,
+    18,
+    24,
+    27,
+    41,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1457755489127326,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.1765378131121915
+  },
+  {
+   "combo": [
+    14,
+    15,
+    16,
+    29,
+    38,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.3372031406250002,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1812833328426666,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.87490072441423
+  },
+  {
+   "combo": [
+    3,
+    4,
+    12,
+    18,
+    20,
+    31
+   ],
+   "breakdown": {
+    "numbers": 16.694270500000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2371421613161762,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 20.653185887966885
+  },
+  {
+   "combo": [
+    7,
+    14,
+    20,
+    26,
+    35,
+    41
+   ],
+   "breakdown": {
+    "numbers": 2.1210808437499997,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.367367795700303
+  },
+  {
+   "combo": [
+    8,
+    14,
+    33,
+    35,
+    39,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.3793557968750001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0991553170392176,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5212136764810072
+  },
+  {
+   "combo": [
+    2,
+    17,
+    18,
+    21,
+    29,
+    38
+   ],
+   "breakdown": {
+    "numbers": 3.7223711250000004,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3426602333352067,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.4972435882285575
+  },
+  {
+   "combo": [
+    8,
+    11,
+    30,
+    33,
+    39,
+    40
+   ],
+   "breakdown": {
+    "numbers": 1.3606645937499997,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1573059554891891,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.0471168091011984
+  },
+  {
+   "combo": [
+    9,
+    12,
+    20,
+    27,
+    35,
+    37
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.49335748170623
+  },
+  {
+   "combo": [
+    8,
+    9,
+    18,
+    21,
+    22,
+    39
+   ],
+   "breakdown": {
+    "numbers": 4.749232125000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3498486486510077,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.333967935879565
+  },
+  {
+   "combo": [
+    4,
+    10,
+    17,
+    31,
+    38,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2553465739166259,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.440397477031533
+  },
+  {
+   "combo": [
+    1,
+    5,
+    15,
+    17,
+    19,
+    23
+   ],
+   "breakdown": {
+    "numbers": 15.129182640624999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1874225475685212,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.719141019540334
+  },
+  {
+   "combo": [
+    6,
+    8,
+    12,
+    17,
+    19,
+    41
+   ],
+   "breakdown": {
+    "numbers": 7.321732859375002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3175434995430781,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 15.675889993173296
+  },
+  {
+   "combo": [
+    8,
+    11,
+    17,
+    29,
+    36,
+    37
+   ],
+   "breakdown": {
+    "numbers": 1.8237479218750003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.3606503904433676
+  },
+  {
+   "combo": [
+    2,
+    11,
+    24,
+    32,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.6917664531250002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1751935971684175,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8129595064484064
+  },
+  {
+   "combo": [
+    3,
+    13,
+    15,
+    21,
+    31,
+    32
+   ],
+   "breakdown": {
+    "numbers": 1.3765488,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3486401916555268,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.8564690374551853
+  },
+  {
+   "combo": [
+    8,
+    13,
+    26,
+    29,
+    37,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.72949916875,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1751935971684175,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.0716284403183536
+  },
+  {
+   "combo": [
+    2,
+    12,
+    22,
+    23,
+    28,
+    44
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3253287692397218,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.605605210197498
+  },
+  {
+   "combo": [
+    1,
+    14,
+    21,
+    28,
+    29,
+    45
+   ],
+   "breakdown": {
+    "numbers": 3.722371125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2943951091751629,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.818218978734849
+  },
+  {
+   "combo": [
+    5,
+    9,
+    22,
+    24,
+    38,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.481953907281646
+  },
+  {
+   "combo": [
+    5,
+    11,
+    12,
+    15,
+    18,
+    19
+   ],
+   "breakdown": {
+    "numbers": 16.172574546875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1874225475685212,
+    "parity": 1.0,
+    "range": 1.6,
+    "history": 1.0
+   },
+   "weight": 30.72588747070742
+  },
+  {
+   "combo": [
+    2,
+    12,
+    15,
+    17,
+    41,
+    45
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.595828599632793
+  },
+  {
+   "combo": [
+    1,
+    6,
+    11,
+    20,
+    29,
+    44
+   ],
+   "breakdown": {
+    "numbers": 6.134424828125001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3426602333352067,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 13.384228440549848
+  },
+  {
+   "combo": [
+    9,
+    11,
+    22,
+    31,
+    38,
+    39
+   ],
+   "breakdown": {
+    "numbers": 1.8237479218750003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2247585197006767,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.233650805102811
+  },
+  {
+   "combo": [
+    5,
+    10,
+    24,
+    25,
+    35,
+    38
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.299403237724861,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 8.089372195577429
+  },
+  {
+   "combo": [
+    3,
+    11,
+    12,
+    19,
+    20,
+    43
+   ],
+   "breakdown": {
+    "numbers": 5.305448500000001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.083751594163967
+  },
+  {
+   "combo": [
+    5,
+    13,
+    14,
+    23,
+    24,
+    36
+   ],
+   "breakdown": {
+    "numbers": 1.9232250812499998,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3486401916555268,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.371860234825831
+  },
+  {
+   "combo": [
+    1,
+    2,
+    8,
+    9,
+    20,
+    37
+   ],
+   "breakdown": {
+    "numbers": 9.341521234375001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1691620328606616,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 14.198277543310788
+  },
+  {
+   "combo": [
+    1,
+    16,
+    18,
+    31,
+    33,
+    42
+   ],
+   "breakdown": {
+    "numbers": 2.6366795468750004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2784189311892495,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 5.477519203332301
+  },
+  {
+   "combo": [
+    7,
+    11,
+    15,
+    22,
+    34,
+    39
+   ],
+   "breakdown": {
+    "numbers": 2.2673622812500005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.7841831784701947
+  },
+  {
+   "combo": [
+    7,
+    13,
+    20,
+    34,
+    37,
+    41
+   ],
+   "breakdown": {
+    "numbers": 0.34401358750000005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2122857308994217,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5213034542022121
+  },
+  {
+   "combo": [
+    6,
+    10,
+    13,
+    35,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.35303943125000015,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2122857308994217,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5349808311865282
+  },
+  {
+   "combo": [
+    5,
+    14,
+    16,
+    27,
+    40,
+    41
+   ],
+   "breakdown": {
+    "numbers": 2.17138315625,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2670950091881366,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.576753388415427
+  },
+  {
+   "combo": [
+    6,
+    8,
+    18,
+    28,
+    32,
+    34
+   ],
+   "breakdown": {
+    "numbers": 2.176731390625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 0.7,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.553063763923316
+  },
+  {
+   "combo": [
+    9,
+    23,
+    26,
+    27,
+    36,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1346236796068025,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.5164963768644784
+  },
+  {
+   "combo": [
+    2,
+    4,
+    35,
+    36,
+    37,
+    40
+   ],
+   "breakdown": {
+    "numbers": 0.3985929062500001,
+    "consecutive": 1.4,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1998125188713737,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.6695314623929034
+  },
+  {
+   "combo": [
+    4,
+    7,
+    10,
+    12,
+    18,
+    40
+   ],
+   "breakdown": {
+    "numbers": 14.781178562499997,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2553465739166259,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 23.19437733360531
+  },
+  {
+   "combo": [
+    2,
+    20,
+    24,
+    27,
+    35,
+    38
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2493438352641433,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.6643612288241694
+  },
+  {
+   "combo": [
+    5,
+    16,
+    21,
+    22,
+    31,
+    35
+   ],
+   "breakdown": {
+    "numbers": 3.722371125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3288656857666359,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.946531257701049
+  },
+  {
+   "combo": [
+    8,
+    14,
+    16,
+    19,
+    38,
+    39
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.2406279703729726
+  },
+  {
+   "combo": [
+    1,
+    10,
+    19,
+    21,
+    27,
+    45
+   ],
+   "breakdown": {
+    "numbers": 4.749232125000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.991982803984665
+  },
+  {
+   "combo": [
+    3,
+    4,
+    22,
+    24,
+    28,
+    43
+   ],
+   "breakdown": {
+    "numbers": 4.9631615,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3445923830918118,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.673429148954532
+  },
+  {
+   "combo": [
+    1,
+    13,
+    19,
+    26,
+    31,
+    41
+   ],
+   "breakdown": {
+    "numbers": 1.9232250812499998,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3253287692397218,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.009490207236073
+  },
+  {
+   "combo": [
+    3,
+    9,
+    10,
+    12,
+    27,
+    43
+   ],
+   "breakdown": {
+    "numbers": 8.079153500000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3215516127050773,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.677018337216872
+  },
+  {
+   "combo": [
+    6,
+    9,
+    18,
+    33,
+    37,
+    39
+   ],
+   "breakdown": {
+    "numbers": 1.276014953125,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2728161721771722,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.0301655853467455
+  },
+  {
+   "combo": [
+    4,
+    5,
+    17,
+    22,
+    33,
+    43
+   ],
+   "breakdown": {
+    "numbers": 3.364039421875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3445923830918118,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.523261783073707
+  },
+  {
+   "combo": [
+    14,
+    21,
+    24,
+    29,
+    37,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.1066508750000001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.533648386305859
+  },
+  {
+   "combo": [
+    19,
+    22,
+    23,
+    27,
+    36,
+    38
+   ],
+   "breakdown": {
+    "numbers": 1.3372031406250002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1346236796068025,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9723890521370238
+  },
+  {
+   "combo": [
+    2,
+    11,
+    14,
+    31,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.8237479218750003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2493438352641433,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.848110279087905
+  },
+  {
+   "combo": [
+    3,
+    18,
+    19,
+    34,
+    36,
+    39
+   ],
+   "breakdown": {
+    "numbers": 0.5596855000000002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.230967201371718,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8956408416583301
+  },
+  {
+   "combo": [
+    29,
+    33,
+    39,
+    40,
+    43,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.14354003125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0016968624112845,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.14378359893354273
+  },
+  {
+   "combo": [
+    12,
+    16,
+    24,
+    30,
+    37,
+    41
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1631968883616444,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.4806435213124782
+  },
+  {
+   "combo": [
+    7,
+    13,
+    14,
+    26,
+    29,
+    37
+   ],
+   "breakdown": {
+    "numbers": 2.3910365875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.2050513357793764
+  },
+  {
+   "combo": [
+    1,
+    16,
+    21,
+    22,
+    31,
+    35
+   ],
+   "breakdown": {
+    "numbers": 3.722371125,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.97718844596527
+  },
+  {
+   "combo": [
+    10,
+    12,
+    20,
+    27,
+    29,
+    42
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2838910659355869,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.209760633589152
+  },
+  {
+   "combo": [
+    9,
+    21,
+    22,
+    28,
+    31,
+    33
+   ],
+   "breakdown": {
+    "numbers": 5.752755375,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2612677154280358,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.255764629242603
+  },
+  {
+   "combo": [
+    8,
+    11,
+    24,
+    32,
+    37,
+    40
+   ],
+   "breakdown": {
+    "numbers": 0.8804300312500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.2122857308994217,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.3341659549246339
+  },
+  {
+   "combo": [
+    14,
+    16,
+    21,
+    26,
+    28,
+    31
+   ],
+   "breakdown": {
+    "numbers": 7.691680874999999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.3042332710641509,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 27.587301795852756
+  },
+  {
+   "combo": [
+    4,
+    23,
+    24,
+    28,
+    38,
+    44
+   ],
+   "breakdown": {
+    "numbers": 1.7060867656250003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1573059554891891,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.9744643744391013
+  },
+  {
+   "combo": [
+    8,
+    10,
+    20,
+    23,
+    27,
+    38
+   ],
+   "breakdown": {
+    "numbers": 5.738655484375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3404442878603071,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 9.615434955035866
+  },
+  {
+   "combo": [
+    2,
+    3,
+    13,
+    22,
+    27,
+    40
+   ],
+   "breakdown": {
+    "numbers": 2.7009556000000003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3321536006031727,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.677514045892094
+  },
+  {
+   "combo": [
+    12,
+    20,
+    26,
+    31,
+    36,
+    40
+   ],
+   "breakdown": {
+    "numbers": 2.17138315625,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1346236796068025,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.0796284332257597
+  },
+  {
+   "combo": [
+    1,
+    11,
+    13,
+    23,
+    30,
+    38
+   ],
+   "breakdown": {
+    "numbers": 2.0558612937500005,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3493949871862194,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.467711155170533
+  },
+  {
+   "combo": [
+    4,
+    5,
+    7,
+    15,
+    34,
+    37
+   ],
+   "breakdown": {
+    "numbers": 3.452746343750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 4.534540791408799
+  },
+  {
+   "combo": [
+    15,
+    17,
+    27,
+    39,
+    42,
+    43
+   ],
+   "breakdown": {
+    "numbers": 0.5072149843750001,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0562896684347964,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5357659476706293
+  },
+  {
+   "combo": [
+    11,
+    26,
+    28,
+    34,
+    37,
+    38
+   ],
+   "breakdown": {
+    "numbers": 0.5421953281250002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.0901551225362425,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.5910770143706877
+  },
+  {
+   "combo": [
+    8,
+    16,
+    27,
+    37,
+    40,
+    42
+   ],
+   "breakdown": {
+    "numbers": 0.8236280937500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1086773044341443,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.1414222185437286
+  },
+  {
+   "combo": [
+    3,
+    10,
+    15,
+    26,
+    38,
+    42
+   ],
+   "breakdown": {
+    "numbers": 1.8825785000000004,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3133141968615827,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 3.0905213384454795
+  },
+  {
+   "combo": [
+    4,
+    12,
+    30,
+    34,
+    40,
+    45
+   ],
+   "breakdown": {
+    "numbers": 1.05083584375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1346236796068025,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.49037903962293
+  },
+  {
+   "combo": [
+    5,
+    7,
+    13,
+    26,
+    27,
+    30
+   ],
+   "breakdown": {
+    "numbers": 8.042577612499999,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3351843098965086,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.73832343933492
+  },
+  {
+   "combo": [
+    5,
+    7,
+    17,
+    19,
+    28,
+    41
+   ],
+   "breakdown": {
+    "numbers": 7.134544656249999,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3498486486510077,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 12.038194328724162
+  },
+  {
+   "combo": [
+    12,
+    19,
+    21,
+    24,
+    36,
+    37
+   ],
+   "breakdown": {
+    "numbers": 1.411933875,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.230967201371718,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.259457577819877
+  },
+  {
+   "combo": [
+    4,
+    11,
+    13,
+    22,
+    35,
+    36
+   ],
+   "breakdown": {
+    "numbers": 0.7798094562500002,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3486401916555268,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 1.3671870868913303
+  },
+  {
+   "combo": [
+    3,
+    14,
+    25,
+    28,
+    38,
+    43
+   ],
+   "breakdown": {
+    "numbers": 1.4755345000000002,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 2.2,
+    "sum": 1.2185276154913858,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 6.427776840700482
+  },
+  {
+   "combo": [
+    3,
+    8,
+    21,
+    38,
+    44,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.5909640000000003,
+    "consecutive": 1.0,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.1691620328606616,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 0.8982124730637088
+  },
+  {
+   "combo": [
+    4,
+    6,
+    13,
+    27,
+    32,
+    45
+   ],
+   "breakdown": {
+    "numbers": 0.9307403187500001,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3379502017092255,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 2.023586820467016
+  },
+  {
+   "combo": [
+    1,
+    14,
+    18,
+    24,
+    29,
+    38
+   ],
+   "breakdown": {
+    "numbers": 4.497865109375,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3445923830918118,
+    "parity": 1.0,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 7.5597439578000545
+  },
+  {
+   "combo": [
+    3,
+    8,
+    18,
+    25,
+    27,
+    42
+   ],
+   "breakdown": {
+    "numbers": 4.9631615,
+    "consecutive": 1.25,
+    "arithmetic": 1.0,
+    "grid": 1.0,
+    "sum": 1.3462357861035759,
+    "parity": 1.3,
+    "range": 1.0,
+    "history": 1.0
+   },
+   "weight": 10.857576638206192
+  }
+ ]
+}
