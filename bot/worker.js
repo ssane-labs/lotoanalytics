@@ -74,8 +74,6 @@ async function handleUpdate(update, env) {
   switch (command) {
     case '/start':
       return send(TEXT.start, true);
-    case '/app':
-      return send('Открываю аналитику.', true);
     case '/honest':
       return send(TEXT.honest, true);
     case '/help':

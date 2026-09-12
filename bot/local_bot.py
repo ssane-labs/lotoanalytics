@@ -96,8 +96,8 @@ def handle(token: str, message: dict, app_url: str | None) -> None:
     chat_id = message["chat"]["id"]
     command = text.strip().split()[0].split("@")[0].lower()
 
-    if command in ("/start", "/app"):
-        body = TEXT["start"] if command != "/app" else "Открываю аналитику."
+    if command == "/start":
+        body = TEXT["start"]
         if not app_url:
             body += TEXT["no_app"]
         send(token, chat_id, body, app_url)
