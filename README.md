@@ -64,13 +64,13 @@ scripts/verify_randomness.py --csv data/draws_6x45.csv`.
 ### 2. GitHub Pages
 
 ```bash
-git remote add origin https://github.com/ВАШ-ЛОГИН/lotoanalytics.git
+git remote add origin https://github.com/ssane-labs/lotoanalytics.git
 git push -u origin main
 ```
 
 Settings → Pages → Source: `Deploy from a branch`, ветка `main`, папка
 `/docs`. Через минуту Mini App живёт на
-`https://ВАШ-ЛОГИН.github.io/lotoanalytics/`.
+`https://ssane-labs.github.io/lotoanalytics/`.
 
 ### 3. Реальные данные
 

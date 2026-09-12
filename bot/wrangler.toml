@@ -11,4 +11,4 @@ compatibility_date = "2025-01-01"
 
 [vars]
 # Адрес Mini App на GitHub Pages. Слэш на конце обязателен.
-MINIAPP_URL = "https://ЗАМЕНИТЕ-НА-ЛОГИН.github.io/lotoanalytics/"
+MINIAPP_URL = "https://ssane-labs.github.io/lotoanalytics/"

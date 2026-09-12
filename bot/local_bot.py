@@ -16,7 +16,7 @@ HTTPS тоже — он сам ходит к Telegram за обновления�
 
 Пока адреса Mini App нет, бот работает без кнопки и честно об этом пишет.
 Когда GitHub Pages поднимется, добавьте:
-    $env:MINIAPP_URL = "https://ВАШ-ЛОГИН.github.io/lotoanalytics/"
+    $env:MINIAPP_URL = "https://ssane-labs.github.io/lotoanalytics/"
 
 Остановить: Ctrl+C
 """
@@ -96,7 +96,7 @@ def handle(token: str, message: dict, app_url: str | None) -> None:
     chat_id = message["chat"]["id"]
     command = text.strip().split()[0].split("@")[0].lower()
 
-    if command in ("/start", "/app", "/menu"):
+    if command in ("/start", "/app"):
         body = TEXT["start"] if command != "/app" else "Открываю аналитику."
         if not app_url:
             body += TEXT["no_app"]
