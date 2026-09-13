@@ -164,6 +164,19 @@ a:hover { color: var(--accent); border-color: var(--accent); }
 
 .games { margin-bottom: 20px; }
 
+/* Название лотереи — плашка, а не подпись: по нему понятно, в какой игре
+   сейчас считаются все цифры на экране. */
+#game-title {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--accent);
+  border-radius: 99px;
+}
+
 /* --------------------------------------------------------- спек-таблица */
 
 .spec {

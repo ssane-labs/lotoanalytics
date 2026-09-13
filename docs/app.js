@@ -14,9 +14,9 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=6c17edbf';
-import { CONFIG } from './config.js?v=6c17edbf';
-import { DrawAI } from './ai.js?v=6c17edbf';
+} from './model.js?v=282a1402';
+import { CONFIG } from './config.js?v=282a1402';
+import { DrawAI } from './ai.js?v=282a1402';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -396,7 +396,6 @@ async function buyPlan(plan, button) {
         // запасную кнопку не убираем и подсказываем причину.
         say('Счёт закрылся без оплаты.', 'muted');
         offerFallback();
-        addOwnerHint(host);
       } else {
         say(`Telegram вернул статус «${status}».`);
         offerFallback();
@@ -407,21 +406,6 @@ async function buyPlan(plan, button) {
     clearTimeout(timer);
     say(`Не удалось открыть оплату: ${err.message} (версия API ${version})`);
   }
-}
-
-/**
- * Владелец бота не может оплатить покупку в собственном боте: Telegram
- * блокирует это как защиту от мошенничества и случайных покупок
- * администратором, причём молча. Со стороны выглядит как «счёт не
- * открывается». Подсказка нужна тому, кто тестирует свой же бот.
- */
-function addOwnerHint(host) {
-  if (host.querySelector('.pay-hint')) return;
-  const hint = el('p', 'muted pay-hint',
-    'Если вы владелец или администратор этого бота — оплата не пройдёт: ' +
-    'Telegram запрещает покупки в собственном боте. Проверяйте с другого ' +
-    'аккаунта.');
-  host.append(hint);
 }
 
 /**
@@ -1077,17 +1061,10 @@ function renderProof() {
   $('#proof-baseline').textContent = fmtDec(state.proof.expected_by_chance, 3);
 
   if (state.proof.insufficient) {
+    // Пока данных мало, таблицу не показываем: на коротком архиве она врала
+    // бы в обе стороны. Появится сама, когда тиражей хватит.
     $('#proof-table-wrap').hidden = true;
-    const note = $('#proof-note');
-    note.replaceChildren();
-    note.append(el('strong', null, 'Бэктест ещё не запускался. '));
-    note.append(document.createTextNode(
-      `Нужно ${fmtInt(state.proof.draws_needed)} тиражей, собрано ` +
-      `${fmtInt(state.proof.draws)}. На коротком архиве разброс перекроет ` +
-      'любую разницу между стратегиями, и таблица врала бы в обе стороны. ' +
-      'Как только данных хватит, результат появится здесь автоматически — ' +
-      'какой бы он ни был.',
-    ));
+    $('#proof-note').replaceChildren();
     renderEvFacts();
     return;
   }
