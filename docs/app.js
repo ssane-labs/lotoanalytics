@@ -14,8 +14,8 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=2939dcc5';
-import { CONFIG } from './config.js?v=2939dcc5';
+} from './model.js?v=612875b9';
+import { CONFIG } from './config.js?v=612875b9';
 
 const GAME = '6x45';
 const DEFAULT_JACKPOT = 300_000_000;
@@ -297,29 +297,34 @@ async function loadEntitlement() {
  * работает». Показываем версию клиента, доступность метода и то, чем
  * закончился вызов.
  */
+/**
+ * Открывает оплату.
+ *
+ * Основной путь — openInvoice: он показывает счёт поверх приложения и
+ * сообщает результат. Но на части клиентов вызов уходит в пустоту: событие
+ * отправлено, счёт не открывается, обратный вызов не приходит никогда.
+ * Поэтому есть запасной путь — отдать ссылку самому Telegram через
+ * openTelegramLink, где счёт открывается обычным способом.
+ *
+ * Запасной путь не срабатывает сам: если счёт всё-таки открылся, таймер
+ * продолжает идти, и автоматический вызов открыл бы второй экран поверх.
+ * Поэтому предлагаем его кнопкой.
+ */
 async function buyPlan(plan, button) {
   const host = button.closest('.section') || button.parentElement;
+  const clear = () => host.querySelectorAll('.pay-note, .pay-fallback').forEach((n) => n.remove());
   const say = (text, kind = 'error') => {
-    host.querySelectorAll('.pay-note').forEach((n) => n.remove());
-    const p = el('p', `${kind} pay-note`, text);
-    host.append(p);
+    clear();
+    host.append(el('p', `${kind} pay-note`, text));
   };
 
   const version = tg?.version || '?';
-  // openInvoice появился в Bot API 6.1. На старом клиенте метод есть, но
-  // ничего не делает — именно так выглядит «нажимается и не грузится».
-  if (tg?.isVersionAtLeast && !tg.isVersionAtLeast('6.1')) {
-    say(`Ваш Telegram (версия API ${version}) не умеет открывать оплату ` +
-        'внутри приложения. Обновите Telegram.');
-    return;
-  }
   if (typeof tg?.openInvoice !== 'function') {
-    say(`Метод оплаты недоступен в этом клиенте (версия API ${version}).`);
+    say(`Оплата недоступна в этом клиенте (версия API ${version}).`);
     return;
   }
 
   let link = plan.link;
-
   if (!link) {
     button.disabled = true;
     say('Запрашиваем счёт…', 'muted');
@@ -341,16 +346,28 @@ async function buyPlan(plan, button) {
   }
 
   say('Открываем оплату…', 'muted');
+  watchForPayment();
 
-  // Если Telegram не вызовет обратный вызов, пользователь так и останется с
-  // «Открываем оплату…» — поэтому через десять секунд говорим об этом прямо.
   let answered = false;
-  const timer = setTimeout(() => {
-    if (!answered) {
-      say(`Telegram не ответил на запрос оплаты за 10 секунд. ` +
-          `Версия API ${version}. Ссылка: ${String(link).slice(0, 42)}…`);
-    }
-  }, 10000);
+  const offerFallback = () => {
+    if (answered) return;
+    clear();
+    host.append(el('p', 'muted pay-note',
+      'Telegram не открыл счёт внутри приложения. Так бывает на некоторых ' +
+      'клиентах. Откройте счёт напрямую — оплата пройдёт обычным способом, ' +
+      'а подписка появится здесь сама.'));
+    const btn = el('button', 'btn btn--accent pay-fallback');
+    btn.type = 'button';
+    btn.append(icon('star', 16), document.createTextNode(`Открыть счёт на ${plan.stars} ⭐`));
+    btn.addEventListener('click', () => {
+      haptic('light');
+      if (tg.openTelegramLink) tg.openTelegramLink(link);
+      else window.open(link, '_blank', 'noopener');
+      watchForPayment();
+    });
+    host.append(btn);
+  };
+  const timer = setTimeout(offerFallback, 4000);
 
   try {
     tg.openInvoice(link, async (status) => {
@@ -364,13 +381,55 @@ async function buyPlan(plan, button) {
       } else if (status === 'cancelled') {
         say('Оплата отменена.', 'muted');
       } else {
-        say(`Telegram вернул статус «${status}». Оплата не прошла.`);
+        say(`Telegram вернул статус «${status}».`);
       }
     });
   } catch (err) {
     answered = true;
     clearTimeout(timer);
     say(`Не удалось открыть оплату: ${err.message} (версия API ${version})`);
+  }
+}
+
+/**
+ * После начала оплаты подписка может появиться без всякого обратного вызова —
+ * например, если счёт оплачен в обычном окне Telegram. Поэтому какое-то время
+ * переспрашиваем сервер сами и обновляем экран, как только увидим оплату.
+ */
+let paymentWatch = null;
+function watchForPayment() {
+  if (paymentWatch) return;
+  const started = Date.now();
+  const check = async () => {
+    const fresh = await loadEntitlement();
+    if (fresh?.active) {
+      state.entitlement = fresh;
+      stopPaymentWatch();
+      haptic('medium');
+      renderSubscribe();
+      return;
+    }
+    if (Date.now() - started > 180_000) stopPaymentWatch();
+  };
+  paymentWatch = setInterval(check, 5000);
+  // Возврат в приложение — самый вероятный момент, когда оплата уже прошла.
+  document.addEventListener('visibilitychange', onVisible);
+}
+
+function stopPaymentWatch() {
+  if (!paymentWatch) return;
+  clearInterval(paymentWatch);
+  paymentWatch = null;
+  document.removeEventListener('visibilitychange', onVisible);
+}
+
+async function onVisible() {
+  if (document.visibilityState !== 'visible') return;
+  const fresh = await loadEntitlement();
+  if (fresh?.active) {
+    state.entitlement = fresh;
+    stopPaymentWatch();
+    renderSubscribe();
   }
 }
 
