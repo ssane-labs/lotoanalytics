@@ -49,16 +49,36 @@ jobs:
       - name: Собранный файл не отстал от исходников
         run: python bot/build_bundle.py --check
 
-      - name: Проверить, что секреты заданы
+      # Проверяем токен до публикации: так понятно, дело в правах доступа или
+      # в самом воркере. Иначе wrangler сообщает лишь «запрос к API не удался».
+      - name: Проверить токен и доступ к аккаунту
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
-            echo "::error::Не задан секрет CLOUDFLARE_API_TOKEN. См. инструкцию в начале этого файла."
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Не заданы секреты CLOUDFLARE_API_TOKEN и/или CLOUDFLARE_ACCOUNT_ID."
             exit 1
           fi
-          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
-            echo "::error::Не задан секрет CLOUDFLARE_ACCOUNT_ID. См. инструкцию в начале этого файла."
-            exit 1
-          fi
+
+          echo "## Проверка доступа" >> "$GITHUB_STEP_SUMMARY"
+
+          verify=$(curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             https://api.cloudflare.com/client/v4/user/tokens/verify)
+          echo '### Токен' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$verify" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          # Виден ли токену тот аккаунт, в который мы публикуем.
+          acc=$(curl -sS -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID")
+          echo '### Аккаунт' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$acc" | head -c 900 >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+          echo "$verify" | grep -q '"status":"active"'             || echo "::warning::Токен не в состоянии active — проверьте права и срок действия."
+          echo "$acc" | grep -q '"success":true'             || echo "::error::Токену не виден аккаунт $CLOUDFLARE_ACCOUNT_ID. Скорее всего, при создании токена не выдан доступ к этому аккаунту."
 
       # Вызываем wrangler напрямую, а не через готовое действие: оно прячет
       # вывод внутри сворачиваемой группы лога, и при падении наружу попадает
@@ -75,9 +95,16 @@ jobs:
             echo "Публикация прошла успешно."
             exit 0
           fi
-          echo "::error::wrangler не смог опубликовать воркер. Вывод ниже."
-          # Пустые строки в ::error:: не отображаются, поэтому отсеиваем их.
-          tail -n 40 /tmp/wrangler.log | while IFS= read -r line; do
-            [ -n "$line" ] && echo "::error::$line"
-          done
+          echo "::error::wrangler не смог опубликовать воркер, вывод в сводке прогона."
+          # Аннотаций показывается не больше десяти, и строка с кодом ошибки в
+          # них не помещалась. Сводка отображается целиком.
+          {
+            echo "## Вывод wrangler"
+            echo '```'
+            cat /tmp/wrangler.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -iE 'code: *[0-9]+|Authentication|permission|denied|not found' /tmp/wrangler.log             | head -n 6 | while IFS= read -r line; do
+                [ -n "$line" ] && echo "::error::$line"
+              done
           exit 1
