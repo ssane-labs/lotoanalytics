@@ -14,8 +14,8 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=612875b9';
-import { CONFIG } from './config.js?v=612875b9';
+} from './model.js?v=22b429d0';
+import { CONFIG } from './config.js?v=22b429d0';
 
 const GAME = '6x45';
 const DEFAULT_JACKPOT = 300_000_000;
@@ -312,11 +312,18 @@ async function loadEntitlement() {
  */
 async function buyPlan(plan, button) {
   const host = button.closest('.section') || button.parentElement;
-  const clear = () => host.querySelectorAll('.pay-note, .pay-fallback').forEach((n) => n.remove());
+  // Текст сообщения и запасная кнопка живут независимо: обратный вызов
+  // «отменено» приходит и когда счёт просто не открылся, и раньше стирал
+  // кнопку, которой пользователь ещё не успел воспользоваться.
   const say = (text, kind = 'error') => {
-    clear();
-    host.append(el('p', `${kind} pay-note`, text));
+    host.querySelectorAll('.pay-note').forEach((n) => n.remove());
+    const fallback = host.querySelector('.pay-fallback');
+    const note = el('p', `${kind} pay-note`, text);
+    if (fallback) host.insertBefore(note, fallback);
+    else host.append(note);
   };
+  const dropFallback = () =>
+    host.querySelectorAll('.pay-fallback, .pay-hint').forEach((n) => n.remove());
 
   const version = tg?.version || '?';
   if (typeof tg?.openInvoice !== 'function') {
@@ -350,12 +357,9 @@ async function buyPlan(plan, button) {
 
   let answered = false;
   const offerFallback = () => {
-    if (answered) return;
-    clear();
-    host.append(el('p', 'muted pay-note',
-      'Telegram не открыл счёт внутри приложения. Так бывает на некоторых ' +
-      'клиентах. Откройте счёт напрямую — оплата пройдёт обычным способом, ' +
-      'а подписка появится здесь сама.'));
+    if (host.querySelector('.pay-fallback')) return;
+    say('Telegram не открыл счёт внутри приложения. Попробуйте открыть его ' +
+        'напрямую — подписка появится здесь сама.', 'muted');
     const btn = el('button', 'btn btn--accent pay-fallback');
     btn.type = 'button';
     btn.append(icon('star', 16), document.createTextNode(`Открыть счёт на ${plan.stars} ⭐`));
@@ -367,7 +371,7 @@ async function buyPlan(plan, button) {
     });
     host.append(btn);
   };
-  const timer = setTimeout(offerFallback, 4000);
+  const timer = setTimeout(() => { if (!answered) offerFallback(); }, 4000);
 
   try {
     tg.openInvoice(link, async (status) => {
@@ -375,13 +379,19 @@ async function buyPlan(plan, button) {
       clearTimeout(timer);
       if (status === 'paid') {
         haptic('medium');
+        dropFallback();
         say('Оплачено, обновляем подписку…', 'muted');
         state.entitlement = await loadEntitlement();
         renderSubscribe();
       } else if (status === 'cancelled') {
-        say('Оплата отменена.', 'muted');
+        // Тот же статус приходит и когда счёт вообще не открылся, поэтому
+        // запасную кнопку не убираем и подсказываем причину.
+        say('Счёт закрылся без оплаты.', 'muted');
+        offerFallback();
+        addOwnerHint(host);
       } else {
         say(`Telegram вернул статус «${status}».`);
+        offerFallback();
       }
     });
   } catch (err) {
@@ -389,6 +399,21 @@ async function buyPlan(plan, button) {
     clearTimeout(timer);
     say(`Не удалось открыть оплату: ${err.message} (версия API ${version})`);
   }
+}
+
+/**
+ * Владелец бота не может оплатить покупку в собственном боте: Telegram
+ * блокирует это как защиту от мошенничества и случайных покупок
+ * администратором, причём молча. Со стороны выглядит как «счёт не
+ * открывается». Подсказка нужна тому, кто тестирует свой же бот.
+ */
+function addOwnerHint(host) {
+  if (host.querySelector('.pay-hint')) return;
+  const hint = el('p', 'muted pay-hint',
+    'Если вы владелец или администратор этого бота — оплата не пройдёт: ' +
+    'Telegram запрещает покупки в собственном боте. Проверяйте с другого ' +
+    'аккаунта.');
+  host.append(hint);
 }
 
 /**
