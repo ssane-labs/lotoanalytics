@@ -117,9 +117,15 @@ async function verifyInitData(initData, env) {
 
 // Тарифы. Ключ уходит в payload инвойса, поэтому менять его после запуска
 // нельзя — иначе уже отправленные, но не оплаченные счета перестанут узнаваться.
+//
+// hidden: тариф не показывается в приложении и в ответе на /buy, но счёт по
+// нему создать можно. Нужен, чтобы проверять всю цепочку оплаты за одну
+// звезду, не показывая такую цену покупателям.
 const PLANS = {
+  test: { title: 'Проверка оплаты', stars: 1, days: 1, hidden: true },
   week: { title: 'Аналитик на неделю', stars: 75, days: 7 },
   month: { title: 'Аналитик на месяц', stars: 250, days: 30 },
+  year: { title: 'Аналитик на год', stars: 1990, days: 365 },
 };
 
 const FREE_DAILY_LIMIT = 1;
@@ -250,7 +256,7 @@ async function handleEntitlement(request, env) {
   // оставляет пользователя с ошибкой вместо оплаты — а мобильный webview
   // как раз в этот момент уходит в фон под платёжный экран.
   const plans = await Promise.all(
-    Object.entries(PLANS).map(async ([key, p]) => ({
+    Object.entries(PLANS).filter(([, p]) => !p.hidden).map(async ([key, p]) => ({
       key,
       title: p.title,
       stars: p.stars,
@@ -393,6 +399,7 @@ async function handleUpdate(update, env) {
       return send(
         'Тарифы. Оплата внутри Telegram, звёздами:\n\n' +
           Object.values(PLANS)
+            .filter((p) => !p.hidden)
             .map((p) => `${p.title} — ${p.stars} ⭐`)
             .join('\n') +
           '\n\nОткройте приложение и нажмите «Подписка» — оплата пройдёт там.',
