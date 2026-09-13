@@ -237,6 +237,44 @@ async function addDays(env, userId, days, fields = {}) {
 const REF_BONUS_DAYS = 3;
 const REF_MAX_FRIENDS = 10;
 
+// ------------------------------------------------------ рекламные метки
+
+async function bumpCounter(env, key, delta) {
+  const value = Number((await env.SUBS.get(key)) || 0) + delta;
+  await env.SUBS.put(key, String(value));
+  return value;
+}
+
+/** Оплата засчитывается каналу, по ссылке которого пользователь пришёл впервые. */
+async function attributePayment(env, userId, stars) {
+  const src = await env.SUBS?.get(`src:by:${userId}`);
+  if (!src) return;
+  await bumpCounter(env, `src:payments:${src}`, 1);
+  await bumpCounter(env, `src:stars:${src}`, stars);
+}
+
+const isAdmin = (env, userId) =>
+  String(env.ADMIN_IDS || '').split(',').map((s) => s.trim()).filter(Boolean)
+    .includes(String(userId));
+
+async function sourcesReport(env) {
+  const listed = await env.SUBS.list({ prefix: 'src:visits:' });
+  if (!listed.keys.length) {
+    return 'Переходов по рекламным ссылкам пока нет.\n\nСсылка с меткой: ' +
+      `https://t.me/${await getBotUsername(env)}?start=src_имя_канала`;
+  }
+  const rows = await Promise.all(listed.keys.map(async ({ name }) => {
+    const src = name.slice('src:visits:'.length);
+    const [visits, payments, stars] = await Promise.all(
+      ['visits', 'payments', 'stars'].map((k) => env.SUBS.get(`src:${k}:${src}`)),
+    );
+    return { src, visits: Number(visits || 0), payments: Number(payments || 0), stars: Number(stars || 0) };
+  }));
+  rows.sort((a, b) => b.visits - a.visits);
+  return 'Источники (новые пользователи → оплаты → звёзды):\n\n' +
+    rows.map((r) => `${r.src}: ${r.visits} → ${r.payments} → ${r.stars} ⭐`).join('\n');
+}
+
 let botUsername = null;
 async function getBotUsername(env) {
   if (botUsername) return botUsername;
@@ -269,6 +307,15 @@ async function registerVisit(env, userId, payload) {
   const known = (await env.SUBS.get(seenKey)) || (await env.SUBS.get(subKey(userId)));
   if (known) return null;
   await env.SUBS.put(seenKey, String(Date.now()));
+
+  // Рекламная метка: ссылка t.me/бот?start=src_<канал>. Запоминаем, откуда
+  // пришёл человек, чтобы потом засчитать каналу и его оплату.
+  const src = /^src_([a-z0-9_]{1,40})$/i.exec(payload || '')?.[1]?.toLowerCase();
+  if (src) {
+    await env.SUBS.put(`src:by:${userId}`, src);
+    await bumpCounter(env, `src:visits:${src}`, 1);
+    return null;
+  }
 
   const refId = Number(/^ref_(\d+)$/.exec(payload || '')?.[1] || 0);
   if (!refId || refId === userId) return null;
@@ -512,6 +559,7 @@ async function handleUpdate(update, env) {
       });
     }
     const until = await grantSubscription(env, userId, planKey, pay);
+    await attributePayment(env, userId, Number(pay.total_amount || 0));
     return tg(env, 'sendMessage', {
       chat_id: chatId,
       text: `Оплачено до ${fmtDate(until)}. Спасибо!\n\n` +
@@ -574,6 +622,14 @@ async function handleUpdate(update, env) {
       );
     }
 
+    case '/myid':
+      return send(`Ваш Telegram ID: ${userId}`);
+
+    case '/stats':
+      // Для остальных команды будто нет: статистика продаж — не их дело.
+      if (!isAdmin(env, userId)) return send(TEXT.unknown);
+      return send(await sourcesReport(env));
+
     case '/refund': {
       const result = await refundLastPayment(env, userId);
       return send(result.ok
@@ -622,7 +678,7 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'refund-v1',
+        build: 'sources-v1',
         plans: Object.keys(PLANS),
         kv_subs: Boolean(env.SUBS),
         bot_token: Boolean(env.BOT_TOKEN),
