@@ -35,6 +35,17 @@ import urllib.request
 
 DEFAULT_MINIAPP_URL = "https://ssane-labs.github.io/lotoanalytics/"
 
+# Типы обновлений, которые Telegram должен доставлять боту.
+#
+# pre_checkout_query здесь обязателен: это подтверждение платежа, и ответить
+# на него нужно в течение десяти секунд, иначе Telegram отменяет транзакцию.
+# Если оставить только message, счёт открывается, висит и закрывается сам —
+# без единой ошибки, потому что отфильтрованный тип Telegram даже не пытается
+# доставить. Ровно на это ушло несколько заходов отладки.
+#
+# successful_payment отдельным типом не приходит: это поле внутри message.
+ALLOWED_UPDATES = ["message", "pre_checkout_query"]
+
 # Ровно те команды, которые обработаны в worker.js и local_bot.py.
 # Список здесь и обработчики там обязаны совпадать: команда в меню, на которую
 # бот отвечает «не знаю такой команды», выглядит как сломанный бот.
@@ -108,6 +119,12 @@ def cmd_status(token: str, _args: list[str]) -> int:
         print(f"          последняя ошибка: {hook['last_error_message']}")
     print(f"Очередь:  {hook.get('pending_update_count', 0)} необработанных апдейтов")
 
+    allowed = hook.get("allowed_updates") or ["(все по умолчанию)"]
+    print(f"Типы:     {', '.join(allowed)}")
+    if hook.get("url") and "pre_checkout_query" not in allowed and "(все" not in allowed[0]:
+        print("          ВНИМАНИЕ: без pre_checkout_query оплата будет "
+              "отменяться сама через 10 секунд.")
+
     button = call(token, "getChatMenuButton").get("result", {})
     if button.get("type") == "web_app":
         print(f"Кнопка:   Mini App -> {button.get('web_app', {}).get('url')}")
@@ -151,7 +168,7 @@ def cmd_webhook(token: str, args: list[str]) -> int:
     result = call(
         token,
         "setWebhook",
-        {"url": url, "secret_token": secret, "allowed_updates": ["message"]},
+        {"url": url, "secret_token": secret, "allowed_updates": ALLOWED_UPDATES},
     )
     return 0 if require_ok(result, f"вебхук указывает на {url}") else 1
 
