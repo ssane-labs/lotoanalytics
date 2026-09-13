@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "tg-app-creator": {
+      "type": "http",
+      "url": "https://tg.app/mcp/creator",
+      "headers": {
+        "Authorization": "Bearer ${TG_APP_MCP_KEY}"
+      }
+    }
+  }
+}
