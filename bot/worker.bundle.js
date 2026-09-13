@@ -411,7 +411,17 @@ export default {
       return preflight();
     }
     if (url.pathname === '/health') {
-      return new Response('ok');
+      // Отдаём только факты наличия, никаких значений: по этому ответу видно,
+      // пережили ли публикацию привязка хранилища и секреты, но сами секреты
+      // не утекают.
+      return json({
+        ok: true,
+        kv_subs: Boolean(env.SUBS),
+        bot_token: Boolean(env.BOT_TOKEN),
+        webhook_secret: Boolean(env.WEBHOOK_SECRET),
+        miniapp_url: env.MINIAPP_URL || null,
+        donate_url: env.DONATE_URL || null,
+      });
     }
     if (request.method !== 'POST') {
       return new Response('Этот адрес принимает только POST.', { status: 405 });
