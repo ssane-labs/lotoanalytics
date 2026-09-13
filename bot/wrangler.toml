@@ -15,8 +15,10 @@ compatibility_date = "2025-01-01"
 # Адрес Mini App на GitHub Pages. Слэш на конце обязателен.
 MINIAPP_URL = "https://ssane-labs.github.io/lotoanalytics/"
 
-# Страница для донатов. ЗАМЕНИТЕ на свой адрес Boosty.
-DONATE_URL = "https://boosty.to/ЗАМЕНИТЕ-НА-СВОЙ-АДРЕС"
+# Страница для донатов. Сам воркер её не использует — кнопка живёт в
+# docs/config.js, — но переменная задана здесь, чтобы публикация не затирала
+# значение в панели заглушкой.
+DONATE_URL = "https://boosty.to/fabrix.com/donate"
 
 # Хранилище подписок: кто и до какого момента оплатил.
 #
