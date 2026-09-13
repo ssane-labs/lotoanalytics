@@ -11,6 +11,7 @@
  * Что здесь есть:
  *   POST /api/entitlement  — есть ли у пользователя активная подписка
  *   POST /api/invoice      — ссылка на оплату для Telegram.WebApp.openInvoice
+ *   POST /api/cancel       — отменить свою подписку (без возврата звёзд)
  *   POST /  (вебхук)       — команды бота и обработка платежей
  *
  * Секреты (wrangler secret put ИМЯ или через панель Cloudflare):
@@ -53,6 +54,7 @@ const TEXT = {
     '/start — открыть аналитику\n' +
     '/buy — оформить подписку\n' +
     '/status — до какого числа оплачено\n' +
+    '/cancel — отменить подписку\n' +
     '/honest — почему предсказать тираж нельзя\n' +
     '/help — это сообщение',
   honest:
@@ -123,6 +125,28 @@ async function grantSubscription(env, userId, planKey, charge) {
     }),
   );
   return until;
+}
+
+/**
+ * Отмена подписки по желанию пользователя, без возврата звёзд: доступ
+ * заканчивается сразу. Запись не удаляем, а закрываем датой — charge_id
+ * должен остаться, чтобы возврат по запросу был возможен и потом.
+ */
+async function cancelSubscription(env, userId) {
+  const raw = await env.SUBS?.get(subKey(userId));
+  if (!raw) return false;
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+  if (Number(data.until || 0) <= Date.now()) return false;
+  await env.SUBS.put(
+    subKey(userId),
+    JSON.stringify({ ...data, until: Date.now(), cancelled_at: Date.now() }),
+  );
+  return true;
 }
 
 const fmtDate = (ts) =>
@@ -211,6 +235,14 @@ async function createInvoiceLink(env, planKey, userId) {
     console.error('createInvoiceLink failed', err);
     return null;
   }
+}
+
+async function handleCancel(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const user = await verifyInitData(body.initData, env);
+  if (!user) return json({ error: 'invalid initData' }, 401);
+  const cancelled = await cancelSubscription(env, user.id);
+  return json({ cancelled });
 }
 
 async function handleInvoice(request, env) {
@@ -304,6 +336,23 @@ async function handleUpdate(update, env) {
       );
     }
 
+    case '/cancel': {
+      const sub = await getSubscription(env, userId);
+      if (!sub.active) return send('Активной подписки нет — отменять нечего.');
+      return send(
+        `Подписка активна до ${fmtDate(sub.until)}.\n\n` +
+          'После отмены доступ закончится сразу, звёзды не возвращаются. ' +
+          'Чтобы подтвердить, отправьте /cancel_confirm',
+      );
+    }
+
+    case '/cancel_confirm': {
+      const cancelled = await cancelSubscription(env, userId);
+      return send(cancelled
+        ? 'Подписка отменена. Доступ закрыт, звёзды не возвращались.'
+        : 'Активной подписки нет — отменять нечего.');
+    }
+
     case '/buy':
       return send(
         'Тарифы. Оплата внутри Telegram, звёздами:\n\n' +
@@ -338,7 +387,7 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'plans-v2',
+        build: 'cancel-v1',
         plans: Object.keys(PLANS),
         kv_subs: Boolean(env.SUBS),
         bot_token: Boolean(env.BOT_TOKEN),
@@ -351,14 +400,17 @@ export default {
       return new Response('Этот адрес принимает только POST.', { status: 405 });
     }
 
-    if (url.pathname === '/api/entitlement' || url.pathname === '/api/invoice') {
+    const api = {
+      '/api/entitlement': handleEntitlement,
+      '/api/invoice': handleInvoice,
+      '/api/cancel': handleCancel,
+    }[url.pathname];
+    if (api) {
       // Без этого перехвата сбой внутри обработчика уходит наружу как ответ
       // Cloudflare без заголовков CORS, и браузер сообщает «Load failed», не
       // показывая ни кода, ни причины.
       try {
-        return url.pathname === '/api/invoice'
-          ? await handleInvoice(request, env)
-          : await handleEntitlement(request, env);
+        return await api(request, env);
       } catch (err) {
         console.error(`${url.pathname} failed`, err);
         return json({ error: 'internal', detail: String(err && err.message) }, 500);

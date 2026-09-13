@@ -18,13 +18,16 @@
 ## 2. Данные тиражей
 
 `.github/workflows/update-data.yml` раз в сутки забирает свежие тиражи и
-коммитит их в `docs/data/`. История накапливается в `data/draws_6x45.csv`.
+коммитит их в `docs/data/`. Игры перечислены в `model_params.json`
+(сейчас «6 из 45» и «7 из 49»); история каждой накапливается в
+`data/draws_<игра>.csv`. Игра появляется в переключателе приложения, как
+только для неё собран хотя бы один тираж.
 
 Разовый бэкфилл всей истории: скачайте архив с
 https://www.stoloto.ru/6x45/archive и выполните
 
 ```bash
-python scripts/build_data.py --csv путь/к/архиву.csv
+python scripts/build_data.py --game 6x45 --csv путь/к/архиву.csv
 ```
 
 ---

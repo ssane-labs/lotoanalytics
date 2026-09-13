@@ -8,8 +8,8 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="styles.css?v=22b429d0">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=552a3515">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -83,6 +83,8 @@
   <section class="view" id="view-generate">
 
     <div class="section">
+      <!-- Выбор лотереи. Кнопки появляются, когда в данных больше одной игры. -->
+      <div class="chips games" id="game-picker" role="group" aria-label="Лотерея" hidden></div>
       <span class="eyebrow eyebrow--accent" id="game-title">Спортлото «6 из 45»</span>
       <h2>Комбинации, которые не ставит никто</h2>
       <p class="lede">
@@ -145,6 +147,7 @@
       <p class="muted">
         Отметьте числа так же, как на бланке. Покажем, насколько часто такую
         комбинацию выбирают другие и во что это обойдётся при выигрыше.
+        Разбор своей комбинации — по подписке.
       </p>
       <div class="slip" id="slip" role="group" aria-label="Игровой бланк"></div>
       <div class="slip-foot">
@@ -306,6 +309,6 @@
 
 <div class="fatal" id="fatal" hidden></div>
 
-<script type="module" src="app.js?v=22b429d0"></script>
+<script type="module" src="app.js?v=552a3515"></script>
 </body>
 </html>

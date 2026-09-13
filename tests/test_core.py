@@ -59,6 +59,27 @@ def test_win_probability_is_identical_for_every_combination():
         assert EV.match_probability(GAME, 6) == 1 / GAME.total_combinations, combo
 
 
+def test_every_game_loads_and_prizes_cover_pick():
+    for key in PARAMS["games"]:
+        game = load_game(key, PARAMS)
+        assert game.pick < game.pool, key
+        assert game.slip_rows * game.slip_cols >= game.pool, key
+        assert game.prizes_rub[game.pick] is None, key
+        total = sum(EV.match_probability(game, m) for m in range(game.pick + 1))
+        assert abs(total - 1.0) < 1e-12, key
+
+
+def test_game_overrides_apply_only_to_their_game():
+    """Окно суммы 7 из 49 своё, а 6 из 45 его не наследует."""
+    g49 = load_game("7x49", PARAMS)
+    assert g49.total_combinations == 85_900_584
+    combo45 = (4, 17, 23, 31, 38, 44)
+    combo49 = (4, 12, 19, 24, 28, 31, 34)
+    # Сумма 150 — ровно пик 7 из 49; сумма 157 у 6 из 45 далеко от пика 118.
+    assert popularity_breakdown(combo49, g49, PARAMS)["sum"] > 1.3
+    assert popularity_breakdown(combo45, GAME, PARAMS)["sum"] < 1.3
+
+
 # ---------------------------------------------------------------- популярность
 
 def test_pattern_combinations_are_heavier_than_random():

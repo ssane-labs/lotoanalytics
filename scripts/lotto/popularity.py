@@ -45,6 +45,8 @@ class GameSpec:
     slip_cols: int
     prizes_rub: dict[int, float | None]
     typical_players_per_draw: int
+    default_jackpot_rub: float = 300_000_000
+    lotocafe_slug: str | None = None
 
     @property
     def total_combinations(self) -> int:
@@ -64,7 +66,27 @@ def load_game(key: str = "6x45", params: dict | None = None) -> GameSpec:
         slip_cols=g["slip"]["cols"],
         prizes_rub={int(k): v for k, v in g["prizes_rub"].items()},
         typical_players_per_draw=g["typical_players_per_draw"],
+        default_jackpot_rub=g.get("default_jackpot_rub", 300_000_000),
+        lotocafe_slug=g.get("lotocafe_slug"),
     )
+
+
+def popularity_config(params: dict, game_key: str) -> dict:
+    """Параметры популярности для конкретной игры.
+
+    Общие веса лежат в params["popularity"], а игра может переопределить
+    отдельные группы (например, окно суммы: у 7 из 49 оно другое). Слияние
+    на один уровень — группы факторов плоские.
+    """
+    base = params["popularity"]
+    overrides = params["games"].get(game_key, {}).get("popularity_overrides")
+    if not overrides:
+        return base
+    merged = dict(base)
+    for group, values in overrides.items():
+        if isinstance(values, dict):
+            merged[group] = {**base.get(group, {}), **values}
+    return merged
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +236,7 @@ def popularity_breakdown(
 ) -> dict[str, float]:
     """Разложение веса популярности по факторам. Произведение = итоговый вес."""
     combo = tuple(sorted(combo))
-    cfg = (params or load_params())["popularity"]
+    cfg = popularity_config(params or load_params(), game.key)
     return {
         "numbers": _number_factor(combo, cfg),
         "consecutive": _consecutive_factor(combo, cfg),

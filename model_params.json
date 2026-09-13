@@ -10,7 +10,25 @@
       "slip": { "rows": 9, "cols": 5, "order": "row-major" },
       "prizes_comment": "ПРОВЕРЬТЕ по официальным правилам перед публикацией. jackpot=null означает пари-мьютюэль (делится между победителями).",
       "prizes_rub": { "2": 100, "3": 300, "4": 1500, "5": 30000, "6": null },
-      "typical_players_per_draw": 1500000
+      "typical_players_per_draw": 1500000,
+      "default_jackpot_rub": 300000000,
+      "lotocafe_slug": "archive-6-iz-45"
+    },
+    "7x49": {
+      "title": "Гослото «7 из 49»",
+      "pick": 7,
+      "pool": 49,
+      "ticket_price_rub": 150,
+      "slip": { "rows": 7, "cols": 7, "order": "row-major" },
+      "prizes_comment": "ПРОВЕРЬТЕ по официальным правилам перед публикацией: суммы фиксированных выигрышей — оценка. jackpot=null означает пари-мьютюэль.",
+      "prizes_rub": { "2": 50, "3": 150, "4": 1000, "5": 10000, "6": 100000, "7": null },
+      "typical_players_per_draw": 500000,
+      "default_jackpot_rub": 100000000,
+      "lotocafe_slug": "archive-7-iz-49",
+      "popularity_overrides": {
+        "_comment": "Равномерное среднее суммы 7 из 49 — 175. Человеческий пик смещён вниз так же, как в 6 из 45 (118 против 138).",
+        "sum_window": { "human_peak": 150, "sigma": 40, "peak_multiplier": 1.35 }
+      }
     }
   },
   "popularity": {

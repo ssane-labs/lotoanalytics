@@ -32,24 +32,28 @@ jobs:
       - name: Собрать данные
         id: build
         run: |
-          # Сначала пробуем сеть. Если разбор архива сломался, откатываемся на
-          # закоммиченный CSV — приложение продолжит работать на прошлых данных.
+          # Сначала пробуем сеть. Если разбор сломался, собираем из закоммиченных
+          # архивов data/draws_*.csv — приложение продолжит работать на прошлых данных.
           if python scripts/build_data.py --fetch; then
             echo "source=network" >> "$GITHUB_OUTPUT"
-          elif [ -f data/draws_6x45.csv ]; then
-            echo "::warning::Разбор архива Столото не сработал, беру кэш data/draws_6x45.csv"
-            python scripts/build_data.py --csv data/draws_6x45.csv
+          elif ls data/draws_*.csv >/dev/null 2>&1; then
+            echo "::warning::Сеть не дала тиражей, собираю из архивов data/draws_*.csv"
+            python scripts/build_data.py
             echo "source=cache" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Нет ни сети, ни кэша. Скачайте архив вручную и закоммитьте в data/draws_6x45.csv"
+            echo "::error::Нет ни сети, ни архивов. Скачайте архив вручную и закоммитьте в data/draws_<игра>.csv"
             exit 1
           fi
 
       - name: Проверить предсказуемость на свежих данных
         run: |
-          python scripts/verify_randomness.py \
-            --csv data/draws_6x45.csv \
-            --out docs/data/6x45_randomness.json
+          for csv in data/draws_*.csv; do
+            game=$(basename "$csv" .csv); game=${game#draws_}
+            python scripts/verify_randomness.py \
+              --game "$game" \
+              --csv "$csv" \
+              --out "docs/data/${game}_randomness.json"
+          done
 
       - name: Закоммитить, если что-то изменилось
         run: |

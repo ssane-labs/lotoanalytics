@@ -235,17 +235,21 @@ _MONTHS_RU = {
     "декабря": 12,
 }
 
-_LOTOCAFE_ROW = re.compile(
-    r"Тираж\s+(?P<draw>\d{3,7})\s+"
-    r"(?P<day>\d{1,2})\s+(?P<month>[а-яё]+)\s+"
-    r"(?P<nums>(?:\d{1,2}\s+){5}\d{1,2})",
-    re.IGNORECASE,
-)
+def _lotocafe_row(pick: int) -> re.Pattern:
+    return re.compile(
+        r"Тираж\s+(?P<draw>\d{3,7})\s+"
+        r"(?P<day>\d{1,2})\s+(?P<month>[а-яё]+)\s+"
+        rf"(?P<nums>(?:\d{{1,2}}\s+){{{pick - 1}}}\d{{1,2}})",
+        re.IGNORECASE,
+    )
 
-LOTOCAFE_URL = "https://lotocafe.ru/archive-6-iz-45"
+
+LOTOCAFE_BASE = "https://lotocafe.ru/"
 
 
-def fetch_lotocafe(pick: int = 6, pool: int = 45) -> list[DrawRecord]:
+def fetch_lotocafe(
+    pick: int = 6, pool: int = 45, slug: str = "archive-6-iz-45"
+) -> list[DrawRecord]:
     """Последние тиражи со страницы-списка lotocafe.ru.
 
     Осознанное ограничение: забираем ровно одну страницу — те ~12 тиражей,
@@ -258,7 +262,8 @@ def fetch_lotocafe(pick: int = 6, pool: int = 45) -> list[DrawRecord]:
     data/draws_6x45.csv от запуска к запуску, а разовый бэкфилл делается
     импортом официального архива (см. load_csv).
     """
-    html = _http_get(LOTOCAFE_URL)
+    url = LOTOCAFE_BASE + slug
+    html = _http_get(url)
     text = re.sub(r"<[^>]+>", " ", html)
     text = re.sub(r"&nbsp;?", " ", text)
     text = re.sub(r"\s+", " ", text)
@@ -266,7 +271,7 @@ def fetch_lotocafe(pick: int = 6, pool: int = 45) -> list[DrawRecord]:
     today = date.today()
     found: dict[int, DrawRecord] = {}
 
-    for match in _LOTOCAFE_ROW.finditer(text):
+    for match in _lotocafe_row(pick).finditer(text):
         month = _MONTHS_RU.get(match["month"].lower())
         if not month:
             continue
@@ -290,7 +295,7 @@ def fetch_lotocafe(pick: int = 6, pool: int = 45) -> list[DrawRecord]:
 
     if not found:
         raise SourceUnavailable(
-            f"Не удалось разобрать {LOTOCAFE_URL} — вероятно, изменилась вёрстка."
+            f"Не удалось разобрать {url} — вероятно, изменилась вёрстка."
         )
     return sorted(found.values(), key=lambda r: r.draw_id)
 
