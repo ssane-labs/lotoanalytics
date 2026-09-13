@@ -60,10 +60,24 @@ jobs:
             exit 1
           fi
 
+      # Вызываем wrangler напрямую, а не через готовое действие: оно прячет
+      # вывод внутри сворачиваемой группы лога, и при падении наружу попадает
+      # только «процесс завершился с кодом 1» — без причины. Здесь же вывод
+      # дублируется в аннотации, которые видны сразу на странице прогона.
       - name: Опубликовать воркер
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: bot
-          command: deploy
+        working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          if npx --yes wrangler@3 deploy 2>&1 | tee /tmp/wrangler.log; then
+            echo "Публикация прошла успешно."
+            exit 0
+          fi
+          echo "::error::wrangler не смог опубликовать воркер. Вывод ниже."
+          # Пустые строки в ::error:: не отображаются, поэтому отсеиваем их.
+          tail -n 40 /tmp/wrangler.log | while IFS= read -r line; do
+            [ -n "$line" ] && echo "::error::$line"
+          done
+          exit 1
