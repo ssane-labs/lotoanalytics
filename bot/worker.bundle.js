@@ -426,6 +426,11 @@ export default {
       // не утекают.
       return json({
         ok: true,
+        // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
+        // «опубликовалось, но до боевого адреса не доехало»: без неё обе
+        // ситуации выглядят одинаково.
+        build: 'plans-v2',
+        plans: Object.keys(PLANS),
         kv_subs: Boolean(env.SUBS),
         bot_token: Boolean(env.BOT_TOKEN),
         webhook_secret: Boolean(env.WEBHOOK_SECRET),
