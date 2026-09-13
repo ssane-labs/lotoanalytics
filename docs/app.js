@@ -14,8 +14,8 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=dabd13ae';
-import { CONFIG } from './config.js?v=dabd13ae';
+} from './model.js?v=2939dcc5';
+import { CONFIG } from './config.js?v=2939dcc5';
 
 const GAME = '6x45';
 const DEFAULT_JACKPOT = 300_000_000;
@@ -288,18 +288,41 @@ async function loadEntitlement() {
  * в момент нажатия сети не требуется. Запрос остаётся только на случай,
  * если заранее ссылку получить не удалось.
  */
+/**
+ * Открывает оплату. Ссылка приходит заранее вместе с данными о подписке —
+ * в момент нажатия сети не требуется.
+ *
+ * Здесь намеренно много видимой диагностики: платёж уходит в клиент Telegram,
+ * и если он молча ничего не делает, снаружи это неотличимо от «кнопка не
+ * работает». Показываем версию клиента, доступность метода и то, чем
+ * закончился вызов.
+ */
 async function buyPlan(plan, button) {
-  const errorBox = button.parentElement.parentElement;
-  const showError = (text) => {
-    const old = errorBox.querySelector('.error');
-    if (old) old.remove();
-    errorBox.append(el('p', 'error', text));
+  const host = button.closest('.section') || button.parentElement;
+  const say = (text, kind = 'error') => {
+    host.querySelectorAll('.pay-note').forEach((n) => n.remove());
+    const p = el('p', `${kind} pay-note`, text);
+    host.append(p);
   };
+
+  const version = tg?.version || '?';
+  // openInvoice появился в Bot API 6.1. На старом клиенте метод есть, но
+  // ничего не делает — именно так выглядит «нажимается и не грузится».
+  if (tg?.isVersionAtLeast && !tg.isVersionAtLeast('6.1')) {
+    say(`Ваш Telegram (версия API ${version}) не умеет открывать оплату ` +
+        'внутри приложения. Обновите Telegram.');
+    return;
+  }
+  if (typeof tg?.openInvoice !== 'function') {
+    say(`Метод оплаты недоступен в этом клиенте (версия API ${version}).`);
+    return;
+  }
 
   let link = plan.link;
 
   if (!link) {
     button.disabled = true;
+    say('Запрашиваем счёт…', 'muted');
     try {
       const res = await fetch(`${CONFIG.WORKER_URL}/api/invoice`, {
         method: 'POST',
@@ -311,25 +334,43 @@ async function buyPlan(plan, button) {
       if (!link) throw new Error(data.error || `сервер ответил ${res.status}`);
     } catch (err) {
       button.disabled = false;
-      showError(`Не удалось получить счёт: ${err.message}`);
+      say(`Не удалось получить счёт: ${err.message}`);
       return;
     }
     button.disabled = false;
   }
 
+  say('Открываем оплату…', 'muted');
+
+  // Если Telegram не вызовет обратный вызов, пользователь так и останется с
+  // «Открываем оплату…» — поэтому через десять секунд говорим об этом прямо.
+  let answered = false;
+  const timer = setTimeout(() => {
+    if (!answered) {
+      say(`Telegram не ответил на запрос оплаты за 10 секунд. ` +
+          `Версия API ${version}. Ссылка: ${String(link).slice(0, 42)}…`);
+    }
+  }, 10000);
+
   try {
     tg.openInvoice(link, async (status) => {
+      answered = true;
+      clearTimeout(timer);
       if (status === 'paid') {
         haptic('medium');
+        say('Оплачено, обновляем подписку…', 'muted');
         state.entitlement = await loadEntitlement();
         renderSubscribe();
-      } else if (status === 'failed') {
-        showError('Telegram не смог провести оплату. Попробуйте ещё раз.');
+      } else if (status === 'cancelled') {
+        say('Оплата отменена.', 'muted');
+      } else {
+        say(`Telegram вернул статус «${status}». Оплата не прошла.`);
       }
-      // cancelled — пользователь передумал, это не ошибка
     });
   } catch (err) {
-    showError(`Не удалось открыть оплату: ${err.message}`);
+    answered = true;
+    clearTimeout(timer);
+    say(`Не удалось открыть оплату: ${err.message} (версия API ${version})`);
   }
 }
 

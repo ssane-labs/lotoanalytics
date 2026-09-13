@@ -634,6 +634,8 @@ details.why[open] > summary .chev { transform: rotate(180deg); }
 }
 
 .error { margin-top: 12px; font-size: 13.5px; color: var(--accent); }
+.pay-note { margin-top: 12px; font-size: 13px; line-height: 1.5; word-break: break-word; }
+.pay-note.muted { color: var(--ink-3); }
 
 .fatal {
   margin: var(--pad);

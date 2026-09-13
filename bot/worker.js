@@ -217,7 +217,10 @@ async function handleInvoice(request, env) {
   if (!plan) return json({ error: 'unknown plan' }, 400);
 
   const link = await createInvoiceLink(env, planKey, user.id);
-  if (!link) return json({ error: 'invoice failed' }, 502);
+  if (!link) {
+    // Пустая ссылка означает отказ Telegram — причина уходит в логи воркера.
+    return json({ error: 'Telegram не выдал ссылку на счёт' }, 502);
+  }
   return json({ link, plan: planKey, stars: plan.stars });
 }
 
