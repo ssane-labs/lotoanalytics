@@ -19,8 +19,10 @@ MINIAPP_URL = "https://ssane-labs.github.io/lotoanalytics/"
 DONATE_URL = "https://boosty.to/ЗАМЕНИТЕ-НА-СВОЙ-АДРЕС"
 
 # Хранилище подписок: кто и до какого момента оплатил.
-# Создать:  wrangler kv namespace create SUBS
-# и подставить выданный id ниже (или создать в панели: Storage & Databases -> KV).
+#
+# Идентификатор обязан быть настоящим: автопубликация падала именно из-за
+# заглушки здесь. Посмотреть можно в панели: Storage & Databases -> KV,
+# столбец ID рядом с именем хранилища.
 [[kv_namespaces]]
 binding = "SUBS"
-id = "ЗАМЕНИТЕ-НА-ID-KV-NAMESPACE"
+id = "80c6305090e145b5971da7ab803efe3c"
