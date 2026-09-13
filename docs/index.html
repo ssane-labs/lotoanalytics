@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=552a3515">
+<link rel="stylesheet" href="styles.css?v=6c17edbf">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -63,6 +63,12 @@
       <rect x="4.8" y="10.4" width="14.4" height="9.6" rx="2.2"/>
       <path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"/>
     </g>
+    <g id="i-share">
+      <circle cx="17.6" cy="5.8" r="2.4"/>
+      <circle cx="6.4" cy="12" r="2.4"/>
+      <circle cx="17.6" cy="18.2" r="2.4"/>
+      <path d="M8.5 10.8l7-3.8M8.5 13.2l7 3.8"/>
+    </g>
     <g id="i-check">
       <path d="M5.4 12.6l4.4 4.4L18.6 8"/>
     </g>
@@ -97,6 +103,14 @@
     </div>
 
     <div class="section">
+      <div class="field">
+        <label class="eyebrow" for="gen-mode">Способ подбора</label>
+        <div class="chips" id="gen-mode" role="group" aria-label="Способ подбора">
+          <button class="chip is-active" data-mode="classic" type="button">Непопулярные</button>
+          <button class="chip" data-mode="ai" type="button">Нейросеть</button>
+        </div>
+      </div>
+
       <div class="field">
         <label class="eyebrow" for="gen-count">Сколько комбинаций</label>
         <div class="chips" id="gen-count" role="group" aria-label="Сколько комбинаций">
@@ -309,6 +323,6 @@
 
 <div class="fatal" id="fatal" hidden></div>
 
-<script type="module" src="app.js?v=552a3515"></script>
+<script type="module" src="app.js?v=6c17edbf"></script>
 </body>
 </html>

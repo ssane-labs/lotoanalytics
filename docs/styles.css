@@ -548,6 +548,11 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
 }
 .plan__price svg { width: 14px; height: 14px; }
 
+.referral { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--rule-soft); }
+.referral .btn { margin-top: 4px; }
+.share-btn { margin-top: 16px; }
+.chip svg { width: 13px; height: 13px; margin-right: 5px; vertical-align: -1px; }
+
 details.why { margin-top: 18px; }
 details.why > summary {
   cursor: pointer;

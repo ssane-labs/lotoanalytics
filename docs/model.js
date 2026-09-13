@@ -272,6 +272,10 @@ export function generate(model, options = {}) {
     exclude = [],
     candidates = 12000,
     maxOverlap = null,
+    // Оценки ИИ по числам (индекс n-1). Если заданы, кандидаты выбираются
+    // с перевесом в сторону чисел, которые сеть считает вероятнее, а в
+    // рейтинге популярность делится на суммарную оценку сети.
+    numberWeights = null,
   } = options;
 
   const game = model.game;
@@ -295,22 +299,43 @@ export function generate(model, options = {}) {
   const seen = new Set();
   const work = [...pool];
 
+  let aiMean = 1;
+  if (numberWeights) {
+    aiMean = pool.reduce((s, n) => s + numberWeights[n - 1], 0) / pool.length;
+  }
+
   for (let iter = 0; iter < candidates; iter += 1) {
-    // Частичный Фишер—Йетс: равномерная выборка `need` из пула.
-    for (let i = 0; i < need; i += 1) {
-      const j = i + Math.floor(Math.random() * (work.length - i));
-      [work[i], work[j]] = [work[j], work[i]];
+    let drawn;
+    if (numberWeights) {
+      // Взвешенная выборка без возвращения (Эфраимидис—Спиракис):
+      // ключ u^(1/w), берём `need` наибольших.
+      drawn = work
+        .map((n) => [Math.random() ** (1 / Math.max(numberWeights[n - 1], 1e-9)), n])
+        .sort((a, b) => b[0] - a[0])
+        .slice(0, need)
+        .map(([, n]) => n);
+    } else {
+      // Частичный Фишер—Йетс: равномерная выборка `need` из пула.
+      for (let i = 0; i < need; i += 1) {
+        const j = i + Math.floor(Math.random() * (work.length - i));
+        [work[i], work[j]] = [work[j], work[i]];
+      }
+      drawn = work.slice(0, need);
     }
-    const combo = [...fixed, ...work.slice(0, need)].sort((a, b) => a - b);
+    const combo = [...fixed, ...drawn].sort((a, b) => a - b);
     const key = combo.join(',');
     if (seen.has(key)) continue;
     seen.add(key);
     const breakdown = model.breakdown(combo);
     const weight = Object.values(breakdown).reduce((a, b) => a * b, 1);
-    scored.push({ combo, weight, breakdown });
+    let aiScore = 1;
+    if (numberWeights) {
+      for (const n of combo) aiScore *= numberWeights[n - 1] / aiMean;
+    }
+    scored.push({ combo, weight, breakdown, aiScore, rank: weight / aiScore });
   }
 
-  scored.sort((a, b) => a.weight - b.weight);
+  scored.sort((a, b) => a.rank - b.rank);
   if (maxOverlap === null) return scored.slice(0, count);
 
   const chosen = [];

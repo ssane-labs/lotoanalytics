@@ -55,6 +55,7 @@ const TEXT = {
     '/buy — оформить подписку\n' +
     '/status — до какого числа оплачено\n' +
     '/cancel — отменить подписку\n' +
+    '/invite — пригласить друга и получить дни подписки\n' +
     '/honest — почему предсказать тираж нельзя\n' +
     '/help — это сообщение',
   honest:
@@ -106,25 +107,94 @@ async function getSubscription(env, userId) {
 async function grantSubscription(env, userId, planKey, charge) {
   const plan = PLANS[planKey];
   if (!plan) throw new Error(`неизвестный тариф: ${planKey}`);
+  return addDays(env, userId, plan.days, {
+    plan: planKey,
+    // Идентификатор платежа нужен, чтобы можно было вернуть деньги:
+    // Telegram требует от ботов возможность возврата Stars по запросу.
+    charge_id: charge?.telegram_payment_charge_id ?? null,
+    paid_at: Date.now(),
+  });
+}
 
-  // Продление считаем от большей из дат: если пользователь платит, не дождавшись
-  // конца оплаченного периода, остаток не должен сгорать.
-  const current = await getSubscription(env, userId);
-  const base = Math.max(Date.now(), current.until || 0);
-  const until = base + plan.days * 86400_000;
-
-  await env.SUBS.put(
-    subKey(userId),
-    JSON.stringify({
-      until,
-      plan: planKey,
-      // Идентификатор платежа нужен, чтобы можно было вернуть деньги:
-      // Telegram требует от ботов возможность возврата Stars по запросу.
-      charge_id: charge?.telegram_payment_charge_id ?? null,
-      paid_at: Date.now(),
-    }),
-  );
+/**
+ * Продлевает доступ на days дней. Продление считаем от большей из дат: если
+ * пользователь платит или получает бонус до конца периода, остаток не сгорает.
+ *
+ * Прежние поля записи сохраняются: бонус за приглашение не должен затирать
+ * charge_id оплаты, иначе вернуть по ней звёзды станет нечем.
+ */
+async function addDays(env, userId, days, fields = {}) {
+  let current = {};
+  try {
+    current = JSON.parse((await env.SUBS.get(subKey(userId))) || '{}');
+  } catch { /* битая запись — начинаем заново */ }
+  const base = Math.max(Date.now(), Number(current.until || 0));
+  const until = base + days * 86400_000;
+  const next = { ...current, ...fields, until };
+  if (fields.charge_id === null && current.charge_id) next.charge_id = current.charge_id;
+  delete next.cancelled_at;
+  await env.SUBS.put(subKey(userId), JSON.stringify(next));
   return until;
+}
+
+// ------------------------------------------------------------ рефералка
+
+// Сколько дней получают оба — пригласивший и новичок, и сколько друзей
+// засчитывается одному человеку. Потолок нужен против накрутки фейковыми
+// аккаунтами: без него неделя подписки стоила бы пять регистраций.
+const REF_BONUS_DAYS = 3;
+const REF_MAX_FRIENDS = 10;
+
+let botUsername = null;
+async function getBotUsername(env) {
+  if (botUsername) return botUsername;
+  const me = await tg(env, 'getMe');
+  botUsername = me.ok ? me.result.username : null;
+  return botUsername;
+}
+
+async function referralInfo(env, userId) {
+  const username = await getBotUsername(env);
+  const invited = Number((await env.SUBS?.get(`ref:count:${userId}`)) || 0);
+  return {
+    link: username ? `https://t.me/${username}?start=ref_${userId}` : null,
+    invited,
+    bonus_days: REF_BONUS_DAYS,
+    max_friends: REF_MAX_FRIENDS,
+  };
+}
+
+/**
+ * Пользователь пришёл в бота. Отмечаем его как известного и, если он пришёл
+ * по чужой ссылке впервые, начисляем бонус обоим.
+ *
+ * Новичком считается только тот, кого бот раньше не видел и у кого нет записи
+ * о подписке: иначе старый пользователь мог бы «прийти по ссылке» друга.
+ */
+async function registerVisit(env, userId, payload) {
+  if (!env.SUBS || !userId) return null;
+  const seenKey = `seen:${userId}`;
+  const known = (await env.SUBS.get(seenKey)) || (await env.SUBS.get(subKey(userId)));
+  if (known) return null;
+  await env.SUBS.put(seenKey, String(Date.now()));
+
+  const refId = Number(/^ref_(\d+)$/.exec(payload || '')?.[1] || 0);
+  if (!refId || refId === userId) return null;
+
+  const countKey = `ref:count:${refId}`;
+  const count = Number((await env.SUBS.get(countKey)) || 0);
+  await env.SUBS.put(`ref:by:${userId}`, String(refId));
+  if (count >= REF_MAX_FRIENDS) return { rewarded: false };
+
+  await env.SUBS.put(countKey, String(count + 1));
+  await addDays(env, refId, REF_BONUS_DAYS, { plan: 'referral' });
+  await addDays(env, userId, REF_BONUS_DAYS, { plan: 'referral' });
+  await tg(env, 'sendMessage', {
+    chat_id: refId,
+    text: `По вашей ссылке пришёл новый пользователь — вам +${REF_BONUS_DAYS} дня подписки. ` +
+      `Приглашено: ${count + 1} из ${REF_MAX_FRIENDS}.`,
+  });
+  return { rewarded: true };
 }
 
 /**
@@ -182,6 +252,9 @@ async function handleEntitlement(request, env) {
   const user = await verifyInitData(body.initData, env);
   if (!user) return json({ error: 'invalid initData' }, 401);
 
+  // Открыл приложение, минуя /start, — всё равно запоминаем, чтобы потом не
+  // засчитать его новичком по чужой ссылке.
+  await registerVisit(env, user.id, null);
   const sub = await getSubscription(env, user.id);
 
   // Ссылки на оплату готовим заранее, вместе с ответом о подписке. Если
@@ -206,6 +279,7 @@ async function handleEntitlement(request, env) {
     plan: sub.plan ?? null,
     free_daily_limit: FREE_DAILY_LIMIT,
     plans,
+    referral: await referralInfo(env, user.id),
   });
 }
 
@@ -311,14 +385,30 @@ async function handleUpdate(update, env) {
   }
 
   if (!message.text) return;
-  const command = message.text.trim().split(/\s+/)[0].split('@')[0].toLowerCase();
+  const [head, payload] = message.text.trim().split(/\s+/);
+  const command = head.split('@')[0].toLowerCase();
 
   const send = (text, extra = {}) =>
     tg(env, 'sendMessage', { chat_id: chatId, text, ...extra });
 
   switch (command) {
-    case '/start':
-      return send(TEXT.start, { reply_markup: appKeyboard(env) });
+    case '/start': {
+      const ref = await registerVisit(env, userId, payload);
+      const bonus = ref?.rewarded
+        ? `\n\nВы пришли по приглашению — вам +${REF_BONUS_DAYS} дня подписки в подарок.`
+        : '';
+      return send(TEXT.start + bonus, { reply_markup: appKeyboard(env) });
+    }
+
+    case '/invite': {
+      const info = await referralInfo(env, userId);
+      if (!info.link) return send('Не удалось получить ссылку, попробуйте позже.');
+      return send(
+        `Ваша ссылка-приглашение:\n${info.link}\n\n` +
+          `За каждого нового друга — +${info.bonus_days} дня подписки вам и ему. ` +
+          `Засчитывается до ${info.max_friends} друзей, уже приглашено: ${info.invited}.`,
+      );
+    }
 
     case '/honest':
       return send(TEXT.honest, { reply_markup: appKeyboard(env) });
@@ -387,7 +477,7 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'cancel-v1',
+        build: 'referral-v1',
         plans: Object.keys(PLANS),
         kv_subs: Boolean(env.SUBS),
         bot_token: Boolean(env.BOT_TOKEN),

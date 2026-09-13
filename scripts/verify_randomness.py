@@ -120,6 +120,34 @@ STRATEGIES: dict[str, Predictor] = {
 }
 
 
+def make_strat_neural() -> Predictor:
+    """Та же нейросеть, что подбирает числа в приложении по подписке.
+
+    Переобучается раз в 100 тиражей и берёт числа с наибольшей вероятностью.
+    Её строка в таблице — честный ответ на вопрос «а что даёт ваш ИИ».
+    """
+    from lotto import ai as AI
+
+    state: dict = {"model": None, "trained_at": -1}
+
+    def strat_neural(history: Sequence[Draw], pick: int, pool: int) -> list[int]:
+        if len(history) < AI.MIN_DRAWS_FOR_AI:
+            return list(range(1, pick + 1))
+        if state["model"] is None or len(history) - state["trained_at"] >= 100:
+            state["model"], _ = AI.train(history, pool, pick, epochs=10)
+            state["trained_at"] = len(history)
+        model = state["model"]
+        return sorted(
+            range(1, pool + 1),
+            key=lambda n: -model.predict(AI.features(history, n, pool, pick)),
+        )[:pick]
+
+    return strat_neural
+
+
+STRATEGIES["Нейросеть (как в приложении)"] = make_strat_neural()
+
+
 def try_add_ml_strategy() -> None:
     """Градиентный бустинг на признаках, если установлен scikit-learn.
 

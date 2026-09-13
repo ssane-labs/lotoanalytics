@@ -30,6 +30,7 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, OSError):
         pass
 
+from lotto import ai as lai  # noqa: E402
 from lotto import stats as lstats  # noqa: E402
 from lotto.popularity import (  # noqa: E402
     GameSpec,
@@ -186,6 +187,22 @@ def build_game(game: GameSpec, params: dict, args, generated: str) -> bool:
     write_json(f"{game.key}_stats.json",
                {"generated_at": generated, "synthetic": is_synthetic, **summary})
 
+    # Нейросеть переобучается при каждой сборке — на всей свежей истории.
+    if len(draws) >= lai.MIN_DRAWS_FOR_AI:
+        print("Обучаю нейросеть...")
+        net, info = lai.train(draws, game.pool, game.pick, epochs=args.ai_epochs)
+        print(f"  примеров {info['samples']}, loss {info['final_loss']}, "
+              f"проверка: {info['holdout']}")
+        write_json(f"{game.key}_ai.json",
+                   lai.export(net, info, draws, game.key, game.pool, game.pick))
+    else:
+        write_json(f"{game.key}_ai.json", {
+            "game": game.key,
+            "insufficient": True,
+            "draws": len(draws),
+            "draws_needed": lai.MIN_DRAWS_FOR_AI,
+        })
+
     write_json(f"{game.key}_draws.json", {
         "generated_at": generated,
         "synthetic": is_synthetic,
@@ -210,6 +227,8 @@ def main() -> int:
         default=200_000,
         help="Размер выборки Монте-Карло для нормировки модели популярности",
     )
+    parser.add_argument("--ai-epochs", type=int, default=30,
+                        help="Эпох обучения нейросети")
     args = parser.parse_args()
 
     params = load_params()

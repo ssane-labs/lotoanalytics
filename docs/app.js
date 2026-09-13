@@ -14,8 +14,9 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=552a3515';
-import { CONFIG } from './config.js?v=552a3515';
+} from './model.js?v=6c17edbf';
+import { CONFIG } from './config.js?v=6c17edbf';
+import { DrawAI } from './ai.js?v=6c17edbf';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -29,6 +30,10 @@ const state = {
   meta: null,
   stats: null,
   proof: null,
+  /** Нейросеть текущей игры: сырой JSON и модель (null, если не обучена). */
+  aiData: null,
+  ai: null,
+  genMode: 'classic',
   selected: new Set(),
   jackpot: 300_000_000,
   genCount: 1,
@@ -523,6 +528,16 @@ async function cancelSubscription(button) {
 /** Подписка — на вкладке подбора, где пользователь упирается в лимит. */
 function renderSubscribe() {
   const host = $('#subscribe-section');
+  renderSubscribeBody(host);
+  const ref = referralNode();
+  if (ref) {
+    host.hidden = false;
+    host.append(ref);
+  }
+  renderModeChips();
+}
+
+function renderSubscribeBody(host) {
   const ent = state.entitlement;
 
   host.hidden = false;
@@ -540,7 +555,7 @@ function renderSubscribe() {
     host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
     const note = el('div', 'note note--good');
     const p = el('p');
-    p.append(icon('check', 14), document.createTextNode(` Активна до ${ent.until_text}.`));
+    p.append(icon('check', 14), document.createTextNode(` Активна до ${String(ent.until_text).replace(/\.$/, '')}.`));
     note.append(p);
     note.append(el('p', 'muted',
       'Напоминаем то, за что вы НЕ платили: шанс выиграть не изменился и ' +
@@ -563,9 +578,67 @@ function renderSubscribe() {
   host.append(el('h3', null, 'Снять ограничение'));
   host.append(el('p', 'muted',
     `Бесплатно — ${CONFIG.FREE_DAILY_LIMIT} комбинация за раз. ` +
-    'По подписке — пакеты билетов с непересекающимися числами, ' +
-    'неограниченный подбор и разбор своей комбинации. Оплата звёздами внутри Telegram.'));
+    'По подписке — пакеты билетов с непересекающимися числами, подбор ' +
+    'нейросетью, разбор своей комбинации. Оплата звёздами внутри Telegram.'));
   host.append(plans);
+}
+
+/** Приглашение друзей: оба получают дни подписки. */
+function referralNode() {
+  const ref = state.entitlement?.referral;
+  if (!ref?.link) return null;
+  const node = el('div', 'referral');
+  node.append(el('span', 'eyebrow eyebrow--accent', 'Пригласить друга'));
+  node.append(el('p', 'muted',
+    `За каждого нового друга — +${ref.bonus_days} дня подписки вам и ему. ` +
+    `Засчитывается до ${ref.max_friends} друзей, уже приглашено: ${ref.invited}.`));
+  const btn = el('button', 'btn btn--ghost');
+  btn.type = 'button';
+  btn.append(icon('share', 16), document.createTextNode('Пригласить'));
+  btn.addEventListener('click', () => shareLink(
+    ref.link,
+    'Лотерейный аналитик: подбирает комбинации, которые почти никто не ставит, ' +
+    `чтобы не делить джекпот. По ссылке — +${ref.bonus_days} дня подписки.`,
+  ));
+  node.append(btn);
+  return node;
+}
+
+/** Ссылка, по которой отправляем друзей: личная, если есть, иначе на бота. */
+function inviteLink() {
+  return state.entitlement?.referral?.link || CONFIG.BOT_URL || window.location.href;
+}
+
+/**
+ * Поделиться через выбор чата Telegram. Вне Telegram — системное меню
+ * «Поделиться», а если его нет, копируем текст в буфер.
+ */
+async function shareLink(url, text) {
+  haptic('light');
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}` +
+    `&text=${encodeURIComponent(text)}`;
+  if (tg?.openTelegramLink && tg.platform && tg.platform !== 'unknown') {
+    tg.openTelegramLink(shareUrl);
+    return;
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share({ text, url });
+      return;
+    } catch { /* пользователь закрыл меню */ return; }
+  }
+  window.open(shareUrl, '_blank', 'noopener');
+}
+
+function shareCombos(picks) {
+  const { title } = state.model.game;
+  const lines = picks.map((p) => p.combo.join(' · '));
+  const how = state.genMode === 'ai' ? 'нейросеть' : 'аналитик';
+  shareLink(
+    inviteLink(),
+    `Мои числа для ${title}, подобрал ${how}:\n${lines.join('\n')}\n\n` +
+    'Такие комбинации почти никто не ставит — джекпот не придётся делить.',
+  );
 }
 
 /** Донат — отдельно от подписки: это не покупка доступа. */
@@ -597,7 +670,67 @@ function initGenerator() {
     state.genCount = Number(chip.dataset.count);
     haptic('light');
   });
+  $('#gen-mode').addEventListener('click', (event) => {
+    const chip = event.target.closest('.chip');
+    if (!chip) return;
+    state.genMode = chip.dataset.mode;
+    renderModeChips();
+    haptic('light');
+  });
   $('#gen-run').addEventListener('click', runGenerator);
+}
+
+/** Замок на «Нейросети», пока нет подписки. */
+function renderModeChips() {
+  document.querySelectorAll('#gen-mode .chip').forEach((chip) => {
+    chip.classList.toggle('is-active', chip.dataset.mode === state.genMode);
+    chip.querySelector('svg')?.remove();
+    if (chip.dataset.mode === 'ai' && !isSubscribed()) chip.prepend(icon('lock', 13));
+  });
+}
+
+/** Экран вместо результата, когда нужна подписка. */
+function lockedSection(title, text) {
+  const node = section(title, { accent: true });
+  const note = el('div', 'note');
+  const p = el('p');
+  p.append(icon('lock', 14), document.createTextNode(` ${text}`));
+  note.append(p);
+  note.append(el('p', 'muted', CONFIG.WORKER_URL
+    ? 'Тарифы — ниже на этом экране.'
+    : 'Подписка ещё не подключена.'));
+  node.append(note);
+  return node;
+}
+
+/** Честная справка о нейросети рядом с её подбором. */
+function aiNoteNode() {
+  const d = state.aiData;
+  const node = el('div', 'note note--quiet');
+  node.style.marginTop = '4px';
+  const p = el('p', 'muted');
+  p.append(el('strong', null, 'Нейросеть. '));
+  p.append(document.createTextNode(
+    `Перцептрон ${d.arch.inputs}→${d.arch.hidden}→1, обучен на ` +
+    `${fmtInt(d.draws_used)} тиражах (${fmtInt(d.samples)} примеров) и ` +
+    'переобучается каждый день. Сеть выбирает числа, которые считает ' +
+    'вероятнее, а из её вариантов мы берём те, что реже ставят другие.',
+  ));
+  node.append(p);
+  if (!d.holdout || d.holdout.draws < 10) {
+    // На паре тиражей средняя «угаданность» — чистый шум, показывать её как
+    // результат нечестно в обе стороны.
+    node.append(el('p', 'muted',
+      'Проверку на тиражах, которых сеть не видела, покажем, когда их накопится ' +
+      'хотя бы десять. Шанс выиграть от нейросети не меняется: тиражи независимы.'));
+  } else {
+    node.append(el('p', 'muted',
+      `На ${fmtInt(d.holdout.draws)} тиражах, которых сеть не видела, она угадала в среднем ` +
+      `${fmtDec(d.holdout.mean_matches)} числа — случайный выбор даёт ` +
+      `${fmtDec(d.holdout.expected_by_chance)}. Шанс выиграть от этого не меняется: ` +
+      'тиражи независимы, и это видно по цифрам.'));
+  }
+  return node;
 }
 
 function parseNumbers(raw, pool) {
@@ -625,20 +758,25 @@ function runGenerator() {
   const results = $('#gen-results');
   errBox.hidden = true;
 
-  if (freeLimitExceeded()) {
+  const useAI = state.genMode === 'ai';
+  if (useAI && !isSubscribed()) {
+    results.replaceChildren(lockedSection('Нейросеть по подписке',
+      'Подбор нейросетью, обученной на истории тиражей, доступен по подписке.'));
+    haptic('light');
+    return;
+  }
+  if (useAI && !state.ai) {
+    const d = state.aiData;
+    errBox.textContent = d?.insufficient
+      ? `Нейросеть ещё не обучена: нужно ${d.draws_needed} тиражей, собрано ${d.draws}.`
+      : 'Нейросеть для этой игры пока не опубликована.';
+    errBox.hidden = false;
     results.replaceChildren();
-    const node = section('Нужна подписка', { accent: true });
-    const note = el('div', 'note');
-    const p = el('p');
-    p.append(icon('lock', 14), document.createTextNode(
-      ` Без подписки доступна ${CONFIG.FREE_DAILY_LIMIT} комбинация за раз.`,
-    ));
-    note.append(p);
-    note.append(el('p', 'muted', CONFIG.WORKER_URL
-      ? 'Тарифы — ниже на этом экране.'
-      : 'Подписка ещё не подключена — выберите 1 комбинацию.'));
-    node.append(note);
-    results.append(node);
+    return;
+  }
+  if (freeLimitExceeded()) {
+    results.replaceChildren(lockedSection('Нужна подписка',
+      `Без подписки доступна ${CONFIG.FREE_DAILY_LIMIT} комбинация за раз.`));
     haptic('light');
     return;
   }
@@ -656,8 +794,10 @@ function runGenerator() {
         count: state.genCount,
         include,
         exclude,
-        candidates: 15000,
+        // Взвешенная выборка дороже равномерной, кандидатов берём меньше.
+        candidates: useAI ? 6000 : 15000,
         maxOverlap: spread && state.genCount > 1 ? 2 : null,
+        numberWeights: useAI ? state.ai.probabilities(state.model.recentWinners) : null,
       });
       if (!picks.length) throw new Error('С такими ограничениями подобрать не удалось');
 
@@ -672,10 +812,16 @@ function runGenerator() {
         results.append(list);
       }
       const tail = section(null);
+      if (useAI) tail.append(aiNoteNode());
       tail.append(el('p', 'muted',
         'Каждая из этих комбинаций выигрывает ровно с той же вероятностью, ' +
         'что и любая другая. Отличие только в том, сколько человек поставили ' +
         'то же самое.'));
+      const share = el('button', 'btn btn--ghost share-btn');
+      share.type = 'button';
+      share.append(icon('share', 16), document.createTextNode('Поделиться'));
+      share.addEventListener('click', () => shareCombos(picks));
+      tail.append(share);
       results.append(tail);
       haptic('medium');
     } catch (err) {
@@ -1031,12 +1177,15 @@ function initGamePicker() {
 
 /** Загружает данные игры и перерисовывает все экраны под неё. */
 async function loadGame(key) {
-  const [meta, modelData, stats, proof] = await Promise.all([
+  const [meta, modelData, stats, proof, aiData] = await Promise.all([
     loadJSON(`${key}_meta.json`),
     loadJSON(`${key}_model.json`),
     loadJSON(`${key}_stats.json`),
     loadJSON(`${key}_randomness.json`, { optional: true }),
+    loadJSON(`${key}_ai.json`, { optional: true }),
   ]);
+  state.aiData = aiData;
+  state.ai = aiData && !aiData.insufficient ? new DrawAI(aiData) : null;
 
   state.gameKey = key;
   state.meta = meta;

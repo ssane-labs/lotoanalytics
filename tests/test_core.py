@@ -252,6 +252,44 @@ def test_summarize_shape():
     assert sum(x["count"] for x in summary["numbers"]) == 400 * GAME.pick
 
 
+# ------------------------------------------------------------------ нейросеть
+
+def test_ai_features_shape_and_ranges():
+    from lotto import ai as AI
+
+    draws = [r.numbers for r in synthetic(60, GAME.pick, GAME.pool, seed=4)]
+    for n in (1, 23, 45):
+        x = AI.features(draws, n, GAME.pool, GAME.pick)
+        assert len(x) == AI.N_FEATURES
+        assert 0 <= x[AI.N_FEATURES - 3] <= 1  # разрыв нормирован
+    assert AI.features([], 7, GAME.pool, GAME.pick)[-1] == 0.0
+
+
+def test_ai_trains_deterministically_and_reports_holdout():
+    from lotto import ai as AI
+
+    draws = [r.numbers for r in synthetic(40, GAME.pick, GAME.pool, seed=9)]
+    m1, info = AI.train(draws, GAME.pool, GAME.pick, epochs=3)
+    m2, _ = AI.train(draws, GAME.pool, GAME.pick, epochs=3)
+    assert m1.W1 == m2.W1 and m1.b2 == m2.b2
+    probs = [m1.predict(AI.features(draws, n, GAME.pool, GAME.pick))
+             for n in range(1, GAME.pool + 1)]
+    assert all(0 < p < 1 for p in probs)
+    # Средняя вероятность близка к базовой частоте 6/45.
+    assert abs(sum(probs) / len(probs) - GAME.pick / GAME.pool) < 0.08
+    assert info["holdout"]["expected_by_chance"] == round(36 / 45, 4)
+
+
+def test_ai_refuses_too_little_history():
+    from lotto import ai as AI
+
+    try:
+        AI.train([(1, 2, 3, 4, 5, 6)] * 3, GAME.pool, GAME.pick)
+    except ValueError:
+        return
+    raise AssertionError("на трёх тиражах обучение должно отказываться")
+
+
 # --------------------------------------------------------------------- CSV
 
 def test_csv_roundtrip():

@@ -101,7 +101,26 @@ for (const lam of [0.01, 0.1, 0.5, 1, 2, 5, 20]) {
   checks += 1;
 }
 
+// --- 4. Нейросеть: прямой проход JS совпадает с Python -------------------
+
+import { existsSync, readdirSync } from 'node:fs';
+import { DrawAI } from '../docs/ai.js';
+
+const dataDir = join(root, 'docs', 'data');
+const aiFiles = existsSync(dataDir)
+  ? readdirSync(dataDir).filter((f) => f.endsWith('_ai.json'))
+  : [];
+for (const file of aiFiles) {
+  const payload = read(`docs/data/${file}`);
+  if (payload.insufficient) continue;
+  const ai = new DrawAI(payload);
+  const probs = ai.probabilities(payload.check.history);
+  payload.check.probs.forEach((expected, i) => {
+    close(probs[i], expected, `${file} вероятность числа ${i + 1}`);
+  });
+}
+
 console.log(
-  `OK: ${vectorsFile.vectors.length} векторов, ${checks} проверок, ` +
+  `OK: ${vectorsFile.vectors.length} векторов, ${aiFiles.length} нейросетей, ${checks} проверок, ` +
     `расхождение Python/JS < ${TOLERANCE}`,
 );
