@@ -55,6 +55,7 @@ const TEXT = {
     '/buy — оформить подписку\n' +
     '/status — до какого числа оплачено\n' +
     '/cancel — отменить подписку\n' +
+    '/refund — вернуть звёзды за последнюю оплату (в течение 48 часов)\n' +
     '/invite — пригласить друга и получить дни подписки\n' +
     '/honest — почему предсказать тираж нельзя\n' +
     '/help — это сообщение',
@@ -217,6 +218,52 @@ async function cancelSubscription(env, userId) {
     JSON.stringify({ ...data, until: Date.now(), cancelled_at: Date.now() }),
   );
   return true;
+}
+
+// Сколько часов после оплаты покупатель может вернуть звёзды сам, командой
+// /refund. Позже — только по запросу владельцу: иначе подпиской можно было бы
+// пользоваться бесплатно, возвращая оплату в последний день.
+const SELF_REFUND_HOURS = 48;
+
+/**
+ * Возврат последней оплаты пользователя. Звёзды уходят только тому, кто
+ * платил: Telegram сам не позволяет вернуть платёж на другой аккаунт.
+ */
+async function refundLastPayment(env, userId) {
+  let data;
+  try {
+    data = JSON.parse((await env.SUBS?.get(subKey(userId))) || 'null');
+  } catch {
+    data = null;
+  }
+  if (!data?.charge_id) return { ok: false, reason: 'Оплаченных покупок, которые можно вернуть, нет.' };
+  const hours = (Date.now() - Number(data.paid_at || 0)) / 3600_000;
+  if (hours > SELF_REFUND_HOURS) {
+    return {
+      ok: false,
+      reason: `Вернуть оплату самостоятельно можно в течение ${SELF_REFUND_HOURS} часов. ` +
+        'Напишите владельцу бота — вернём вручную.',
+    };
+  }
+
+  const res = await tg(env, 'refundStarPayment', {
+    user_id: userId,
+    telegram_payment_charge_id: data.charge_id,
+  });
+  if (!res.ok) {
+    return { ok: false, reason: `Telegram отказал в возврате: ${res.description || 'без объяснения'}.` };
+  }
+
+  // Доступ закрываем сразу. Идентификатор сохраняем отдельным полем: по нему
+  // видно, что возврат уже был, и повторный вызов ничего не сломает.
+  await env.SUBS.put(subKey(userId), JSON.stringify({
+    ...data,
+    until: Date.now(),
+    charge_id: null,
+    refunded_charge_id: data.charge_id,
+    refunded_at: Date.now(),
+  }));
+  return { ok: true };
 }
 
 const fmtDate = (ts) =>
@@ -436,6 +483,13 @@ async function handleUpdate(update, env) {
       );
     }
 
+    case '/refund': {
+      const result = await refundLastPayment(env, userId);
+      return send(result.ok
+        ? 'Звёзды возвращены на ваш баланс, подписка закрыта.'
+        : result.reason);
+    }
+
     case '/cancel_confirm': {
       const cancelled = await cancelSubscription(env, userId);
       return send(cancelled
@@ -477,7 +531,7 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'referral-v1',
+        build: 'refund-v1',
         plans: Object.keys(PLANS),
         kv_subs: Boolean(env.SUBS),
         bot_token: Boolean(env.BOT_TOKEN),
