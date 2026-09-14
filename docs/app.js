@@ -1,10 +1,10 @@
 /**
  * Mini App: подбор непопулярных комбинаций, разбор своей комбинации,
- * статистика тиражей, проверка предсказуемости и подписка.
+ * статистика тиражей и проверка предсказуемости.
  *
  * Вся математика считается в браузере: на GitHub Pages нет бэкенда, данные
- * приезжают статическими JSON из docs/data/. Воркер нужен только для оплаты —
- * без него приложение работает полностью, просто без платных функций.
+ * приезжают статическими JSON из docs/data/. Воркер нужен только для кошелька
+ * прокруток — без него приложение работает, просто с бесплатным лимитом.
  */
 
 import {
@@ -14,14 +14,19 @@ import {
   evaluateEV,
   breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=282a1402';
-import { CONFIG } from './config.js?v=282a1402';
-import { DrawAI } from './ai.js?v=282a1402';
+} from './model.js?v=7a9d6659';
+import { CONFIG } from './config.js?v=7a9d6659';
+import { DrawAI } from './ai.js?v=7a9d6659';
+import { Wallet, spinsWord } from './wallet.js?v=7a9d6659';
+import { NumberField } from './numfield.js?v=7a9d6659';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
+const UNLOCKED_KEY = 'loto.unlocked';
 
 const tg = window.Telegram?.WebApp;
+const wallet = new Wallet(CONFIG, tg);
+
 const state = {
   /** Список игр из data/meta.json и выбранная игра. */
   games: [],
@@ -37,11 +42,15 @@ const state = {
   selected: new Set(),
   jackpot: 300_000_000,
   genCount: 1,
-  /** Подписка: null пока не проверяли, иначе ответ воркера. */
-  entitlement: null,
-  entitlementError: null,
-  usedToday: 0,
+  /** Поля «мои числа» и «убрать» — компонент с числами-фишками. */
+  includeField: null,
+  excludeField: null,
+  /** Комбинации, разбор которых уже оплачен. Второй раз не списываем. */
+  unlocked: loadUnlocked(),
+  busy: false,
 };
+
+const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // --------------------------------------------------------------- утилиты
 
@@ -90,6 +99,8 @@ function haptic(kind = 'light') {
   } catch { /* вне Telegram вибрации нет */ }
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function loadJSON(name, { optional = false } = {}) {
   const stamp = new Date().toISOString().slice(0, 10);
   try {
@@ -100,6 +111,24 @@ async function loadJSON(name, { optional = false } = {}) {
     if (optional) return null;
     throw new Error(`Не удалось загрузить data/${name}: ${err.message}`);
   }
+}
+
+function loadUnlocked() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(UNLOCKED_KEY) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function rememberUnlocked(key) {
+  state.unlocked.add(key);
+  try {
+    // Держим только последние полсотни: список нужен, чтобы не списать дважды,
+    // а не чтобы хранить историю навсегда.
+    const all = [...state.unlocked].slice(-50);
+    localStorage.setItem(UNLOCKED_KEY, JSON.stringify(all));
+  } catch { /* приватный режим — переживём */ }
 }
 
 // ---------------------------------------------------- строительные блоки
@@ -133,14 +162,64 @@ function rowsList(items) {
   return dl;
 }
 
-function ballsNode(combo, { accent = false } = {}) {
+function ballsNode(combo, { accent = false, roll = false } = {}) {
   const wrap = el('div', 'balls');
   combo.forEach((n, i) => {
     const b = el('div', `ball${accent ? ' ball--accent' : ''}`, String(n));
     b.style.animationDelay = `${i * 45}ms`;
     wrap.append(b);
   });
+  if (roll) rollBalls(wrap, combo);
   return wrap;
+}
+
+/**
+ * Числа на шарах «докручиваются» до результата.
+ *
+ * Один общий цикл на все шары экрана: отдельный requestAnimationFrame на
+ * каждый шар при десяти билетах превращается в шестьдесят параллельных
+ * циклов и заметно греет телефон.
+ */
+const rolling = [];
+let rollLoop = null;
+
+function rollBalls(wrap, combo) {
+  if (reduceMotion) return;
+  const pool = state.model?.game?.pool || 45;
+  const now = performance.now();
+  [...wrap.children].forEach((node, i) => {
+    node.classList.add('is-rolling');
+    rolling.push({ node, value: combo[i], until: now + 340 + i * 75, pool });
+  });
+  if (!rollLoop) rollLoop = requestAnimationFrame(rollTick);
+
+  // Страховка. requestAnimationFrame замирает, когда вкладка уходит в фон, а
+  // вместе с ним замирает и докрутка — шар так и остался бы показывать
+  // случайное число вместо подобранного. Таймер доводит числа до места
+  // независимо от того, рисует ли браузер кадры.
+  const lastLanding = 340 + (combo.length - 1) * 75 + 120;
+  setTimeout(() => settleRolling({ force: true }), lastLanding);
+}
+
+/** Один шаг докрутки: что долетело — ставим на место, остальным крутим числа. */
+function settleRolling({ force = false } = {}) {
+  const now = performance.now();
+  for (let i = rolling.length - 1; i >= 0; i -= 1) {
+    const item = rolling[i];
+    if (force || !item.node.isConnected || now >= item.until) {
+      item.node.textContent = String(item.value);
+      item.node.classList.remove('is-rolling');
+      item.node.classList.add('is-landed');
+      rolling.splice(i, 1);
+    } else {
+      item.node.textContent = String(1 + Math.floor(Math.random() * item.pool));
+    }
+  }
+}
+
+function rollTick() {
+  settleRolling();
+  rollLoop = rolling.length ? requestAnimationFrame(rollTick) : null;
 }
 
 function meterNode(percentile) {
@@ -191,9 +270,9 @@ function whyNode(breakdown) {
 }
 
 /** Полный разбор одной комбинации. */
-function analysisSection(combo, breakdown, { title } = {}) {
+function analysisSection(combo, breakdown, { title, roll = false } = {}) {
   const node = section(title || null);
-  node.append(ballsNode(combo, { accent: true }));
+  node.append(ballsNode(combo, { accent: true, roll }));
   node.append(meterNode(unpopularityPercentile(state.model, combo, 3000)));
 
   const ev = evaluateEV(state.model, combo, state.jackpot);
@@ -219,13 +298,13 @@ function analysisSection(combo, breakdown, { title } = {}) {
   ]));
 
   let cls = 'note note--good';
-  let text = 'Такую комбинацию почти наверняка не поставил больше никто — джекпот делить не придётся.';
+  let text = 'Чисто: такую комбинацию почти наверняка не поставил никто, кроме вас. Джекпот делить не придётся.';
   if (ev.shareFactor < 0.4) {
     cls = 'note';
-    text = `Очень популярный шаблон. При выигрыше вы получите примерно ${Math.round(ev.shareFactor * 100)}% джекпота — остальное уйдёт тем, кто выбрал то же самое.`;
+    text = `Ходовой шаблон. При выигрыше вам достанется около ${Math.round(ev.shareFactor * 100)}% джекпота — остальное заберут те, кто выбрал то же самое.`;
   } else if (ev.shareFactor < 0.85) {
     cls = 'note';
-    text = 'Комбинация умеренно популярна. Есть шанс поделить джекпот с кем-то ещё.';
+    text = 'Комбинация умеренно популярна — есть шанс поделить джекпот с кем-то ещё.';
   }
   const note = el('div', cls);
   note.style.marginTop = '18px';
@@ -254,57 +333,208 @@ function initTabs() {
   });
 }
 
-// -------------------------------------------------------------- подписка
-
-/**
- * Спрашиваем воркер, оплачено ли у этого пользователя. Подпись initData
- * проверяется на сервере — здесь ей верить нельзя, клиент можно подделать.
- */
-async function loadEntitlement() {
-  if (!CONFIG.WORKER_URL) {
-    state.entitlementError = 'Сервер подписок не настроен.';
-    return null;
-  }
-  if (!tg?.initData) {
-    // Подпись пользователя выдаёт только клиент Telegram. В обычном браузере
-    // её нет, и подтвердить покупку нечем — это не поломка.
-    state.entitlementError = 'Подписка доступна только внутри Telegram.';
-    return null;
-  }
-  try {
-    const res = await fetch(`${CONFIG.WORKER_URL}/api/entitlement`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ initData: tg.initData }),
-    });
-    if (!res.ok) {
-      state.entitlementError = `Сервер подписок ответил ${res.status}.`;
-      return null;
-    }
-    state.entitlementError = null;
-    return await res.json();
-  } catch (err) {
-    // Ошибку показываем, а не прячем: молчаливый сбой здесь означает просто
-    // исчезнувший блок подписки, и причину потом не найти.
-    state.entitlementError = `Нет связи с сервером подписок: ${err.message}`;
-    return null;
-  }
+function showView(name) {
+  document.querySelectorAll('.tab').forEach((t) => {
+    t.classList.toggle('is-active', t.dataset.view === name);
+  });
+  document.querySelectorAll('.view').forEach((view) => {
+    if (view.id === 'banners') return;
+    view.hidden = view.id !== `view-${name}`;
+  });
 }
 
+// ------------------------------------------------------- кошелёк и магазин
+
+const cost = {
+  get perTicket() {
+    return wallet.economy.COST_PER_TICKET;
+  },
+  get check() {
+    return wallet.economy.COST_CHECK;
+  },
+  get generate() {
+    return state.genCount * wallet.economy.COST_PER_TICKET;
+  },
+};
+
 /**
- * Открывает оплату. Ссылка приходит заранее вместе с данными о подписке —
- * в момент нажатия сети не требуется. Запрос остаётся только на случай,
- * если заранее ссылку получить не удалось.
+ * Перейти в магазин. Он живёт на вкладке подбора, поэтому вести туда нужно и
+ * с других экранов: прокрутить к скрытому элементу браузер не может.
  */
-/**
- * Открывает оплату. Ссылка приходит заранее вместе с данными о подписке —
- * в момент нажатия сети не требуется.
- *
- * Здесь намеренно много видимой диагностики: платёж уходит в клиент Telegram,
- * и если он молча ничего не делает, снаружи это неотличимо от «кнопка не
- * работает». Показываем версию клиента, доступность метода и то, чем
- * закончился вызов.
- */
+function goToStore() {
+  renderStore({ open: true });
+  showView('generate');
+  // Прокрутка — следующим кадром: до перерисовки вкладки у скрытого блока
+  // нет ни размеров, ни положения.
+  setTimeout(() => {
+    $('#store-section').scrollIntoView({
+      behavior: reduceMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  }, 0);
+}
+
+/** Полоса с балансом над настройками. */
+function renderWallet() {
+  const bar = $('#wallet-bar');
+  bar.hidden = false;
+  bar.replaceChildren();
+
+  const left = el('div', 'wallet__left');
+  const value = el('span', 'wallet__value', String(wallet.total));
+  left.append(icon('dice', 15), value, el('span', 'wallet__label', wordTail(wallet.total)));
+
+  const hint = el('span', 'wallet__hint', walletHint());
+
+  const top = el('button', 'wallet__top');
+  top.type = 'button';
+  top.textContent = 'Пополнить';
+  top.addEventListener('click', () => {
+    haptic('light');
+    goToStore();
+  });
+
+  const body = el('div', 'wallet__body');
+  body.append(left, hint);
+  bar.append(body, top);
+  bar.classList.toggle('is-empty', wallet.total === 0);
+}
+
+function wordTail(n) {
+  return spinsWord(n).replace(/^\d+\s/, '');
+}
+
+function walletHint() {
+  const b = wallet.balance;
+  if (wallet.online) {
+    if (b.free > 0) return 'Одна бесплатная сегодня уже здесь';
+    if (wallet.adsLeft > 0) return `Ещё ${wallet.adsLeft} за рекламу на этой неделе`;
+    if (wallet.total === 0) return 'Бесплатная вернётся завтра';
+    return 'Купленные прокрутки не сгорают';
+  }
+  if (b.free > 0) return 'Бесплатная прокрутка на сегодня';
+  return 'Следующая бесплатная — завтра';
+}
+
+/** Магазин: реклама и пакеты прокруток. */
+function renderStore({ open = false } = {}) {
+  const host = $('#store-section');
+  host.replaceChildren();
+  host.hidden = false;
+  if (open) host.dataset.open = '1';
+
+  host.append(el('span', 'eyebrow eyebrow--accent', 'Прокрутки'));
+  host.append(el('h3', null, 'Как это устроено'));
+  host.append(el('p', 'muted',
+    `Прокрутка — одна подобранная комбинация. ${wallet.economy.FREE_PER_DAY} бесплатная каждый день, ` +
+    `ещё до ${wallet.economy.ADS_PER_WEEK} в неделю — за короткий ролик. ` +
+    'Купленные не сгорают и не требуют подписки: платите только за то, чем пользуетесь.'));
+
+  host.append(adNode());
+
+  if (wallet.canBuy) {
+    host.append(packsNode());
+    host.append(el('p', 'fineprint',
+      'Оплата звёздами Telegram. Возврат — командой /refund боту в течение 48 часов ' +
+      'после покупки, если прокрутки не потрачены.'));
+  } else {
+    const note = el('div', 'note note--quiet');
+    note.append(el('p', 'muted', wallet.error
+      || 'Пакеты прокруток открываются внутри Telegram.'));
+    if (!wallet.online && CONFIG.PACKS.length) {
+      note.append(el('p', 'fineprint', `Цены: ${CONFIG.PACKS
+        .map((p) => `${p.spins} — ${p.stars} ⭐`).join(', ')}.`));
+    }
+    host.append(note);
+  }
+
+  const ref = referralNode();
+  if (ref) host.append(ref);
+
+  // Дисклеймер стоит именно здесь, а не только на вкладке «Проверка»: это
+  // экран, где человек платит, и предупреждение обязано быть там же, где
+  // деньги, а не в разделе, куда можно не зайти.
+  const note = el('div', 'note note--quiet');
+  note.style.marginTop = '22px';
+  note.append(el('p', 'fineprint',
+    'Приложение не предсказывает результаты тиражей и не повышает шанс ' +
+    'выигрыша — это невозможно, и во вкладке «Проверка» мы это измерили. ' +
+    'Прокрутки оплачивают подбор комбинаций, которые редко выбирают другие ' +
+    'игроки: это влияет на размер выплаты при выигрыше, а не на его ' +
+    'вероятность. Ожидаемая выплата билета ниже его цены — так устроена ' +
+    'любая лотерея. Лотерея это развлечение, а не способ заработка: ' +
+    'не тратьте больше, чем готовы потерять.'));
+  host.append(note);
+}
+
+/** Кнопка просмотра рекламы. Прячем целиком, если рекламы нет. */
+function adNode() {
+  const wrap = el('div', 'adbox');
+  if (!wallet.online || !wallet.adBlockId) {
+    wrap.hidden = true;
+    return wrap;
+  }
+  const left = wallet.adsLeft;
+  const head = el('div', 'adbox__head');
+  head.append(el('span', 'adbox__title', 'Бесплатно за просмотр'));
+  head.append(el('span', 'adbox__count', left > 0 ? `${left} из ${wallet.economy.ADS_PER_WEEK}` : 'на неделе всё'));
+  wrap.append(head);
+
+  const btn = el('button', 'btn btn--ghost');
+  btn.type = 'button';
+  btn.append(icon('play', 16),
+    document.createTextNode(`Смотреть ролик · +${wallet.economy.AD_REWARD}`));
+  btn.disabled = left <= 0;
+  btn.addEventListener('click', async () => {
+    haptic('light');
+    btn.disabled = true;
+    const label = btn.lastChild;
+    label.textContent = 'Открываем рекламу…';
+    const result = await wallet.watchAd();
+    wrap.querySelectorAll('.pay-note').forEach((n) => n.remove());
+    if (result.ok) {
+      haptic('medium');
+      renderStore({ open: true });
+      return;
+    }
+    btn.disabled = wallet.adsLeft <= 0;
+    label.textContent = `Смотреть ролик · +${wallet.economy.AD_REWARD}`;
+    wrap.append(el('p', 'error pay-note', result.error || 'Реклама недоступна.'));
+  });
+  wrap.append(btn);
+  wrap.append(el('p', 'fineprint',
+    'Ролик короткий, его показывает рекламная сеть Telegram. Прокрутка ' +
+    'начисляется после полного просмотра.'));
+  return wrap;
+}
+
+/** Пакеты прокруток. Выгода считается от цены одиночной прокрутки. */
+function packsNode() {
+  const base = wallet.packs.reduce((max, p) => Math.max(max, p.per), 0);
+  const grid = el('div', 'packs');
+  wallet.packs.forEach((pack) => {
+    const btn = el('button', 'pack');
+    btn.type = 'button';
+    const save = base > 0 ? Math.round((1 - pack.per / base) * 100) : 0;
+    if (save >= 15) btn.classList.add('is-best');
+
+    const head = el('div', 'pack__head');
+    head.append(el('span', 'pack__spins', String(pack.spins)));
+    head.append(el('span', 'pack__unit', wordTail(pack.spins)));
+    btn.append(head);
+
+    const price = el('div', 'pack__price');
+    price.append(document.createTextNode(String(pack.stars)), icon('star', 13));
+    btn.append(price);
+    btn.append(el('span', 'pack__per', `${pack.per} ⭐ за прокрутку`));
+    if (save >= 15) btn.append(el('span', 'pack__save', `−${save}%`));
+
+    btn.addEventListener('click', () => buyPack(pack, btn));
+    grid.append(btn);
+  });
+  return grid;
+}
+
 /**
  * Открывает оплату.
  *
@@ -318,11 +548,8 @@ async function loadEntitlement() {
  * продолжает идти, и автоматический вызов открыл бы второй экран поверх.
  * Поэтому предлагаем его кнопкой.
  */
-async function buyPlan(plan, button) {
-  const host = button.closest('.section') || button.parentElement;
-  // Текст сообщения и запасная кнопка живут независимо: обратный вызов
-  // «отменено» приходит и когда счёт просто не открылся, и раньше стирал
-  // кнопку, которой пользователь ещё не успел воспользоваться.
+async function buyPack(pack, button) {
+  const host = $('#store-section');
   const say = (text, kind = 'error') => {
     host.querySelectorAll('.pay-note').forEach((n) => n.remove());
     const fallback = host.querySelector('.pay-fallback');
@@ -330,35 +557,24 @@ async function buyPlan(plan, button) {
     if (fallback) host.insertBefore(note, fallback);
     else host.append(note);
   };
-  const dropFallback = () =>
-    host.querySelectorAll('.pay-fallback, .pay-hint').forEach((n) => n.remove());
+  const dropFallback = () => host.querySelectorAll('.pay-fallback').forEach((n) => n.remove());
 
   const version = tg?.version || '?';
   if (typeof tg?.openInvoice !== 'function') {
-    say(`Оплата недоступна в этом клиенте (версия API ${version}).`);
+    say(`Оплата недоступна в этом клиенте Telegram (версия API ${version}).`);
     return;
   }
 
-  let link = plan.link;
-  if (!link) {
-    button.disabled = true;
-    say('Запрашиваем счёт…', 'muted');
-    try {
-      const res = await fetch(`${CONFIG.WORKER_URL}/api/invoice`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ initData: tg.initData, plan: plan.key }),
-      });
-      const data = await res.json().catch(() => ({}));
-      link = data.link;
-      if (!link) throw new Error(data.error || `сервер ответил ${res.status}`);
-    } catch (err) {
-      button.disabled = false;
-      say(`Не удалось получить счёт: ${err.message}`);
-      return;
-    }
+  let link;
+  button.disabled = true;
+  try {
+    link = await wallet.invoiceLink(pack);
+  } catch (err) {
     button.disabled = false;
+    say(`Не удалось получить счёт: ${err.message}`);
+    return;
   }
+  button.disabled = false;
 
   say('Открываем оплату…', 'muted');
   watchForPayment();
@@ -366,11 +582,11 @@ async function buyPlan(plan, button) {
   let answered = false;
   const offerFallback = () => {
     if (host.querySelector('.pay-fallback')) return;
-    say('Telegram не открыл счёт внутри приложения. Попробуйте открыть его ' +
-        'напрямую — подписка появится здесь сама.', 'muted');
+    say('Telegram не открыл счёт внутри приложения. Откройте его напрямую — ' +
+        'прокрутки появятся здесь сами.', 'muted');
     const btn = el('button', 'btn btn--accent pay-fallback');
     btn.type = 'button';
-    btn.append(icon('star', 16), document.createTextNode(`Открыть счёт на ${plan.stars} ⭐`));
+    btn.append(icon('star', 16), document.createTextNode(`Открыть счёт на ${pack.stars} ⭐`));
     btn.addEventListener('click', () => {
       haptic('light');
       if (tg.openTelegramLink) tg.openTelegramLink(link);
@@ -388,9 +604,9 @@ async function buyPlan(plan, button) {
       if (status === 'paid') {
         haptic('medium');
         dropFallback();
-        say('Оплачено, обновляем подписку…', 'muted');
-        state.entitlement = await loadEntitlement();
-        onEntitlementChanged();
+        say('Оплачено, начисляем прокрутки…', 'muted');
+        await wallet.load();
+        renderStore({ open: true });
       } else if (status === 'cancelled') {
         // Тот же статус приходит и когда счёт вообще не открылся, поэтому
         // запасную кнопку не убираем и подсказываем причину.
@@ -409,27 +625,26 @@ async function buyPlan(plan, button) {
 }
 
 /**
- * После начала оплаты подписка может появиться без всякого обратного вызова —
- * например, если счёт оплачен в обычном окне Telegram. Поэтому какое-то время
- * переспрашиваем сервер сами и обновляем экран, как только увидим оплату.
+ * После начала оплаты прокрутки могут появиться без всякого обратного
+ * вызова — например, если счёт оплачен в обычном окне Telegram. Поэтому
+ * какое-то время переспрашиваем сервер сами.
  */
 let paymentWatch = null;
 function watchForPayment() {
   if (paymentWatch) return;
   const started = Date.now();
+  const before = wallet.total;
   const check = async () => {
-    const fresh = await loadEntitlement();
-    if (fresh?.active) {
-      state.entitlement = fresh;
+    await wallet.load();
+    if (wallet.total > before) {
       stopPaymentWatch();
       haptic('medium');
-      onEntitlementChanged();
+      renderStore({ open: true });
       return;
     }
     if (Date.now() - started > 180_000) stopPaymentWatch();
   };
   paymentWatch = setInterval(check, 5000);
-  // Возврат в приложение — самый вероятный момент, когда оплата уже прошла.
   document.addEventListener('visibilitychange', onVisible);
 }
 
@@ -442,147 +657,25 @@ function stopPaymentWatch() {
 
 async function onVisible() {
   if (document.visibilityState !== 'visible') return;
-  const fresh = await loadEntitlement();
-  if (fresh?.active) {
-    state.entitlement = fresh;
-    stopPaymentWatch();
-    onEntitlementChanged();
-  }
+  await wallet.load();
 }
 
-const isSubscribed = () => Boolean(state.entitlement?.active);
-
-/** Подписка влияет на два экрана: блок тарифов и разбор своей комбинации. */
-function onEntitlementChanged() {
-  renderSubscribe();
-  if (state.model) renderSlip();
-}
-
-/** Кнопки тарифов. Возвращает null, если купить сейчас нечего. */
-function plansNode() {
-  const plans = state.entitlement?.plans;
-  if (!plans?.length) return null;
-  const wrap = el('div', 'plans');
-  plans.forEach((plan) => {
-    const btn = el('button', 'plan');
-    btn.type = 'button';
-    const body = el('div', 'plan__body');
-    body.append(el('span', 'plan__title', plan.title));
-    body.append(el('span', 'plan__meta', `${plan.days} дней`));
-    const price = el('span', 'plan__price');
-    price.append(document.createTextNode(String(plan.stars)), icon('star', 14));
-    btn.append(body, price);
-    btn.addEventListener('click', () => buyPlan(plan, btn));
-    wrap.append(btn);
-  });
-  return wrap;
-}
-
-/** Отмена без возврата звёзд: доступ закрывается сразу. */
-async function cancelSubscription(button) {
-  const question = 'Отменить подписку? Доступ закончится сразу, звёзды не возвращаются.';
-  const confirmed = await new Promise((resolve) => {
-    if (typeof tg?.showConfirm === 'function') {
-      try {
-        tg.showConfirm(question, resolve);
-        return;
-      } catch { /* старый клиент — спросим браузером */ }
-    }
-    resolve(window.confirm(question));
-  });
-  if (!confirmed) return;
-
-  button.disabled = true;
-  try {
-    const res = await fetch(`${CONFIG.WORKER_URL}/api/cancel`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ initData: tg?.initData }),
-    });
-    if (!res.ok) throw new Error(`сервер ответил ${res.status}`);
-    haptic('medium');
-    state.entitlement = await loadEntitlement();
-    onEntitlementChanged();
-  } catch (err) {
-    button.disabled = false;
-    button.after(el('p', 'error pay-note', `Не удалось отменить: ${err.message}`));
-  }
-}
-
-/** Подписка — на вкладке подбора, где пользователь упирается в лимит. */
-function renderSubscribe() {
-  const host = $('#subscribe-section');
-  renderSubscribeBody(host);
-  const ref = referralNode();
-  if (ref) {
-    host.hidden = false;
-    host.append(ref);
-  }
-  renderModeChips();
-}
-
-function renderSubscribeBody(host) {
-  const ent = state.entitlement;
-
-  host.hidden = false;
-  host.replaceChildren();
-
-  if (!ent) {
-    host.append(el('span', 'eyebrow', 'Подписка'));
-    const note = el('div', 'note note--quiet');
-    note.append(el('p', 'muted', state.entitlementError || 'Подписка недоступна.'));
-    host.append(note);
-    return;
-  }
-
-  if (isSubscribed()) {
-    host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
-    const note = el('div', 'note note--good');
-    const p = el('p');
-    p.append(icon('check', 14), document.createTextNode(` Активна до ${String(ent.until_text).replace(/\.$/, '')}.`));
-    note.append(p);
-    note.append(el('p', 'muted',
-      'Напоминаем то, за что вы НЕ платили: шанс выиграть не изменился и ' +
-      'измениться не может. Подписка влияет на размер выплаты, а не на вероятность.'));
-    host.append(note);
-    const cancel = el('button', 'btn btn--danger', 'Отменить подписку');
-    cancel.type = 'button';
-    cancel.addEventListener('click', () => cancelSubscription(cancel));
-    host.append(cancel);
-    return;
-  }
-
-  const plans = plansNode();
-  if (!plans) {
-    host.hidden = true;
-    return;
-  }
-
-  host.append(el('span', 'eyebrow eyebrow--accent', 'Подписка'));
-  host.append(el('h3', null, 'Снять ограничение'));
-  host.append(el('p', 'muted',
-    `Бесплатно — ${CONFIG.FREE_DAILY_LIMIT} комбинация за раз. ` +
-    'По подписке — пакеты билетов с непересекающимися числами, подбор ' +
-    'нейросетью, разбор своей комбинации. Оплата звёздами внутри Telegram.'));
-  host.append(plans);
-}
-
-/** Приглашение друзей: оба получают дни подписки. */
+/** Приглашение друзей: прокрутки получают оба. */
 function referralNode() {
-  const ref = state.entitlement?.referral;
+  const ref = wallet.server?.referral;
   if (!ref?.link) return null;
   const node = el('div', 'referral');
-  node.append(el('span', 'eyebrow eyebrow--accent', 'Пригласить друга'));
+  node.append(el('span', 'eyebrow eyebrow--accent', 'Позвать друга'));
   node.append(el('p', 'muted',
-    `За каждого нового друга — +${ref.bonus_days} дня подписки вам и ему. ` +
-    `Засчитывается до ${ref.max_friends} друзей, уже приглашено: ${ref.invited}.`));
+    `${spinsWord(ref.bonus_spins)} вам и столько же другу за каждого, кто придёт по ссылке. ` +
+    `Засчитываем до ${ref.max_friends} друзей, уже пришло: ${ref.invited}.`));
   const btn = el('button', 'btn btn--ghost');
   btn.type = 'button';
-  btn.append(icon('share', 16), document.createTextNode('Пригласить'));
+  btn.append(icon('share', 16), document.createTextNode('Отправить приглашение'));
   btn.addEventListener('click', () => shareLink(
     ref.link,
-    'Лотерейный аналитик: подбирает комбинации, которые почти никто не ставит, ' +
-    `чтобы не делить джекпот. По ссылке — +${ref.bonus_days} дня подписки.`,
+    'Лотерейный аналитик считает, сколько человек играют теми же числами, что и ты, ' +
+    `и подбирает те, которых нет ни у кого. По ссылке — ${spinsWord(ref.bonus_spins)} в подарок.`,
   ));
   node.append(btn);
   return node;
@@ -590,12 +683,12 @@ function referralNode() {
 
 /** Ссылка, по которой отправляем друзей: личная, если есть, иначе на бота. */
 function inviteLink() {
-  return state.entitlement?.referral?.link || CONFIG.BOT_URL || window.location.href;
+  return wallet.server?.referral?.link || window.location.href;
 }
 
 /**
  * Поделиться через выбор чата Telegram. Вне Telegram — системное меню
- * «Поделиться», а если его нет, копируем текст в буфер.
+ * «Поделиться», а если его нет, открываем ссылку на share.
  */
 async function shareLink(url, text) {
   haptic('light');
@@ -621,11 +714,11 @@ function shareCombos(picks) {
   shareLink(
     inviteLink(),
     `Мои числа для ${title}, подобрал ${how}:\n${lines.join('\n')}\n\n` +
-    'Такие комбинации почти никто не ставит — джекпот не придётся делить.',
+    'Такие комбинации почти никто не ставит — при выигрыше джекпот не придётся делить.',
   );
 }
 
-/** Донат — отдельно от подписки: это не покупка доступа. */
+/** Донат — отдельно от прокруток: это не покупка доступа. */
 function renderDonate() {
   const host = $('#support-section');
   host.replaceChildren();
@@ -634,8 +727,8 @@ function renderDonate() {
   host.append(el('span', 'eyebrow', 'Поддержка'));
   host.append(el('h3', null, 'Поддержать проект'));
   host.append(el('p', 'muted',
-    'Проект открытый и бесплатный в основе. Если он вам полезен — ' +
-    'можно поддержать разработку.'));
+    'Расчёты, история тиражей и проверка моделей открыты и бесплатны. ' +
+    'Если проект оказался полезен — можно поддержать разработку.'));
   const btn = el('button', 'btn btn--ghost');
   btn.type = 'button';
   btn.append(icon('heart', 16), document.createTextNode('Поддержать на Boosty'));
@@ -645,46 +738,57 @@ function renderDonate() {
 
 // -------------------------------------------------------------- генератор
 
+const MODE_HINTS = {
+  classic: 'Считаем, как часто такую комбинацию выбирают люди, и берём ту, ' +
+    'что не встречается почти ни у кого.',
+  ai: 'Сеть обучена на всей истории тиражей и переобучается каждый день. ' +
+    'Из её вариантов оставляем самые редкие у игроков.',
+};
+
 function initGenerator() {
   const counts = $('#gen-count');
   counts.addEventListener('click', (event) => {
-    const chip = event.target.closest('.chip');
+    const chip = event.target.closest('.seg__btn');
     if (!chip) return;
     [...counts.children].forEach((c) => c.classList.toggle('is-active', c === chip));
     state.genCount = Number(chip.dataset.count);
+    $('#row-spread').hidden = state.genCount < 2;
+    renderRunButton();
     haptic('light');
   });
+
   $('#gen-mode').addEventListener('click', (event) => {
-    const chip = event.target.closest('.chip');
+    const chip = event.target.closest('.seg__btn');
     if (!chip) return;
     state.genMode = chip.dataset.mode;
     renderModeChips();
     haptic('light');
   });
+
   $('#gen-run').addEventListener('click', runGenerator);
+  renderModeChips();
 }
 
-/** Замок на «Нейросети», пока нет подписки. */
 function renderModeChips() {
-  document.querySelectorAll('#gen-mode .chip').forEach((chip) => {
+  document.querySelectorAll('#gen-mode .seg__btn').forEach((chip) => {
     chip.classList.toggle('is-active', chip.dataset.mode === state.genMode);
-    chip.querySelector('svg')?.remove();
-    if (chip.dataset.mode === 'ai' && !isSubscribed()) chip.prepend(icon('lock', 13));
   });
+  $('#gen-mode-hint').textContent = MODE_HINTS[state.genMode];
 }
 
-/** Экран вместо результата, когда нужна подписка. */
-function lockedSection(title, text) {
-  const node = section(title, { accent: true });
-  const note = el('div', 'note');
-  const p = el('p');
-  p.append(icon('lock', 14), document.createTextNode(` ${text}`));
-  note.append(p);
-  note.append(el('p', 'muted', CONFIG.WORKER_URL
-    ? 'Тарифы — ниже на этом экране.'
-    : 'Подписка ещё не подключена.'));
-  node.append(note);
-  return node;
+/** Надпись и цена на кнопке подбора. */
+function renderRunButton() {
+  const need = cost.generate;
+  // Пока барабан крутится, надпись принадлежит анимации: списание меняет
+  // баланс и дёргает эту функцию как раз в этот момент.
+  if (!state.busy) $('#gen-run-label').textContent = 'Подобрать';
+  const price = $('#gen-run-price');
+  price.textContent = String(need);
+  const btn = $('#gen-run');
+  btn.classList.toggle('is-short', wallet.total < need);
+  // Именительный падеж не случаен: «за 1 прокрутка» звучит как машинный
+  // перевод, а склонять число ради одной подписи незачем.
+  btn.setAttribute('aria-label', `Подобрать. Спишется ${spinsWord(need)}`);
 }
 
 /** Честная справка о нейросети рядом с её подбором. */
@@ -717,38 +821,40 @@ function aiNoteNode() {
   return node;
 }
 
-function parseNumbers(raw, pool) {
-  const nums = (raw.match(/\d+/g) || []).map(Number);
-  const bad = nums.filter((n) => n < 1 || n > pool);
-  if (bad.length) throw new Error(`Вне диапазона 1–${pool}: ${bad.join(', ')}`);
-  return [...new Set(nums)];
+/** Не хватило прокруток: объясняем и ведём в магазин. */
+function shortOnSpins(need) {
+  const node = section('Не хватает прокруток', { accent: true });
+  const note = el('div', 'note');
+  note.append(el('p', null, `Чтобы продолжить, нужно ещё ${spinsWord(need)}.`));
+  note.append(el('p', 'muted', wallet.canWatchAds
+    ? 'Посмотрите короткий ролик — прокрутка начислится сразу. Или возьмите пакет, он не сгорает.'
+    : 'Одна прокрутка приходит бесплатно каждый день. Пакеты — ниже.'));
+  node.append(note);
+  const btn = el('button', 'btn btn--accent');
+  btn.type = 'button';
+  btn.style.marginTop = '14px';
+  btn.append(icon('coin', 16), document.createTextNode('Пополнить баланс'));
+  btn.addEventListener('click', goToStore);
+  node.append(btn);
+  return node;
 }
 
-/**
- * Мягкое ограничение бесплатного тарифа.
- *
- * Честно про его надёжность: генерация идёт целиком в браузере, поэтому обойти
- * счётчик может любой, кто откроет консоль. Настоящая защита возможна только
- * если считать на сервере, а это стоило бы приложению работы без сети. Мы
- * сознательно выбрали работать всегда и ограничивать по-джентльменски.
- */
-function freeLimitExceeded() {
-  if (isSubscribed()) return false;
-  return state.genCount > CONFIG.FREE_DAILY_LIMIT;
+/** Анимация кнопки: пока крутится барабан, кнопка занята и это видно. */
+function setRunning(on) {
+  const btn = $('#gen-run');
+  btn.classList.toggle('is-running', on);
+  btn.disabled = on;
+  $('#gen-run-label').textContent = on ? 'Крутим барабан' : 'Подобрать';
+  $('#gen-run-price').hidden = on;
 }
 
-function runGenerator() {
+async function runGenerator() {
+  if (state.busy) return;
   const errBox = $('#gen-error');
   const results = $('#gen-results');
   errBox.hidden = true;
 
   const useAI = state.genMode === 'ai';
-  if (useAI && !isSubscribed()) {
-    results.replaceChildren(lockedSection('Нейросеть по подписке',
-      'Подбор нейросетью, обученной на истории тиражей, доступен по подписке.'));
-    haptic('light');
-    return;
-  }
   if (useAI && !state.ai) {
     const d = state.aiData;
     errBox.textContent = d?.insufficient
@@ -758,62 +864,104 @@ function runGenerator() {
     results.replaceChildren();
     return;
   }
-  if (freeLimitExceeded()) {
-    results.replaceChildren(lockedSection('Нужна подписка',
-      `Без подписки доступна ${CONFIG.FREE_DAILY_LIMIT} комбинация за раз.`));
+
+  // Параметры читаем до списания: если ограничения противоречивы, прокрутки
+  // не должны сгореть впустую.
+  const pool = state.model.game.pool;
+  const include = state.includeField.value();
+  const exclude = state.excludeField.value();
+  const clash = include.filter((n) => exclude.includes(n));
+  if (clash.length) {
+    errBox.textContent = `Числа ${clash.join(', ')} нельзя одновременно оставить и убрать.`;
+    errBox.hidden = false;
+    return;
+  }
+  if (include.length > state.model.game.pick) {
+    errBox.textContent = `Своих чисел не может быть больше ${state.model.game.pick}.`;
+    errBox.hidden = false;
+    return;
+  }
+  if (pool - exclude.length < state.model.game.pick) {
+    errBox.textContent = 'Убрано слишком много чисел — выбирать не из чего.';
+    errBox.hidden = false;
+    return;
+  }
+
+  const need = cost.generate;
+  state.busy = true;
+  setRunning(true);
+  haptic('medium');
+
+  const paid = await wallet.spend(need, 'generate');
+  if (!paid.ok) {
+    state.busy = false;
+    setRunning(false);
+    if (paid.error) {
+      errBox.textContent = paid.error;
+      errBox.hidden = false;
+      return;
+    }
+    results.replaceChildren(shortOnSpins(paid.need || need));
+    renderStore({ open: true });
     haptic('light');
     return;
   }
 
-  results.replaceChildren(el('p', 'skeleton', 'Перебираем варианты…'));
+  // Барабан крутится ощутимо: подбор занимает миллисекунды, и без паузы
+  // результат появлялся бы раньше, чем палец отпустит кнопку.
+  results.replaceChildren();
+  const spinFloor = sleep(reduceMotion ? 0 : 620);
 
-  setTimeout(() => {
-    try {
-      const pool = state.model.game.pool;
-      const include = parseNumbers($('#gen-include').value, pool);
-      const exclude = parseNumbers($('#gen-exclude').value, pool);
-      const spread = $('#gen-spread').checked;
+  try {
+    const spread = $('#gen-spread').checked;
+    const picks = generate(state.model, {
+      count: state.genCount,
+      include,
+      exclude,
+      // Взвешенная выборка дороже равномерной, кандидатов берём меньше.
+      candidates: useAI ? 6000 : 15000,
+      maxOverlap: spread && state.genCount > 1 ? 2 : null,
+      numberWeights: useAI ? state.ai.probabilities(state.model.recentWinners) : null,
+    });
+    if (!picks.length) throw new Error('С такими ограничениями подобрать не удалось');
 
-      const picks = generate(state.model, {
-        count: state.genCount,
-        include,
-        exclude,
-        // Взвешенная выборка дороже равномерной, кандидатов берём меньше.
-        candidates: useAI ? 6000 : 15000,
-        maxOverlap: spread && state.genCount > 1 ? 2 : null,
-        numberWeights: useAI ? state.ai.probabilities(state.model.recentWinners) : null,
-      });
-      if (!picks.length) throw new Error('С такими ограничениями подобрать не удалось');
-
-      results.replaceChildren();
-      if (picks.length === 1) {
-        results.append(analysisSection(picks[0].combo, picks[0].breakdown, { title: 'Результат' }));
-      } else {
-        // Несколько билетов свёрнуты до самих чисел: полный разбор каждого
-        // занимает экран, и список из десяти таких разборов не читается.
-        const list = section(`Билеты · ${picks.length}`, { accent: true });
-        picks.forEach((pick, i) => list.append(ticketNode(pick, i, picks.length)));
-        results.append(list);
-      }
-      const tail = section(null);
-      if (useAI) tail.append(aiNoteNode());
-      tail.append(el('p', 'muted',
-        'Каждая из этих комбинаций выигрывает ровно с той же вероятностью, ' +
-        'что и любая другая. Отличие только в том, сколько человек поставили ' +
-        'то же самое.'));
-      const share = el('button', 'btn btn--ghost share-btn');
-      share.type = 'button';
-      share.append(icon('share', 16), document.createTextNode('Поделиться'));
-      share.addEventListener('click', () => shareCombos(picks));
-      tail.append(share);
-      results.append(tail);
-      haptic('medium');
-    } catch (err) {
-      results.replaceChildren();
-      errBox.textContent = err.message;
-      errBox.hidden = false;
+    await spinFloor;
+    results.replaceChildren();
+    if (picks.length === 1) {
+      results.append(analysisSection(picks[0].combo, picks[0].breakdown,
+        { title: 'Ваша комбинация', roll: true }));
+    } else {
+      // Несколько билетов свёрнуты до самих чисел: полный разбор каждого
+      // занимает экран, и список из десяти таких разборов не читается.
+      const list = section(`Билеты · ${picks.length}`, { accent: true });
+      picks.forEach((pick, i) => list.append(ticketNode(pick, i, picks.length)));
+      results.append(list);
     }
-  }, 16);
+
+    const tail = section(null);
+    if (useAI) tail.append(aiNoteNode());
+    tail.append(el('p', 'muted',
+      'Каждая из этих комбинаций выигрывает ровно с той же вероятностью, ' +
+      'что и любая другая. Отличается только одно — сколько человек поставили ' +
+      'то же самое.'));
+    const share = el('button', 'btn btn--ghost share-btn');
+    share.type = 'button';
+    share.append(icon('share', 16), document.createTextNode('Поделиться билетами'));
+    share.addEventListener('click', () => shareCombos(picks));
+    tail.append(share);
+    results.append(tail);
+    haptic('medium');
+    results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
+  } catch (err) {
+    await spinFloor;
+    results.replaceChildren();
+    errBox.textContent = err.message;
+    errBox.hidden = false;
+  } finally {
+    state.busy = false;
+    setRunning(false);
+  }
+
 }
 
 /** Свёрнутый билет: в заголовке только числа, разбор — по нажатию. */
@@ -825,7 +973,7 @@ function ticketNode(pick, index, total) {
   const chev = icon('chevron', 14);
   chev.classList.add('chev');
   head.append(chev);
-  summary.append(head, ballsNode(pick.combo, { accent: true }));
+  summary.append(head, ballsNode(pick.combo, { accent: true, roll: index < 4 }));
   details.append(summary);
 
   // Разбор строится при первом раскрытии: оценка незаметности перебирает
@@ -891,30 +1039,56 @@ function initSlip() {
   });
 }
 
-/** Разбор своей комбинации доступен по подписке — вместо него тарифы. */
-function paywallSection() {
-  const node = section('Разбор по подписке', { accent: true });
-  const note = el('div', 'note');
-  const p = el('p');
-  p.append(icon('lock', 14), document.createTextNode(
-    ' Узнать, насколько популярна ваша комбинация и какую долю джекпота ' +
-    'она сохранит, можно по подписке.',
-  ));
-  note.append(p);
-  node.append(note);
+const comboKey = (combo) => `${state.gameKey}:${combo.join('-')}`;
 
-  const plans = plansNode();
-  if (plans) {
-    node.append(plans);
-  } else {
-    node.append(el('p', 'muted', state.entitlementError ||
-      'Тарифы появятся, когда откроете приложение внутри Telegram.'));
-    note.style.marginBottom = '14px';
-  }
+/** Предложение оплатить разбор. Цена названа до нажатия, а не после. */
+function checkOfferSection(combo) {
+  const node = section('Разбор комбинации', { accent: true });
+  node.append(ballsNode(combo, { accent: false }));
+  node.append(el('p', 'muted',
+    'Посчитаем ожидаемое число соперников на тот же билет, вашу долю джекпота ' +
+    'и покажем, какие привычки игроков сработали против вас.'));
+
+  const btn = el('button', 'btn btn--accent btn--roll');
+  btn.type = 'button';
+  btn.style.marginTop = '4px';
+  const face = el('span', 'btn__face');
+  face.append(icon('slip', 16), document.createTextNode('Показать разбор'));
+  const price = el('span', 'btn__price', String(cost.check));
+  face.append(price);
+  btn.append(el('span', 'btn__sheen'), face);
+  btn.addEventListener('click', async () => {
+    if (state.busy) return;
+    state.busy = true;
+    btn.disabled = true;
+    haptic('medium');
+    const paid = await wallet.spend(cost.check, 'check');
+    state.busy = false;
+    btn.disabled = false;
+    if (!paid.ok) {
+      if (paid.error) {
+        node.querySelectorAll('.pay-note').forEach((n) => n.remove());
+        node.append(el('p', 'error pay-note', paid.error));
+        return;
+      }
+      // Остаёмся на этом экране: человек только что выбрал шесть чисел, и
+      // увести его на другую вкладку — значит заставить выбирать заново.
+      // Кнопка внутри блока уведёт в магазин, когда он сам решит.
+      $('#check-result').replaceChildren(shortOnSpins(paid.need || cost.check));
+      renderStore();
+      return;
+    }
+    rememberUnlocked(comboKey(combo));
+    renderSlip({ roll: true });
+  });
+  node.append(btn);
+  node.append(el('p', 'fineprint',
+    `Спишется ${spinsWord(cost.check)}. Эту же комбинацию потом открываем бесплатно.`));
   return node;
 }
 
-function renderSlip() {
+function renderSlip({ roll = false } = {}) {
+  if (!state.model) return;
   const { pick } = state.model.game;
   const full = state.selected.size === pick;
 
@@ -933,21 +1107,21 @@ function renderSlip() {
     return;
   }
 
-  if (!isSubscribed()) {
-    box.replaceChildren(paywallSection());
+  const combo = [...state.selected].sort((a, b) => a - b);
+  if (!state.unlocked.has(comboKey(combo))) {
+    box.replaceChildren(checkOfferSection(combo));
     return;
   }
 
-  const combo = [...state.selected].sort((a, b) => a - b);
   box.replaceChildren(
-    analysisSection(combo, state.model.breakdown(combo), { title: 'Ваша комбинация' }),
+    analysisSection(combo, state.model.breakdown(combo), { title: 'Ваша комбинация', roll }),
     jackpotSection(),
   );
 }
 
 function jackpotSection() {
   const node = section('Размер джекпота');
-  node.append(el('p', 'muted', 'Подставьте текущий суперприз — расчёт доли пересчитается.'));
+  node.append(el('p', 'muted', 'Подставьте текущий суперприз — доля пересчитается.'));
   const input = el('input');
   input.type = 'text';
   input.inputMode = 'numeric';
@@ -1126,7 +1300,7 @@ function renderGamePicker() {
   picker.replaceChildren();
   picker.hidden = state.games.length < 2;
   state.games.forEach((game) => {
-    const chip = el('button', `chip${game.key === state.gameKey ? ' is-active' : ''}`,
+    const chip = el('button', `seg__btn${game.key === state.gameKey ? ' is-active' : ''}`,
       `${game.pick} из ${game.pool}`);
     chip.type = 'button';
     chip.dataset.game = game.key;
@@ -1136,7 +1310,7 @@ function renderGamePicker() {
 
 function initGamePicker() {
   $('#game-picker').addEventListener('click', async (event) => {
-    const chip = event.target.closest('.chip');
+    const chip = event.target.closest('.seg__btn');
     if (!chip || chip.dataset.game === state.gameKey) return;
     haptic('light');
     try {
@@ -1149,6 +1323,19 @@ function initGamePicker() {
       box.textContent = err.message;
       box.hidden = false;
     }
+  });
+}
+
+/** Поля «мои числа» и «убрать». Диапазон зависит от игры. */
+function initNumberFields() {
+  const pool = state.model.game.pool;
+  state.includeField = new NumberField($('#gen-include'), {
+    pool,
+    placeholder: 'например 7',
+  });
+  state.excludeField = new NumberField($('#gen-exclude'), {
+    pool,
+    placeholder: 'например 13',
   });
 }
 
@@ -1175,11 +1362,18 @@ async function loadGame(key) {
   $('#gen-error').hidden = true;
   $('#proof-table-wrap').hidden = false;
 
+  if (!state.includeField) initNumberFields();
+  else {
+    state.includeField.setPool(state.model.game.pool);
+    state.excludeField.setPool(state.model.game.pool);
+  }
+
   renderGamePicker();
   renderMeta();
   buildSlip();
   renderStats();
   renderProof();
+  renderRunButton();
 }
 
 /** Boosty открывается во внешнем браузере: внутри Mini App платить нельзя. */
@@ -1215,6 +1409,12 @@ async function main() {
 
   initTabs();
 
+  // Баланс влияет и на полосу сверху, и на цену на кнопке, и на магазин.
+  wallet.onChange(() => {
+    renderWallet();
+    renderRunButton();
+  });
+
   try {
     const index = await loadJSON('meta.json');
     state.games = (index.games || []).filter((g) => g && g.key);
@@ -1232,10 +1432,12 @@ async function main() {
     initGamePicker();
     await loadGame(first);
     renderDonate();
+    renderWallet();
 
-    // Подписка грузится последней: без неё приложение полностью рабочее.
-    state.entitlement = await loadEntitlement();
-    onEntitlementChanged();
+    // Кошелёк грузится последним: без него приложение полностью рабочее,
+    // просто с бесплатным лимитом.
+    await wallet.load();
+    renderStore();
   } catch (err) {
     fail(
       `${err.message}\n\nЕсли вы открыли файл напрямую с диска, запустите ` +

@@ -1,8 +1,12 @@
 /* Оформление Mini App.
  *
  * Содержимое разделяется волосяными линейками и воздухом, а не коробками с
- * тенями. Интерактивные элементы — кнопки, переключатели, тарифы — скруглены:
+ * тенями. Интерактивные элементы — кнопки, переключатели, пакеты — скруглены:
  * так их проще отличить от текста и удобнее нажимать пальцем.
+ *
+ * Плотность важнее простора: экран телефона короткий, а до кнопки «Подобрать»
+ * человек должен доходить без прокрутки. Поэтому управление собрано в одну
+ * панель со строками «подпись — контрол», а не растянуто на всю ширину.
  *
  * Одна гарнитура — Manrope: округлая, с обычными пропорциями и хорошей
  * кириллицей. Цифры везде табличные, чтобы столбцы не прыгали.
@@ -19,16 +23,17 @@
   --rule-soft: rgba(20, 20, 19, 0.07);
   --accent: #C46849;
   --accent-soft: rgba(196, 104, 73, 0.10);
-  --glow: rgba(196, 104, 73, 0.13);
+  --glow: rgba(196, 104, 73, 0.45);
+  --sheen: rgba(255, 255, 255, 0.34);
   --good: #3C6B4F;
 
   --sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-  --radius: 14px;
-  --radius-sm: 10px;
+  --radius: 13px;
+  --radius-sm: 9px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --pad: 20px;
-  --tabbar-h: 62px;
+  --pad: 18px;
+  --tabbar-h: 58px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,7 +48,8 @@
     --rule-soft: rgba(240, 237, 228, 0.07);
     --accent: #DE9070;
     --accent-soft: rgba(222, 144, 112, 0.13);
-    --glow: rgba(222, 144, 112, 0.12);
+    --glow: rgba(222, 144, 112, 0.40);
+    --sheen: rgba(255, 255, 255, 0.26);
     --good: #7FBF9A;
   }
 }
@@ -61,22 +67,27 @@
   --rule-soft: rgba(240, 237, 228, 0.07);
   --accent: #DE9070;
   --accent-soft: rgba(222, 144, 112, 0.13);
-  --glow: rgba(222, 144, 112, 0.12);
+  --glow: rgba(222, 144, 112, 0.40);
+  --sheen: rgba(255, 255, 255, 0.26);
   --good: #7FBF9A;
 }
 
 * { box-sizing: border-box; }
 
+/* Скрытое скрыто всегда: .row и .adbox раскладываются флексом, а он
+   перебивает собственное значение display у атрибута hidden. */
+[hidden] { display: none !important; }
+
 html { overflow-x: clip; }
 
 body {
   margin: 0;
-  padding-bottom: calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--tabbar-h) + 36px + env(safe-area-inset-bottom));
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.55;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
@@ -88,18 +99,18 @@ button, input { font-family: inherit; }
 /* --------------------------------------------------------- типографика */
 
 h1, h2, h3 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-family: var(--sans);
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
   color: var(--ink);
 }
-h1 { font-size: 24px; }
-h2 { font-size: 22px; }
-h3 { font-size: 18px; }
+h1 { font-size: 23px; }
+h2 { font-size: 21px; }
+h3 { font-size: 17px; }
 
-p { margin: 0 0 14px; color: var(--ink-2); }
+p { margin: 0 0 12px; color: var(--ink-2); }
 p:last-child { margin-bottom: 0; }
 
 b, strong { font-weight: 700; color: var(--ink); }
@@ -112,13 +123,22 @@ a {
 }
 a:hover { color: var(--accent); border-color: var(--accent); }
 
-.muted { color: var(--ink-3); font-size: 14px; }
+.muted { color: var(--ink-3); font-size: 13.5px; }
+.lede { font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+
+/* Мелкий служебный текст: условия, оговорки, сноски. */
+.fineprint {
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-4);
+}
 
 /* Надзаголовок блока: небольшой полужирный текст обычного регистра. */
 .eyebrow {
   display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: 6px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-4);
 }
@@ -126,17 +146,33 @@ a:hover { color: var(--accent); border-color: var(--accent); }
 
 /* Шапки нет намеренно: над Mini App уже есть заголовок самого Telegram. */
 
-.meta {
-  margin: 14px 0 0;
-  font-size: 12.5px;
-  color: var(--ink-4);
+.meta { font-size: 12px; color: var(--ink-4); }
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* Название лотереи — плашка, а не подпись: по нему понятно, в какой игре
+   сейчас считаются все цифры на экране. */
+.badge {
+  display: inline-block;
+  padding: 4px 11px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--accent);
+  border-radius: 99px;
 }
 
 /* ---------------------------------------------------------------- блоки */
 
 .view {
-  padding: calc(20px + env(safe-area-inset-top)) var(--pad) 28px;
-  animation: enter 0.45s var(--ease);
+  padding: calc(16px + env(safe-area-inset-top)) var(--pad) 24px;
+  animation: enter 0.4s var(--ease);
 }
 .view[hidden] { display: none; }
 
@@ -145,11 +181,12 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   to { opacity: 1; transform: none; }
 }
 
-.section { padding: 26px 0; border-top: 1px solid var(--rule-soft); }
+.section { padding: 20px 0; border-top: 1px solid var(--rule-soft); }
 .section:first-child { padding-top: 0; border-top: none; }
+.section--head { padding-bottom: 16px; }
 
 .note {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border-left: 3px solid var(--accent);
   border-radius: 4px var(--radius-sm) var(--radius-sm) 4px;
   background: var(--accent-soft);
@@ -158,24 +195,172 @@ a:hover { color: var(--accent); border-color: var(--accent); }
 .note--good { border-left-color: var(--good); background: transparent; }
 .note p:last-child { margin-bottom: 0; }
 
-.lede { font-size: 16px; line-height: 1.65; color: var(--ink-2); }
+/* ------------------------------------------------------ панель настроек */
 
-/* --------------------------------------------------------- выбор игры */
-
-.games { margin-bottom: 20px; }
-
-/* Название лотереи — плашка, а не подпись: по нему понятно, в какой игре
-   сейчас считаются все цифры на экране. */
-#game-title {
-  display: inline-block;
+.panel {
   margin-bottom: 14px;
-  padding: 6px 14px;
-  font-size: 15px;
+  padding: 2px 13px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 7px 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.row:first-child { border-top: none; }
+.row__k {
+  flex: none;
+  width: 74px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.row > :not(.row__k) { flex: 1; min-width: 0; }
+.row--switch { cursor: pointer; justify-content: space-between; }
+.row--switch .row__k { flex: 1; width: auto; }
+.row--switch .switch { flex: none; }
+
+/* Пояснение к выбранному режиму: почему их два и чем они отличаются. */
+.hint {
+  margin: -2px 0 6px;
+  padding-left: 86px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-4);
+}
+
+/* ------------------------------------------------- сегментный переключатель */
+
+.seg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper);
+}
+.seg__btn {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.22s ease, color 0.22s ease;
+}
+.seg__btn.is-active { background: var(--accent); color: var(--paper); }
+.games { margin-bottom: 14px; }
+
+/* ------------------------------------------------------- числа-фишки */
+
+.numfield {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--paper);
+  cursor: text;
+  transition: border-color 0.25s ease;
+}
+.numfield:focus-within { border-color: var(--accent); }
+.numfield.is-bad { border-color: var(--accent); animation: shake 0.3s ease; }
+@keyframes shake {
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+.numfield__chips { display: contents; }
+
+/* Селектор намеренно длиннее нужного: ниже по файлу есть общее правило для
+   input[type="text"] с рамкой и своими отступами, и по весу тип побеждает
+   одиночный класс. Без этого внутри поля рисовалась бы вторая рамка. */
+.numfield .numfield__input {
+  flex: 1;
+  min-width: 56px;
+  width: 56px;
+  padding: 2px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.numfield .numfield__input:focus { outline: none; border: none; }
+.numfield .numfield__input::placeholder { color: var(--ink-4); font-size: 12.5px; }
+
+.numchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 9px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--paper);
   background: var(--accent);
+  border: none;
   border-radius: 99px;
+  cursor: pointer;
+  animation: pop 0.25s var(--ease);
 }
+.numchip::after {
+  content: "×";
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+/* ----------------------------------------------------------- кошелёк */
+
+.wallet {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 9px 9px 13px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+}
+.wallet__body { min-width: 0; }
+.wallet__left { display: flex; align-items: center; gap: 6px; }
+.wallet__left svg { color: var(--accent); flex: none; }
+.wallet__value { font-size: 17px; font-weight: 800; color: var(--ink); }
+.wallet__label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.wallet__hint {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
+  color: var(--ink-4);
+}
+.wallet__top {
+  flex: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--ink);
+  border: none;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease), background 0.25s ease;
+}
+.wallet__top:active { transform: scale(0.96); }
+.wallet.is-empty .wallet__top { background: var(--accent); }
+.wallet.is-empty .wallet__value { color: var(--accent); }
 
 /* --------------------------------------------------------- спек-таблица */
 
@@ -183,24 +368,24 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1px;
-  margin-top: 18px;
+  margin-top: 16px;
   overflow: hidden;
   background: var(--rule-soft);
   border: 1px solid var(--rule-soft);
   border-radius: var(--radius);
 }
-.spec__cell { padding: 12px 14px 13px; background: var(--paper); }
+.spec__cell { padding: 10px 13px 11px; background: var(--paper); }
 .spec__k {
   display: block;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--ink-4);
 }
 .spec__v {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ink);
 }
 .spec__v.is-accent { color: var(--accent); }
@@ -208,21 +393,21 @@ a:hover { color: var(--accent); border-color: var(--accent); }
 .spec__v.is-dim { color: var(--ink-3); }
 
 /* Строка «ключ — значение» на линейках, для списков фактов. */
-.rows { margin: 16px 0 0; }
+.rows { margin: 14px 0 0; }
 .rows div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
-  padding: 11px 0;
+  padding: 9px 0;
   border-top: 1px solid var(--rule-soft);
 }
 .rows div:first-child { border-top: none; }
-.rows dt { flex: 1; font-size: 14px; color: var(--ink-3); }
+.rows dt { flex: 1; font-size: 13.5px; color: var(--ink-3); }
 .rows dd {
   margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   white-space: nowrap;
   color: var(--ink);
 }
@@ -236,7 +421,7 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 7px;
+  gap: 6px;
   margin: 4px 0 0;
 }
 .ball {
@@ -248,7 +433,7 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   border: 1px solid var(--ink);
   border-radius: 50%;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--ink);
   animation: pop 0.4s var(--ease) backwards;
 }
@@ -263,7 +448,21 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   flex: none;
   border-color: var(--rule);
   font-size: 13px;
+  font-weight: 600;
   animation: none;
+}
+/* Пока число докручивается, шар слегка дрожит и приглушён — видно, что
+   значение ещё не окончательное. */
+.ball.is-rolling { opacity: 0.55; animation: jitter 0.16s linear infinite; }
+@keyframes jitter {
+  0%, 100% { transform: translateY(-1px); }
+  50% { transform: translateY(1px); }
+}
+.ball.is-landed { animation: land 0.42s var(--ease); }
+@keyframes land {
+  0% { transform: scale(1.22); box-shadow: 0 0 0 0 var(--glow); }
+  60% { transform: scale(0.97); }
+  100% { transform: scale(1); box-shadow: 0 0 0 10px transparent; }
 }
 
 /* ------------------------------------------------- свёрнутые билеты */
@@ -272,7 +471,7 @@ details.ticket { border-top: 1px solid var(--rule-soft); }
 details.ticket:first-child { border-top: none; }
 details.ticket > summary {
   display: block;
-  padding: 16px 0;
+  padding: 14px 0;
   cursor: pointer;
   list-style: none;
 }
@@ -281,8 +480,8 @@ details.ticket > summary::-webkit-details-marker { display: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: 7px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-4);
 }
@@ -295,8 +494,8 @@ details.ticket .section { padding-top: 4px; border-top: none; }
 .slip {
   display: grid;
   grid-template-columns: repeat(var(--slip-cols, 5), 1fr);
-  gap: 6px;
-  margin: 18px 0 14px;
+  gap: 5px;
+  margin: 14px 0 12px;
 }
 .slip__cell {
   aspect-ratio: 1;
@@ -307,7 +506,7 @@ details.ticket .section { padding-top: 4px; border-top: none; }
   border: 1px solid var(--rule);
   border-radius: 50%;
   background: transparent;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--ink-3);
   cursor: pointer;
@@ -323,17 +522,14 @@ details.ticket .section { padding-top: 4px; border-top: none; }
 }
 .slip__cell[disabled]:not(.is-on) { opacity: 0.32; cursor: default; }
 
-.slip-foot { display: flex; align-items: center; gap: 10px; }
-.slip-foot .muted { flex: 1; font-size: 13px; font-weight: 600; }
+.slip-foot { display: flex; align-items: center; gap: 8px; }
+.slip-foot .muted { flex: 1; font-size: 13px; font-weight: 700; }
 
 /* ---------------------------------------------------------------- формы */
 
-.field { margin-bottom: 18px; }
-.field > label { display: block; }
-
 input[type="text"] {
   width: 100%;
-  padding: 11px 14px;
+  padding: 10px 13px;
   font: inherit;
   font-size: 15px;
   color: var(--ink);
@@ -345,36 +541,7 @@ input[type="text"] {
 input[type="text"]::placeholder { color: var(--ink-4); }
 input[type="text"]:focus { outline: none; border-color: var(--accent); }
 
-.chips {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-}
-.chip {
-  flex: 1;
-  padding: 9px 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink-3);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.25s ease, color 0.25s ease;
-}
-.chip.is-active { background: var(--accent); color: var(--paper); }
-
-.switch {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  font-size: 14px;
-  color: var(--ink-2);
-  cursor: pointer;
-}
+.switch { display: inline-flex; align-items: center; }
 .switch input { position: absolute; opacity: 0; pointer-events: none; }
 .switch__track {
   position: relative;
@@ -382,6 +549,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
   width: 38px; height: 22px;
   border: 1px solid var(--rule);
   border-radius: 99px;
+  background: var(--paper);
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 .switch__track::after {
@@ -402,9 +570,9 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 14px 18px;
+  padding: 12px 16px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--paper);
   background: var(--ink);
   border: 1px solid var(--ink);
@@ -414,20 +582,90 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
               color 0.3s ease, transform 0.2s var(--ease);
 }
 .btn:active { transform: scale(0.98); }
-.btn[disabled] { opacity: 0.45; cursor: default; }
+.btn[disabled] { opacity: 0.55; cursor: default; }
 .btn svg { width: 16px; height: 16px; flex: none; }
 
 .btn--accent { background: var(--accent); border-color: var(--accent); }
 .btn--ghost { color: var(--ink); background: transparent; border-color: var(--rule); }
 .btn--ghost:hover { border-color: var(--accent); color: var(--accent); }
-.btn--sm { width: auto; padding: 8px 14px; font-size: 13px; border-radius: 99px; }
-.btn--danger { color: var(--accent); background: transparent; border-color: var(--rule); margin-top: 14px; }
+.btn--sm { width: auto; padding: 7px 13px; font-size: 12.5px; border-radius: 99px; }
+
+/* ------------------------------------------------- кнопка «Подобрать» */
+
+/* Главное действие экрана. Оно платное, поэтому выглядит как рычаг игрового
+   автомата: по нему сразу видно и цену, и то, что сейчас что-то произойдёт. */
+.btn--roll {
+  position: relative;
+  overflow: hidden;
+  padding: 15px 18px;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 8px 22px -14px var(--glow);
+}
+.btn__face { display: inline-flex; align-items: center; gap: 9px; }
+.btn__dice { transition: transform 0.3s var(--ease); }
+.btn--roll:active .btn__dice { transform: rotate(-18deg); }
+
+/* Блик пробегает по кнопке раз в несколько секунд — движение в статичном
+   экране, которое притягивает взгляд к главному действию. */
+.btn__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg,
+    transparent 38%, var(--sheen) 50%, transparent 62%);
+  transform: translateX(-130%);
+  animation: sheen 4.6s var(--ease) infinite;
+}
+@keyframes sheen {
+  0%, 62% { transform: translateX(-130%); }
+  100% { transform: translateX(130%); }
+}
+
+.btn__price {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 26px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.btn__price::after {
+  content: "↻";
+  font-weight: 600;
+  opacity: 0.75;
+}
+.btn--roll.is-short .btn__price { background: rgba(0, 0, 0, 0.34); }
+
+/* Барабан крутится: кубик кувыркается, снизу набегает полоса. */
+.btn--roll.is-running { pointer-events: none; }
+.btn--roll.is-running .btn__sheen { animation-duration: 1s; }
+.btn--roll.is-running .btn__dice { animation: tumble 0.55s linear infinite; }
+@keyframes tumble {
+  0% { transform: rotate(0) scale(1); }
+  50% { transform: rotate(180deg) scale(0.78); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.btn--roll.is-running::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 3px;
+  background: var(--paper);
+  opacity: 0.6;
+  animation: fillbar 0.62s linear forwards;
+}
+@keyframes fillbar { from { width: 0; } to { width: 100%; } }
 
 .link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13.5px;
   border-bottom: 1px solid var(--rule);
   padding-bottom: 2px;
 }
@@ -436,7 +674,7 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
 
 /* ------------------------------------------------------------- шкала */
 
-.meter { margin: 20px 0 4px; }
+.meter { margin: 18px 0 4px; }
 .meter__track { height: 6px; border-radius: 99px; background: var(--rule-soft); overflow: hidden; }
 .meter__fill {
   height: 100%;
@@ -449,8 +687,8 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .meter__label {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  font-size: 12.5px;
+  margin-top: 7px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ink-4);
 }
@@ -463,8 +701,8 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 120px;
-  margin-top: 20px;
+  height: 112px;
+  margin-top: 18px;
 }
 .freq__bar {
   flex: 1;
@@ -478,39 +716,39 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
 .freq__bar.is-hot { background: var(--accent); }
 .freq__mean { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--rule); }
 
-.numlist { list-style: none; margin: 16px 0 0; padding: 0; }
+.numlist { list-style: none; margin: 14px 0 0; padding: 0; }
 .numlist li {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
+  gap: 11px;
+  padding: 7px 0;
   border-top: 1px solid var(--rule-soft);
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--ink-3);
 }
 .numlist li:first-child { border-top: none; }
 
-.bigstat { padding: 8px 0 4px; }
+.bigstat { padding: 6px 0 4px; }
 .bigstat__value {
   display: block;
-  font-size: 52px;
-  font-weight: 700;
+  font-size: 48px;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 .bigstat__label {
   display: block;
-  margin-top: 10px;
-  font-size: 13px;
+  margin-top: 8px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--ink-4);
 }
 
-.table-wrap { overflow-x: auto; margin-top: 18px; -webkit-overflow-scrolling: touch; }
-.table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.table-wrap { overflow-x: auto; margin-top: 16px; -webkit-overflow-scrolling: touch; }
+.table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .table th, .table td {
-  padding: 10px 8px;
+  padding: 9px 8px;
   text-align: right;
   white-space: nowrap;
   border-top: 1px solid var(--rule-soft);
@@ -524,56 +762,92 @@ input[type="text"]:focus { outline: none; border-color: var(--accent); }
 }
 .table thead th {
   border-top: none;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--ink-4);
 }
 .table .is-flag { color: var(--accent); }
 
-/* ---------------------------------------------------------- подписка */
+/* ---------------------------------------------------- магазин прокруток */
 
-.plans { display: grid; gap: 10px; margin-top: 18px; }
-.plan {
+.adbox {
+  margin-top: 16px;
+  padding: 13px 14px;
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+}
+.adbox[hidden] { display: none; }
+.adbox__head {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.adbox__title { font-size: 14px; font-weight: 700; color: var(--ink); }
+.adbox__count { font-size: 12px; font-weight: 600; color: var(--ink-4); }
+
+.packs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+.pack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 15px 16px;
-  text-align: left;
+  gap: 2px;
+  padding: 13px 6px 12px;
+  text-align: center;
   background: transparent;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: border-color 0.3s ease, background 0.3s ease;
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.2s var(--ease);
 }
-.plan:hover { border-color: var(--accent); background: var(--accent-soft); }
-.plan__body { flex: 1; min-width: 0; }
-.plan__title { display: block; font-size: 15px; font-weight: 600; color: var(--ink); }
-.plan__meta { display: block; margin-top: 2px; font-size: 12.5px; color: var(--ink-3); }
-.plan__price {
-  flex: none;
+.pack:active { transform: scale(0.97); }
+.pack:hover { border-color: var(--accent); background: var(--accent-soft); }
+.pack.is-best { border-color: var(--accent); }
+.pack__head { display: flex; align-items: baseline; gap: 4px; }
+.pack__spins { font-size: 22px; font-weight: 800; line-height: 1; color: var(--ink); }
+.pack__unit { font-size: 11px; font-weight: 600; color: var(--ink-4); }
+.pack__price {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 16px;
-  font-weight: 700;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 800;
   color: var(--accent);
 }
-.plan__price svg { width: 14px; height: 14px; }
+.pack__price svg { width: 13px; height: 13px; }
+.pack__per { font-size: 10.5px; color: var(--ink-4); }
+.pack__save {
+  position: absolute;
+  top: -8px;
+  right: 6px;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--paper);
+  background: var(--good);
+  border-radius: 99px;
+}
 
-.referral { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--rule-soft); }
+.referral { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--rule-soft); }
 .referral .btn { margin-top: 4px; }
-.share-btn { margin-top: 16px; }
-.chip svg { width: 13px; height: 13px; margin-right: 5px; vertical-align: -1px; }
+.share-btn { margin-top: 14px; }
 
-details.why { margin-top: 18px; }
+details.why { margin-top: 16px; }
 details.why > summary {
   cursor: pointer;
   list-style: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-4);
   transition: color 0.3s ease;
@@ -598,7 +872,7 @@ details.why[open] > summary .chev { transform: rotate(180deg); }
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--rule);
   border-bottom: none;
-  border-radius: 22px 22px 0 0;
+  border-radius: 20px 20px 0 0;
 }
 .tab {
   position: relative;
@@ -616,12 +890,12 @@ details.why[open] > summary .chev { transform: rotate(180deg); }
   cursor: pointer;
   transition: color 0.3s ease;
 }
-.tab svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; }
+.tab svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.6; }
 .tab.is-active { color: var(--accent); }
 .tab.is-active::before {
   content: "";
   position: absolute;
-  top: 6px;
+  top: 5px;
   width: 22px;
   height: 3px;
   border-radius: 99px;
@@ -643,14 +917,15 @@ details.why[open] > summary .chev { transform: rotate(180deg); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .skeleton {
-  padding: 22px 0;
-  font-size: 13.5px;
+  padding: 18px 0;
+  font-size: 13px;
   color: var(--ink-4);
 }
 
-.error { margin-top: 12px; font-size: 13.5px; color: var(--accent); }
-.pay-note { margin-top: 12px; font-size: 13px; line-height: 1.5; word-break: break-word; }
+.error { margin-top: 10px; font-size: 13px; color: var(--accent); }
+.pay-note { margin-top: 10px; font-size: 12.5px; line-height: 1.45; word-break: break-word; }
 .pay-note.muted { color: var(--ink-3); }
+.pay-fallback { margin-top: 10px; }
 
 .fatal {
   margin: var(--pad);
@@ -660,6 +935,13 @@ details.why[open] > summary .chev { transform: rotate(180deg); }
   background: var(--accent-soft);
   font-size: 14px;
   white-space: pre-line;
+}
+
+/* Узкие экраны: подписи над контролами не помещаются рядом с ними. */
+@media (max-width: 360px) {
+  .row__k { width: 62px; font-size: 12px; }
+  .hint { padding-left: 74px; }
+  .seg__btn { font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

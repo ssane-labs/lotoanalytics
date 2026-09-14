@@ -8,8 +8,8 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=282a1402">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="styles.css?v=7a9d6659">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -72,11 +72,18 @@
     <g id="i-check">
       <path d="M5.4 12.6l4.4 4.4L18.6 8"/>
     </g>
+    <g id="i-play">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M10.2 8.6l5.4 3.4-5.4 3.4z"/>
+    </g>
+    <g id="i-coin">
+      <circle cx="12" cy="12" r="8.6"/>
+      <path d="M12 7.4v9.2M14.6 9.6c-.7-.8-1.7-1.1-2.9-1.1-1.6 0-2.6.7-2.6 1.9 0 2.6 5.6 1.2 5.6 3.9 0 1.2-1.1 2-2.8 2-1.3 0-2.4-.4-3-1.2"/>
+    </g>
   </defs>
 </svg>
 
 <div class="app" id="app">
-
 
   <div class="view" id="banners" hidden>
     <div class="note" id="synthetic-banner" hidden>
@@ -88,80 +95,95 @@
   <!-- ===================== ПОДБОР ===================== -->
   <section class="view" id="view-generate">
 
-    <div class="section">
+    <div class="section section--head">
       <!-- Выбор лотереи. Кнопки появляются, когда в данных больше одной игры. -->
-      <div class="chips games" id="game-picker" role="group" aria-label="Лотерея" hidden></div>
-      <span class="eyebrow eyebrow--accent" id="game-title">Спортлото «6 из 45»</span>
-      <h2>Комбинации, которые не ставит никто</h2>
+      <div class="seg games" id="game-picker" role="group" aria-label="Лотерея" hidden></div>
+      <div class="head">
+        <span class="badge" id="game-title">Спортлото «6 из 45»</span>
+        <span class="meta" id="data-meta">Загрузка данных…</span>
+      </div>
+      <h2>Числа, за которые не придётся драться</h2>
       <p class="lede">
-        Шанс выиграть у любой комбинации одинаков и равен
-        <b id="odds-line">1 к 8 145 060</b>. Изменить его нельзя.
-        Но джекпот делится между всеми, кто угадал, — а сотни тысяч людей
-        ставят дни рождения и узоры на бланке.
+        Шанс выиграть одинаков у любой комбинации — <b id="odds-line">1 к 8 145 060</b>,
+        и мы его не меняем. Зато джекпот делится между всеми, кто угадал.
+        Подбираем числа, которых почти нет в чужих билетах: выигрыш тот же,
+        делить его не с кем.
       </p>
-      <p class="meta" id="data-meta">Загрузка данных…</p>
     </div>
 
+    <!-- Баланс прокруток. Стоит над настройками, а не в конце экрана:
+         пользователь должен видеть цену действия до того, как его совершит. -->
+    <div class="wallet" id="wallet-bar" hidden></div>
+
     <div class="section">
-      <div class="field">
-        <label class="eyebrow" for="gen-mode">Способ подбора</label>
-        <div class="chips" id="gen-mode" role="group" aria-label="Способ подбора">
-          <button class="chip is-active" data-mode="classic" type="button">Непопулярные</button>
-          <button class="chip" data-mode="ai" type="button">Нейросеть</button>
+      <div class="panel">
+        <div class="row">
+          <span class="row__k">Режим</span>
+          <div class="seg seg--sm" id="gen-mode" role="group" aria-label="Режим подбора">
+            <button class="seg__btn is-active" data-mode="classic" type="button">Аналитик</button>
+            <button class="seg__btn" data-mode="ai" type="button">Нейросеть</button>
+          </div>
         </div>
-      </div>
+        <p class="hint" id="gen-mode-hint"></p>
 
-      <div class="field">
-        <label class="eyebrow" for="gen-count">Сколько комбинаций</label>
-        <div class="chips" id="gen-count" role="group" aria-label="Сколько комбинаций">
-          <button class="chip is-active" data-count="1" type="button">1</button>
-          <button class="chip" data-count="3" type="button">3</button>
-          <button class="chip" data-count="5" type="button">5</button>
-          <button class="chip" data-count="10" type="button">10</button>
+        <div class="row">
+          <span class="row__k">Билетов</span>
+          <div class="seg seg--sm" id="gen-count" role="group" aria-label="Сколько билетов">
+            <button class="seg__btn is-active" data-count="1" type="button">1</button>
+            <button class="seg__btn" data-count="3" type="button">3</button>
+            <button class="seg__btn" data-count="5" type="button">5</button>
+            <button class="seg__btn" data-count="10" type="button">10</button>
+          </div>
         </div>
+
+        <div class="row">
+          <span class="row__k">Мои числа</span>
+          <div id="gen-include"></div>
+        </div>
+
+        <div class="row">
+          <span class="row__k">Убрать</span>
+          <div id="gen-exclude"></div>
+        </div>
+
+        <label class="row row--switch" id="row-spread" hidden>
+          <span class="row__k">Без повторов</span>
+          <span class="switch">
+            <input type="checkbox" id="gen-spread" checked>
+            <span class="switch__track"></span>
+          </span>
+        </label>
       </div>
 
-      <div class="field">
-        <label class="eyebrow" for="gen-include">Оставить мои числа</label>
-        <input id="gen-include" type="text" inputmode="numeric" placeholder="7 23">
-      </div>
-
-      <div class="field">
-        <label class="eyebrow" for="gen-exclude">Исключить числа</label>
-        <input id="gen-exclude" type="text" inputmode="numeric" placeholder="13">
-      </div>
-
-      <label class="switch">
-        <input type="checkbox" id="gen-spread" checked>
-        <span class="switch__track"></span>
-        <span>Разные числа в разных билетах</span>
-      </label>
-
-      <button class="btn btn--accent" id="gen-run" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-dice"/></svg>
-        Подобрать
+      <button class="btn btn--accent btn--roll" id="gen-run" type="button">
+        <span class="btn__sheen" aria-hidden="true"></span>
+        <span class="btn__face">
+          <svg class="btn__dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-dice"/></svg>
+          <span id="gen-run-label">Подобрать</span>
+          <span class="btn__price" id="gen-run-price"></span>
+        </span>
       </button>
       <p class="error" id="gen-error" hidden></p>
     </div>
 
     <div id="gen-results"></div>
 
-    <!-- Подписка стоит здесь, а не в конце последней вкладки: именно тут
-         пользователь упирается в лимит и понимает, за что платит. -->
-    <div class="section" id="subscribe-section" hidden></div>
+    <!-- Магазин прокруток: реклама и пакеты. Стоит здесь, потому что именно
+         на этом экране заканчиваются прокрутки. -->
+    <div class="section" id="store-section" hidden></div>
   </section>
 
   <!-- ===================== МОЯ КОМБИНАЦИЯ ===================== -->
   <section class="view" id="view-check" hidden>
 
-    <div class="section">
+    <div class="section section--head">
       <span class="eyebrow eyebrow--accent">Бланк</span>
-      <h2>Проверить свою комбинацию</h2>
-      <p class="muted">
-        Отметьте числа так же, как на бланке. Покажем, насколько часто такую
-        комбинацию выбирают другие и во что это обойдётся при выигрыше.
-        Разбор своей комбинации — по подписке.
+      <h2>Сколько человек играют вашими числами</h2>
+      <p class="lede">
+        Отметьте комбинацию, которую собираетесь поставить. Посчитаем, сколько
+        игроков обычно выбирают то же самое и какая доля джекпота останется
+        вам, если он зайдёт.
       </p>
       <div class="slip" id="slip" role="group" aria-label="Игровой бланк"></div>
       <div class="slip-foot">
@@ -185,7 +207,7 @@
   <!-- ===================== СТАТИСТИКА ===================== -->
   <section class="view" id="view-stats" hidden>
 
-    <div class="section">
+    <div class="section section--head">
       <span class="eyebrow eyebrow--accent">Данные</span>
       <div class="note" id="uniformity-banner">
         <p><span class="spinner"></span> Проверяем данные…</p>
@@ -230,9 +252,13 @@
   <!-- ===================== ПРОВЕРКА ===================== -->
   <section class="view" id="view-proof" hidden>
 
-    <div class="section">
+    <div class="section section--head">
       <span class="eyebrow eyebrow--accent">Эксперимент</span>
       <h2>Можно ли предсказать тираж?</h2>
+      <p class="lede">
+        Мы обучили семь моделей на истории тиражей и проверили их на тиражах,
+        которых они не видели. Вот что получилось.
+      </p>
     </div>
 
     <div class="section">
@@ -277,14 +303,17 @@
 
     <div class="section">
       <div class="note note--quiet">
-        <span class="eyebrow">Ответственная игра</span>
+        <span class="eyebrow">Честное предупреждение</span>
         <p class="muted">
+          Приложение не предсказывает результаты тиражей и не повышает шанс
+          выигрыша — это невозможно, и цифры выше это показывают. Мы считаем
+          только одно: насколько популярна комбинация у других игроков.
           Лотерея — развлечение с отрицательным матожиданием, а не способ
-          заработка. Не ставьте больше, чем готовы потерять.
+          заработка. Не тратьте больше, чем готовы потерять.
         </p>
         <a class="link" href="https://www.stoloto.ru/responsible-gaming"
            target="_blank" rel="noopener noreferrer">
-          Памятка Столото
+          Памятка об ответственной игре
           <svg class="arw" width="12" height="12" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round"
                stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg>
@@ -318,6 +347,6 @@
 
 <div class="fatal" id="fatal" hidden></div>
 
-<script type="module" src="app.js?v=282a1402"></script>
+<script type="module" src="app.js?v=7a9d6659"></script>
 </body>
 </html>

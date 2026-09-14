@@ -2,61 +2,98 @@
  * Телеграм-бот и платёжный бэкенд на Cloudflare Workers (бесплатный тариф,
  * свой HTTPS-домен *.workers.dev — покупать ничего не нужно).
  *
+ * Модель монетизации — прокрутки, а не подписка. Прокрутка это одно действие:
+ * подобранная комбинация или половина разбора своей (разбор стоит две).
+ * Подписка здесь не работала по существу: человек заходит раз в неделю перед
+ * тиражом, и платить за тридцать дней доступа ему незачем. Прокрутки же
+ * покупаются ровно под то, чем пользуются, и не сгорают.
+ *
+ * Откуда берутся прокрутки:
+ *   — одна бесплатная каждый день;
+ *   — до пяти в неделю за просмотр рекламного ролика (Adsgram);
+ *   — пакетами за Telegram Stars.
+ *
  * Оплата — Telegram Stars (валюта XTR). Это не выбор из удобства: Telegram
  * требует продавать цифровые товары и услуги внутри ботов и Mini App только
  * за Stars, чтобы соблюсти правила Apple и Google. ЮKassa и прочие провайдеры
- * разрешены исключительно для физических товаров, а подписка на аналитику —
- * цифровая услуга. Плюс Stars не требуют ни юрлица, ни договора с банком.
+ * разрешены исключительно для физических товаров.
  *
  * Что здесь есть:
- *   POST /api/entitlement  — есть ли у пользователя активная подписка
- *   POST /api/invoice      — ссылка на оплату для Telegram.WebApp.openInvoice
- *   POST /api/cancel       — отменить свою подписку (без возврата звёзд)
- *   POST /  (вебхук)       — команды бота и обработка платежей
+ *   POST /api/state       — баланс прокруток, лимиты, пакеты, ссылки на оплату
+ *   POST /api/spend       — списать прокрутки (решает сервер, не клиент)
+ *   POST /api/ad-claim    — начислить прокрутку за досмотренный ролик
+ *   GET  /api/ad-reward   — то же, но вызовом самой рекламной сети
+ *   POST /api/invoice     — ссылка на оплату для Telegram.WebApp.openInvoice
+ *   POST /  (вебхук)      — команды бота и обработка платежей
  *
  * Секреты (wrangler secret put ИМЯ или через панель Cloudflare):
  *   BOT_TOKEN        — токен от BotFather
  *   WEBHOOK_SECRET   — произвольная строка, ею Telegram подписывает вебхуки
+ *   AD_REWARD_SECRET — произвольная строка для callback рекламной сети
  * Переменные [vars]:
- *   MINIAPP_URL, DONATE_URL
+ *   MINIAPP_URL, DONATE_URL, ADMIN_IDS, ADSGRAM_BLOCK_ID
  * Хранилище [[kv_namespaces]]:
- *   SUBS — кто и до какого момента оплатил
+ *   SUBS — кошельки пользователей (имя осталось от версии с подписками)
  */
 
 import { verifyInitData } from './verify.js';
 
-// Тарифы. Ключ уходит в payload инвойса, поэтому менять его после запуска
-// нельзя — иначе уже отправленные, но не оплаченные счета перестанут узнаваться.
+// Пакеты прокруток. Ключ уходит в payload инвойса, поэтому менять его после
+// запуска нельзя — иначе уже отправленные, но не оплаченные счета перестанут
+// узнаваться. Цена за прокрутку падает с размером пакета: это и есть причина
+// брать больше одной.
 //
-// hidden: тариф не показывается в приложении и в ответе на /buy, но счёт по
+// hidden: пакет не показывается в приложении и в ответе на /buy, но счёт по
 // нему создать можно. Нужен, чтобы проверять всю цепочку оплаты за одну
 // звезду, не показывая такую цену покупателям.
-const PLANS = {
-  test: { title: 'Проверка оплаты', stars: 1, days: 1, hidden: true },
-  week: { title: 'Аналитик на неделю', stars: 75, days: 7 },
-  month: { title: 'Аналитик на месяц', stars: 250, days: 30 },
-  year: { title: 'Аналитик на год', stars: 1990, days: 365 },
+const PACKS = {
+  test: { title: 'Проверка оплаты', spins: 1, stars: 1, hidden: true },
+  p1: { title: '1 прокрутка', spins: 1, stars: 30 },
+  p5: { title: '5 прокруток', spins: 5, stars: 125 },
+  p10: { title: '10 прокруток', spins: 10, stars: 200 },
 };
 
-const FREE_DAILY_LIMIT = 1;
+const ECONOMY = {
+  /** Бесплатных прокруток в сутки. */
+  FREE_PER_DAY: 1,
+  /** Сколько прокруток в неделю можно получить за рекламу. */
+  ADS_PER_WEEK: 5,
+  /** Прокруток за один досмотренный ролик. */
+  AD_REWARD: 1,
+  /** Одна подобранная комбинация. */
+  COST_PER_TICKET: 1,
+  /** Разбор своей комбинации. */
+  COST_CHECK: 2,
+};
+
+// Сколько прокруток получают оба — пригласивший и новичок, и сколько друзей
+// засчитывается одному человеку. Потолок нужен против накрутки фейковыми
+// аккаунтами.
+const REF_BONUS_SPINS = 3;
+const REF_MAX_FRIENDS = 10;
+
+// Компенсация тем, у кого на момент перехода была оплачена подписка. Считаем
+// щедро и один раз: обменять оплаченные дни на прокрутки обязаны мы, а не
+// пользователь — он платил за другое.
+const MIGRATION_SPINS = 15;
 
 const TEXT = {
   start:
     'Это лотерейный аналитик.\n\n' +
-    'Он не предсказывает результаты тиражей — предсказать их невозможно, ' +
-    'и внутри есть вкладка «Проверка», где это измерено на реальных данных.\n\n' +
-    'Что он делает вместо этого: считает, насколько часто вашу комбинацию ' +
-    'выбирают другие игроки. Джекпот делится между всеми, кто угадал, ' +
-    'поэтому комбинация, которую не поставил больше никто, при выигрыше ' +
-    'приносит больше денег. Шанс выиграть при этом не меняется.',
+    'Он не предсказывает тиражи — предсказать их невозможно, и внутри есть ' +
+    'вкладка «Проверка», где это измерено на реальных данных.\n\n' +
+    'Он делает другое: считает, сколько человек играют теми же числами, что ' +
+    'и вы. Джекпот делится между всеми, кто угадал, поэтому комбинация, ' +
+    'которую не поставил больше никто, приносит при выигрыше в разы больше ' +
+    'денег. Шанс выиграть при этом не меняется — и мы этого не обещаем.\n\n' +
+    'Одна прокрутка каждый день бесплатно.',
   help:
     'Команды:\n' +
     '/start — открыть аналитику\n' +
-    '/buy — оформить подписку\n' +
-    '/status — до какого числа оплачено\n' +
-    '/cancel — отменить подписку\n' +
-    '/refund — вернуть звёзды за последнюю оплату (в течение 48 часов)\n' +
-    '/invite — пригласить друга и получить дни подписки\n' +
+    '/spins — сколько прокруток на балансе\n' +
+    '/buy — пакеты прокруток\n' +
+    '/invite — позвать друга и получить прокрутки\n' +
+    '/refund — вернуть звёзды за последнюю покупку (48 часов)\n' +
     '/honest — почему предсказать тираж нельзя\n' +
     '/help — это сообщение',
   honest:
@@ -88,63 +125,134 @@ const appKeyboard = (env) => ({
   inline_keyboard: [[{ text: 'Открыть аналитику', web_app: { url: env.MINIAPP_URL } }]],
 });
 
-// ------------------------------------------------------------- подписки
+// ---------------------------------------------------------- периоды
 
-const subKey = (userId) => `sub:${userId}`;
+/** Сутки и недели считаем по Москве: аудитория и тиражи живут в этом времени. */
+const MSK_SHIFT_MS = 3 * 3600 * 1000;
 
-async function getSubscription(env, userId) {
-  const raw = await env.SUBS?.get(subKey(userId));
-  if (!raw) return { active: false, until: null };
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    return { active: false, until: null };
-  }
-  const until = Number(data.until || 0);
-  return { active: until > Date.now(), until, plan: data.plan };
+function dayKey(now = Date.now()) {
+  return new Date(now + MSK_SHIFT_MS).toISOString().slice(0, 10);
 }
 
-async function grantSubscription(env, userId, planKey, charge) {
-  const plan = PLANS[planKey];
-  if (!plan) throw new Error(`неизвестный тариф: ${planKey}`);
-  return addDays(env, userId, plan.days, {
-    plan: planKey,
-    // Идентификатор платежа нужен, чтобы можно было вернуть деньги:
-    // Telegram требует от ботов возможность возврата Stars по запросу.
-    charge_id: charge?.telegram_payment_charge_id ?? null,
-    paid_at: Date.now(),
-  });
+function weekKey(now = Date.now()) {
+  const d = new Date(now + MSK_SHIFT_MS);
+  d.setUTCHours(0, 0, 0, 0);
+  // Четверг той же недели однозначно задаёт её год и номер.
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = Date.UTC(d.getUTCFullYear(), 0, 1);
+  const week = Math.ceil(((d.getTime() - yearStart) / 86400000 + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+// ---------------------------------------------------------- кошелёк
+
+const walletKey = (userId) => `sp:${userId}`;
+const legacyKey = (userId) => `sub:${userId}`;
+
+const emptyWallet = () => ({
+  paid: 0,
+  bonus: 0,
+  free_day: dayKey(),
+  free_used: 0,
+  ads_week: weekKey(),
+  ads_used: 0,
+});
+
+/**
+ * Обнуляет счётчики, у которых закончился период. Бесплатная прокрутка не
+ * копится: не пришёл вчера — вчерашняя сгорела. Купленные и заработанные
+ * рекламой не сгорают никогда.
+ */
+function refreshPeriods(rec) {
+  const today = dayKey();
+  if (rec.free_day !== today) {
+    rec.free_day = today;
+    rec.free_used = 0;
+  }
+  const week = weekKey();
+  if (rec.ads_week !== week) {
+    rec.ads_week = week;
+    rec.ads_used = 0;
+  }
+  return rec;
+}
+
+async function readWallet(env, userId) {
+  let rec;
+  try {
+    rec = JSON.parse((await env.SUBS?.get(walletKey(userId))) || 'null');
+  } catch {
+    rec = null;
+  }
+  if (!rec) {
+    rec = emptyWallet();
+    const carried = await migrateSubscription(env, userId);
+    if (carried) {
+      rec.paid += carried;
+      rec.migrated = true;
+    }
+  }
+  return refreshPeriods({ ...emptyWallet(), ...rec });
+}
+
+async function writeWallet(env, userId, rec) {
+  await env.SUBS.put(walletKey(userId), JSON.stringify(rec));
+  return rec;
 }
 
 /**
- * Продлевает доступ на days дней. Продление считаем от большей из дат: если
- * пользователь платит или получает бонус до конца периода, остаток не сгорает.
- *
- * Прежние поля записи сохраняются: бонус за приглашение не должен затирать
- * charge_id оплаты, иначе вернуть по ней звёзды станет нечем.
+ * Была активная подписка на момент перехода — отдаём пакет прокруток. Старую
+ * запись помечаем, чтобы обмен не повторился; удалять её нельзя, там лежит
+ * charge_id для возможного возврата.
  */
-async function addDays(env, userId, days, fields = {}) {
-  let current = {};
+async function migrateSubscription(env, userId) {
+  let old;
   try {
-    current = JSON.parse((await env.SUBS.get(subKey(userId))) || '{}');
-  } catch { /* битая запись — начинаем заново */ }
-  const base = Math.max(Date.now(), Number(current.until || 0));
-  const until = base + days * 86400_000;
-  const next = { ...current, ...fields, until };
-  if (fields.charge_id === null && current.charge_id) next.charge_id = current.charge_id;
-  delete next.cancelled_at;
-  await env.SUBS.put(subKey(userId), JSON.stringify(next));
-  return until;
+    old = JSON.parse((await env.SUBS?.get(legacyKey(userId))) || 'null');
+  } catch {
+    return 0;
+  }
+  if (!old || old.converted_at) return 0;
+  const active = Number(old.until || 0) > Date.now();
+  await env.SUBS.put(legacyKey(userId), JSON.stringify({ ...old, converted_at: Date.now() }));
+  if (!active) return 0;
+  return MIGRATION_SPINS;
 }
 
-// ------------------------------------------------------------ рефералка
+const freeLeft = (rec) => Math.max(0, ECONOMY.FREE_PER_DAY - rec.free_used);
+const adsLeft = (rec) => Math.max(0, ECONOMY.ADS_PER_WEEK - rec.ads_used);
+const totalSpins = (rec) => freeLeft(rec) + rec.bonus + rec.paid;
 
-// Сколько дней получают оба — пригласивший и новичок, и сколько друзей
-// засчитывается одному человеку. Потолок нужен против накрутки фейковыми
-// аккаунтами: без него неделя подписки стоила бы пять регистраций.
-const REF_BONUS_DAYS = 3;
-const REF_MAX_FRIENDS = 10;
+/**
+ * Списывает прокрутки. Сначала бесплатная за сегодня (она всё равно сгорит),
+ * потом заработанные рекламой, в последнюю очередь купленные.
+ *
+ * Возвращает false, ничего не меняя, если не хватает: списание наполовину —
+ * худший из возможных исходов.
+ */
+function spendFrom(rec, cost) {
+  if (totalSpins(rec) < cost) return false;
+  let left = cost;
+
+  const useFree = Math.min(freeLeft(rec), left);
+  rec.free_used += useFree;
+  left -= useFree;
+
+  const useBonus = Math.min(rec.bonus, left);
+  rec.bonus -= useBonus;
+  left -= useBonus;
+
+  rec.paid -= left;
+  return true;
+}
+
+/** Начисление: покупка, реклама, приглашение. */
+async function addSpins(env, userId, spins, fields = {}) {
+  const rec = await readWallet(env, userId);
+  const next = { ...rec, ...fields, paid: rec.paid + spins };
+  await writeWallet(env, userId, next);
+  return next;
+}
 
 // ------------------------------------------------------ рекламные метки
 
@@ -198,22 +306,24 @@ async function referralInfo(env, userId) {
   return {
     link: username ? `https://t.me/${username}?start=ref_${userId}` : null,
     invited,
-    bonus_days: REF_BONUS_DAYS,
+    bonus_spins: REF_BONUS_SPINS,
     max_friends: REF_MAX_FRIENDS,
   };
 }
 
 /**
  * Пользователь пришёл в бота. Отмечаем его как известного и, если он пришёл
- * по чужой ссылке впервые, начисляем бонус обоим.
+ * по чужой ссылке впервые, начисляем прокрутки обоим.
  *
- * Новичком считается только тот, кого бот раньше не видел и у кого нет записи
- * о подписке: иначе старый пользователь мог бы «прийти по ссылке» друга.
+ * Новичком считается только тот, кого бот раньше не видел: иначе старый
+ * пользователь мог бы «прийти по ссылке» друга.
  */
 async function registerVisit(env, userId, payload) {
   if (!env.SUBS || !userId) return null;
   const seenKey = `seen:${userId}`;
-  const known = (await env.SUBS.get(seenKey)) || (await env.SUBS.get(subKey(userId)));
+  const known = (await env.SUBS.get(seenKey))
+    || (await env.SUBS.get(walletKey(userId)))
+    || (await env.SUBS.get(legacyKey(userId)));
   if (known) return null;
   await env.SUBS.put(seenKey, String(Date.now()));
 
@@ -235,56 +345,32 @@ async function registerVisit(env, userId, payload) {
   if (count >= REF_MAX_FRIENDS) return { rewarded: false };
 
   await env.SUBS.put(countKey, String(count + 1));
-  await addDays(env, refId, REF_BONUS_DAYS, { plan: 'referral' });
-  await addDays(env, userId, REF_BONUS_DAYS, { plan: 'referral' });
+  await addSpins(env, refId, REF_BONUS_SPINS);
+  await addSpins(env, userId, REF_BONUS_SPINS);
   await tg(env, 'sendMessage', {
     chat_id: refId,
-    text: `По вашей ссылке пришёл новый пользователь — вам +${REF_BONUS_DAYS} дня подписки. ` +
-      `Приглашено: ${count + 1} из ${REF_MAX_FRIENDS}.`,
+    text: `По вашей ссылке пришёл новый игрок — вам +${REF_BONUS_SPINS} прокрутки. ` +
+      `Засчитано друзей: ${count + 1} из ${REF_MAX_FRIENDS}.`,
   });
   return { rewarded: true };
 }
 
-/**
- * Отмена подписки по желанию пользователя, без возврата звёзд: доступ
- * заканчивается сразу. Запись не удаляем, а закрываем датой — charge_id
- * должен остаться, чтобы возврат по запросу был возможен и потом.
- */
-async function cancelSubscription(env, userId) {
-  const raw = await env.SUBS?.get(subKey(userId));
-  if (!raw) return false;
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    return false;
-  }
-  if (Number(data.until || 0) <= Date.now()) return false;
-  await env.SUBS.put(
-    subKey(userId),
-    JSON.stringify({ ...data, until: Date.now(), cancelled_at: Date.now() }),
-  );
-  return true;
-}
-
-// Сколько часов после оплаты покупатель может вернуть звёзды сам, командой
-// /refund. Позже — только по запросу владельцу: иначе подпиской можно было бы
-// пользоваться бесплатно, возвращая оплату в последний день.
+// Сколько часов после покупки можно вернуть звёзды самому, командой /refund.
+// Позже — только по запросу владельцу: иначе прокрутками можно было бы
+// пользоваться бесплатно, возвращая оплату следом.
 const SELF_REFUND_HOURS = 48;
 
 /**
- * Возврат последней оплаты пользователя. Звёзды уходят только тому, кто
- * платил: Telegram сам не позволяет вернуть платёж на другой аккаунт.
+ * Возврат последней покупки. Звёзды уходят только тому, кто платил: Telegram
+ * сам не позволяет вернуть платёж на другой аккаунт. Прокрутки из этой
+ * покупки забираем обратно — насколько ещё осталось.
  */
 async function refundLastPayment(env, userId) {
-  let data;
-  try {
-    data = JSON.parse((await env.SUBS?.get(subKey(userId))) || 'null');
-  } catch {
-    data = null;
+  const rec = await readWallet(env, userId);
+  if (!rec.charge_id) {
+    return { ok: false, reason: 'Покупок, которые можно вернуть, нет.' };
   }
-  if (!data?.charge_id) return { ok: false, reason: 'Оплаченных покупок, которые можно вернуть, нет.' };
-  const hours = (Date.now() - Number(data.paid_at || 0)) / 3600_000;
+  const hours = (Date.now() - Number(rec.paid_at || 0)) / 3600_000;
   if (hours > SELF_REFUND_HOURS) {
     return {
       ok: false,
@@ -295,26 +381,22 @@ async function refundLastPayment(env, userId) {
 
   const res = await tg(env, 'refundStarPayment', {
     user_id: userId,
-    telegram_payment_charge_id: data.charge_id,
+    telegram_payment_charge_id: rec.charge_id,
   });
   if (!res.ok) {
     return { ok: false, reason: `Telegram отказал в возврате: ${res.description || 'без объяснения'}.` };
   }
 
-  // Доступ закрываем сразу. Идентификатор сохраняем отдельным полем: по нему
-  // видно, что возврат уже был, и повторный вызов ничего не сломает.
-  await env.SUBS.put(subKey(userId), JSON.stringify({
-    ...data,
-    until: Date.now(),
+  const bought = Number(rec.last_pack_spins || 0);
+  await writeWallet(env, userId, {
+    ...rec,
+    paid: Math.max(0, rec.paid - bought),
     charge_id: null,
-    refunded_charge_id: data.charge_id,
+    refunded_charge_id: rec.charge_id,
     refunded_at: Date.now(),
-  }));
-  return { ok: true };
+  });
+  return { ok: true, taken: Math.min(bought, rec.paid) };
 }
-
-const fmtDate = (ts) =>
-  new Date(ts).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 
 // ------------------------------------------------------------------- API
 
@@ -323,7 +405,7 @@ const fmtDate = (ts) =>
 // только если в ответе перечислены и разрешённые методы, и заголовки.
 const CORS = {
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
   'access-control-allow-headers': 'content-type',
   'access-control-max-age': '86400',
 };
@@ -341,7 +423,42 @@ const json = (data, status = 200) =>
 /** Ответ на preflight. Статус 204 запрещает тело: с телом Response падает. */
 const preflight = () => new Response(null, { status: 204, headers: CORS });
 
-async function handleEntitlement(request, env) {
+/**
+ * Полное состояние кошелька — один ответ на все вопросы приложения. Клиент не
+ * складывает балансы сам: складывать должен тот, кто хранит.
+ */
+async function walletResponse(env, userId, rec, extra = {}, { links = false } = {}) {
+  // Ссылки на счета готовим заранее, вместе с балансом: если запрашивать их
+  // в момент нажатия, любой сбой сети именно в эту секунду оставляет
+  // пользователя с ошибкой вместо оплаты. Но делаем это только при открытии
+  // приложения — на каждое списание три обращения к Telegram были бы платой
+  // задержкой за то, что никому не нужно.
+  const packs = links ? await Promise.all(
+    Object.entries(PACKS).filter(([, p]) => !p.hidden).map(async ([key, p]) => ({
+      key,
+      title: p.title,
+      spins: p.spins,
+      stars: p.stars,
+      per: Math.round(p.stars / p.spins),
+      link: await createInvoiceLink(env, key, userId),
+    })),
+  ) : null;
+
+  return json({
+    ok: true,
+    user_id: userId,
+    spins: { free: freeLeft(rec), bonus: rec.bonus, paid: rec.paid },
+    total: totalSpins(rec),
+    ads_left: adsLeft(rec),
+    economy: ECONOMY,
+    ...(packs ? { packs } : {}),
+    ad_block_id: env.ADSGRAM_BLOCK_ID || null,
+    referral: await referralInfo(env, userId),
+    ...extra,
+  });
+}
+
+async function handleState(request, env) {
   const body = await request.json().catch(() => ({}));
   const user = await verifyInitData(body.initData, env);
   if (!user) return json({ error: 'invalid initData' }, 401);
@@ -349,54 +466,106 @@ async function handleEntitlement(request, env) {
   // Открыл приложение, минуя /start, — всё равно запоминаем, чтобы потом не
   // засчитать его новичком по чужой ссылке.
   await registerVisit(env, user.id, null);
-  const sub = await getSubscription(env, user.id);
+  const rec = await readWallet(env, user.id);
+  // Читая, тоже пишем: за ночь сбросился дневной счётчик, и запись должна
+  // это пережить, иначе бесплатная прокрутка «появлялась» бы при каждом
+  // открытии, но не сохранялась.
+  await writeWallet(env, user.id, rec);
+  return walletResponse(env, user.id, rec, {}, { links: true });
+}
 
-  // Ссылки на оплату готовим заранее, вместе с ответом о подписке. Если
-  // запрашивать их в момент нажатия, любой сбой сети именно в эту секунду
-  // оставляет пользователя с ошибкой вместо оплаты — а мобильный webview
-  // как раз в этот момент уходит в фон под платёжный экран.
-  const plans = await Promise.all(
-    Object.entries(PLANS).filter(([, p]) => !p.hidden).map(async ([key, p]) => ({
-      key,
-      title: p.title,
-      stars: p.stars,
-      days: p.days,
-      link: sub.active ? null : await createInvoiceLink(env, key, user.id),
-    })),
-  );
+async function handleSpend(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const user = await verifyInitData(body.initData, env);
+  if (!user) return json({ error: 'invalid initData' }, 401);
 
-  return json({
-    user_id: user.id,
-    active: sub.active,
-    until: sub.until,
-    until_text: sub.until ? fmtDate(sub.until) : null,
-    plan: sub.plan ?? null,
-    free_daily_limit: FREE_DAILY_LIMIT,
-    plans,
-    referral: await referralInfo(env, user.id),
-  });
+  const cost = Number(body.cost);
+  if (!Number.isInteger(cost) || cost < 1 || cost > 20) {
+    return json({ error: 'bad cost' }, 400);
+  }
+
+  const rec = await readWallet(env, user.id);
+  if (!spendFrom(rec, cost)) {
+    await writeWallet(env, user.id, rec);
+    return walletResponse(env, user.id, rec, { ok: false, reason: 'not enough spins' });
+  }
+  await writeWallet(env, user.id, rec);
+  return walletResponse(env, user.id, rec, { spent: cost });
+}
+
+/**
+ * Начисление за рекламу.
+ *
+ * Лимит проверяется здесь, а не в приложении: страницу можно переписать в
+ * консоли браузера, и единственное, что делает лимит настоящим, — то, что
+ * считает его сервер. Даже поддельный вызов не даст больше пяти прокруток
+ * в неделю.
+ */
+async function grantAdReward(env, userId) {
+  const rec = await readWallet(env, userId);
+  if (adsLeft(rec) <= 0) {
+    return { rec, ok: false, reason: 'На этой неделе бесплатные просмотры закончились.' };
+  }
+  // Два начисления подряд за секунду — это не два ролика. Ролик короткий, но
+  // не мгновенный.
+  if (Date.now() - Number(rec.last_ad || 0) < 10_000) {
+    return { rec, ok: false, reason: 'Слишком часто. Попробуйте ещё раз через несколько секунд.' };
+  }
+  rec.ads_used += 1;
+  rec.bonus += ECONOMY.AD_REWARD;
+  rec.last_ad = Date.now();
+  await writeWallet(env, userId, rec);
+  return { rec, ok: true };
+}
+
+async function handleAdClaim(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const user = await verifyInitData(body.initData, env);
+  if (!user) return json({ error: 'invalid initData' }, 401);
+
+  const result = await grantAdReward(env, user.id);
+  return walletResponse(env, user.id, result.rec, result.ok
+    ? { reward: ECONOMY.AD_REWARD }
+    : { ok: false, reason: result.reason });
+}
+
+/**
+ * Callback рекламной сети: Adsgram сам дёргает этот адрес, когда ролик
+ * досмотрен. Настраивается в кабинете блока как Reward URL, например
+ *   https://<воркер>.workers.dev/api/ad-reward?userid={userid}&key=<секрет>
+ * Секрет обязателен: без него начислить прокрутку мог бы кто угодно.
+ */
+async function handleAdReward(url, env) {
+  const secret = env.AD_REWARD_SECRET;
+  if (!secret || url.searchParams.get('key') !== secret) {
+    return new Response('forbidden', { status: 403 });
+  }
+  const userId = Number(url.searchParams.get('userid') || 0);
+  if (!userId) return new Response('bad userid', { status: 400 });
+  const result = await grantAdReward(env, userId);
+  return json({ ok: result.ok, reason: result.reason });
 }
 
 /**
  * Ссылка на оплату для Telegram.WebApp.openInvoice. Оплата проходит внутри
  * клиента Telegram, платёжные данные пользователя до нас не доходят.
  *
- * Возвращает null вместо исключения: несозданная ссылка одного тарифа не
- * должна ронять весь ответ о подписке.
+ * Возвращает null вместо исключения: несозданная ссылка одного пакета не
+ * должна ронять весь ответ о балансе.
  */
-async function createInvoiceLink(env, planKey, userId) {
-  const plan = PLANS[planKey];
-  if (!plan) return null;
+async function createInvoiceLink(env, packKey, userId) {
+  const pack = PACKS[packKey];
+  if (!pack) return null;
   try {
     const res = await tg(env, 'createInvoiceLink', {
-      title: plan.title,
+      title: pack.title,
       description:
-        'Пакеты билетов с непересекающимися числами, неограниченный подбор ' +
-        'и сохранение комбинаций. Вероятность выигрыша не меняется.',
-      payload: JSON.stringify({ plan: planKey, uid: userId }),
+        `${pack.spins} подбор${pack.spins === 1 ? 'а' : 'ов'} комбинаций, которые почти ` +
+        'никто не ставит. Прокрутки не сгорают. Вероятность выигрыша не меняется.',
+      payload: JSON.stringify({ pack: packKey, uid: userId }),
       provider_token: '', // для Stars токен провайдера не нужен
       currency: 'XTR',
-      prices: [{ label: plan.title, amount: plan.stars }],
+      prices: [{ label: pack.title, amount: pack.stars }],
     });
     return res.ok ? res.result : null;
   } catch (err) {
@@ -405,29 +574,21 @@ async function createInvoiceLink(env, planKey, userId) {
   }
 }
 
-async function handleCancel(request, env) {
-  const body = await request.json().catch(() => ({}));
-  const user = await verifyInitData(body.initData, env);
-  if (!user) return json({ error: 'invalid initData' }, 401);
-  const cancelled = await cancelSubscription(env, user.id);
-  return json({ cancelled });
-}
-
 async function handleInvoice(request, env) {
   const body = await request.json().catch(() => ({}));
   const user = await verifyInitData(body.initData, env);
   if (!user) return json({ error: 'invalid initData' }, 401);
 
-  const planKey = String(body.plan || '');
-  const plan = PLANS[planKey];
-  if (!plan) return json({ error: 'unknown plan' }, 400);
+  const packKey = String(body.pack || '');
+  const pack = PACKS[packKey];
+  if (!pack) return json({ error: 'unknown pack' }, 400);
 
-  const link = await createInvoiceLink(env, planKey, user.id);
+  const link = await createInvoiceLink(env, packKey, user.id);
   if (!link) {
     // Пустая ссылка означает отказ Telegram — причина уходит в логи воркера.
     return json({ error: 'Telegram не выдал ссылку на счёт' }, 502);
   }
-  return json({ link, plan: planKey, stars: plan.stars });
+  return json({ link, pack: packKey, stars: pack.stars, spins: pack.spins });
 }
 
 // --------------------------------------------------------------- вебхук
@@ -439,12 +600,12 @@ async function handleUpdate(update, env) {
     const q = update.pre_checkout_query;
     let ok = false;
     try {
-      ok = Boolean(PLANS[JSON.parse(q.invoice_payload).plan]);
+      ok = Boolean(PACKS[JSON.parse(q.invoice_payload).pack]);
     } catch { /* битый payload — не подтверждаем */ }
     return tg(env, 'answerPreCheckoutQuery', {
       pre_checkout_query_id: q.id,
       ok,
-      ...(ok ? {} : { error_message: 'Тариф больше недоступен. Откройте /buy заново.' }),
+      ...(ok ? {} : { error_message: 'Пакет больше недоступен. Откройте приложение заново.' }),
     });
   }
 
@@ -455,26 +616,33 @@ async function handleUpdate(update, env) {
 
   if (message.successful_payment) {
     const pay = message.successful_payment;
-    let planKey = null;
+    let packKey = null;
     try {
-      planKey = JSON.parse(pay.invoice_payload).plan;
+      packKey = JSON.parse(pay.invoice_payload).pack;
     } catch { /* см. ниже */ }
 
-    if (!PLANS[planKey]) {
+    const pack = PACKS[packKey];
+    if (!pack) {
       console.error('оплата с неизвестным payload', pay.invoice_payload);
       return tg(env, 'sendMessage', {
         chat_id: chatId,
-        text: 'Платёж получен, но тариф не распознан. Напишите нам — вернём Stars.',
+        text: 'Платёж получен, но пакет не распознан. Напишите нам — вернём Stars.',
       });
     }
-    const until = await grantSubscription(env, userId, planKey, pay);
+    const rec = await addSpins(env, userId, pack.spins, {
+      // Идентификатор платежа нужен, чтобы можно было вернуть деньги:
+      // Telegram требует от ботов возможность возврата Stars по запросу.
+      charge_id: pay.telegram_payment_charge_id ?? null,
+      paid_at: Date.now(),
+      last_pack_spins: pack.spins,
+    });
     await attributePayment(env, userId, Number(pay.total_amount || 0));
     return tg(env, 'sendMessage', {
       chat_id: chatId,
-      text: `Оплачено до ${fmtDate(until)}. Спасибо!\n\n` +
+      text: `Начислено ${pack.spins} прокруток. На балансе: ${totalSpins(rec)}.\n\n` +
         'Напоминаю то, за что вы НЕ платили: шанс выиграть не изменился и ' +
-        'измениться не может. Вы платите за подбор комбинаций, которые не ' +
-        'ставит никто, — это влияет на размер выплаты, а не на вероятность.',
+        'измениться не может. Прокрутки — это подбор комбинаций, которые не ' +
+        'ставит никто, то есть размер выплаты, а не вероятность.',
       reply_markup: appKeyboard(env),
     });
   }
@@ -490,7 +658,7 @@ async function handleUpdate(update, env) {
     case '/start': {
       const ref = await registerVisit(env, userId, payload);
       const bonus = ref?.rewarded
-        ? `\n\nВы пришли по приглашению — вам +${REF_BONUS_DAYS} дня подписки в подарок.`
+        ? `\n\nВы пришли по приглашению — вам +${REF_BONUS_SPINS} прокрутки в подарок.`
         : '';
       return send(TEXT.start + bonus, { reply_markup: appKeyboard(env) });
     }
@@ -500,8 +668,8 @@ async function handleUpdate(update, env) {
       if (!info.link) return send('Не удалось получить ссылку, попробуйте позже.');
       return send(
         `Ваша ссылка-приглашение:\n${info.link}\n\n` +
-          `За каждого нового друга — +${info.bonus_days} дня подписки вам и ему. ` +
-          `Засчитывается до ${info.max_friends} друзей, уже приглашено: ${info.invited}.`,
+          `За каждого нового игрока — по +${info.bonus_spins} прокрутки вам и ему. ` +
+          `Засчитываем до ${info.max_friends} друзей, уже пришло: ${info.invited}.`,
       );
     }
 
@@ -511,23 +679,16 @@ async function handleUpdate(update, env) {
     case '/help':
       return send(TEXT.help);
 
+    case '/spins':
     case '/status': {
-      const sub = await getSubscription(env, userId);
+      const rec = await readWallet(env, userId);
+      await writeWallet(env, userId, rec);
       return send(
-        sub.active
-          ? `Подписка активна до ${fmtDate(sub.until)}.`
-          : 'Подписки нет. Бесплатно доступна одна комбинация в день, /buy — снять ограничение.',
+        `Прокруток на балансе: ${totalSpins(rec)}.\n` +
+          `Бесплатных сегодня: ${freeLeft(rec)} из ${ECONOMY.FREE_PER_DAY}.\n` +
+          `За рекламу на этой неделе осталось: ${adsLeft(rec)} из ${ECONOMY.ADS_PER_WEEK}.\n\n` +
+          'Купленные прокрутки не сгорают.',
         { reply_markup: appKeyboard(env) },
-      );
-    }
-
-    case '/cancel': {
-      const sub = await getSubscription(env, userId);
-      if (!sub.active) return send('Активной подписки нет — отменять нечего.');
-      return send(
-        `Подписка активна до ${fmtDate(sub.until)}.\n\n` +
-          'После отмены доступ закончится сразу, звёзды не возвращаются. ' +
-          'Чтобы подтвердить, отправьте /cancel_confirm',
       );
     }
 
@@ -542,25 +703,20 @@ async function handleUpdate(update, env) {
     case '/refund': {
       const result = await refundLastPayment(env, userId);
       return send(result.ok
-        ? 'Звёзды возвращены на ваш баланс, подписка закрыта.'
+        ? 'Звёзды возвращены на ваш баланс, прокрутки из этой покупки списаны.'
         : result.reason);
-    }
-
-    case '/cancel_confirm': {
-      const cancelled = await cancelSubscription(env, userId);
-      return send(cancelled
-        ? 'Подписка отменена. Доступ закрыт, звёзды не возвращались.'
-        : 'Активной подписки нет — отменять нечего.');
     }
 
     case '/buy':
       return send(
-        'Тарифы. Оплата внутри Telegram, звёздами:\n\n' +
-          Object.values(PLANS)
+        'Пакеты прокруток. Оплата внутри Telegram, звёздами:\n\n' +
+          Object.values(PACKS)
             .filter((p) => !p.hidden)
-            .map((p) => `${p.title} — ${p.stars} ⭐`)
+            .map((p) => `${p.title} — ${p.stars} ⭐ (${Math.round(p.stars / p.spins)} ⭐ за прокрутку)`)
             .join('\n') +
-          '\n\nОткройте приложение и нажмите «Подписка» — оплата пройдёт там.',
+          '\n\nОдна прокрутка каждый день бесплатно, ещё ' +
+          `${ECONOMY.ADS_PER_WEEK} в неделю — за короткий ролик.\n` +
+          'Откройте приложение и нажмите «Пополнить».',
         { reply_markup: appKeyboard(env) },
       );
 
@@ -587,23 +743,33 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'sources-v1',
-        plans: Object.keys(PLANS),
+        build: 'spins-v1',
+        packs: Object.keys(PACKS),
+        economy: ECONOMY,
         kv_subs: Boolean(env.SUBS),
         bot_token: Boolean(env.BOT_TOKEN),
         webhook_secret: Boolean(env.WEBHOOK_SECRET),
+        ad_reward_secret: Boolean(env.AD_REWARD_SECRET),
+        ad_block_id: env.ADSGRAM_BLOCK_ID || null,
         miniapp_url: env.MINIAPP_URL || null,
         donate_url: env.DONATE_URL || null,
       });
     }
+
+    // Рекламная сеть зовёт этот адрес сама, обычным GET с параметрами.
+    if (url.pathname === '/api/ad-reward') {
+      return handleAdReward(url, env);
+    }
+
     if (request.method !== 'POST') {
       return new Response('Этот адрес принимает только POST.', { status: 405 });
     }
 
     const api = {
-      '/api/entitlement': handleEntitlement,
+      '/api/state': handleState,
+      '/api/spend': handleSpend,
+      '/api/ad-claim': handleAdClaim,
       '/api/invoice': handleInvoice,
-      '/api/cancel': handleCancel,
     }[url.pathname];
     if (api) {
       // Без этого перехвата сбой внутри обработчика уходит наружу как ответ

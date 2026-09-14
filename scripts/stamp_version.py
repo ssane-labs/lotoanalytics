@@ -30,9 +30,10 @@ DOCS = os.path.join(ROOT, "docs")
 # Файл -> какие ссылки в нём версионировать.
 TARGETS = {
     "index.html": ["styles.css", "app.js"],
-    "app.js": ["model.js", "config.js", "ai.js"],
+    "app.js": ["model.js", "config.js", "ai.js", "wallet.js", "numfield.js"],
 }
-HASHED = ["app.js", "model.js", "config.js", "ai.js", "styles.css"]
+HASHED = ["app.js", "model.js", "config.js", "ai.js", "wallet.js",
+          "numfield.js", "styles.css"]
 
 _VERSION_RE = re.compile(r"\?v=[0-9a-f]{8}")
 

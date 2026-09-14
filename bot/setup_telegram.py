@@ -51,7 +51,9 @@ ALLOWED_UPDATES = ["message", "pre_checkout_query"]
 # бот отвечает «не знаю такой команды», выглядит как сломанный бот.
 COMMANDS = [
     {"command": "start", "description": "Открыть аналитику"},
-    {"command": "invite", "description": "Пригласить друга: +3 дня подписки"},
+    {"command": "spins", "description": "Сколько прокруток на балансе"},
+    {"command": "buy", "description": "Пакеты прокруток"},
+    {"command": "invite", "description": "Позвать друга: +3 прокрутки обоим"},
     {"command": "honest", "description": "Почему предсказать тираж нельзя"},
     {"command": "help", "description": "Что умеет бот"},
 ]
