@@ -95,8 +95,8 @@ jobs:
             echo "commit: $GITHUB_SHA"
             echo "sha256 worker.js: $(sha256sum bot/worker.js | cut -d' ' -f1)"
             echo "метка build:      $(grep -o "build: '[^']*'" bot/worker.js || echo 'НЕТ')"
-            echo "тарифы:"
-            sed -n '/^const PLANS/,/^};/p' bot/worker.js | sed 's/^/  /'
+            echo "пакеты прокруток:"
+            sed -n '/^const PACKS/,/^};/p' bot/worker.js | sed 's/^/  /'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
