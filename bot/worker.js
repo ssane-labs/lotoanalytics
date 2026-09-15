@@ -531,8 +531,14 @@ async function handleAdClaim(request, env) {
 
 /**
  * Callback рекламной сети: Adsgram сам дёргает этот адрес, когда ролик
- * досмотрен. Настраивается в кабинете блока как Reward URL, например
- *   https://<воркер>.workers.dev/api/ad-reward?userid={userid}&key=<секрет>
+ * досмотрен. Настраивается в кабинете блока как Reward URL:
+ *
+ *   https://<воркер>.workers.dev/api/ad-reward?userid=[userId]&key=<секрет>
+ *
+ * [userId] — плейсхолдер самой сети, она подставляет туда Telegram ID
+ * зрителя; кабинет не принимает адрес, в котором этой подстроки нет.
+ * Имя параметра userid — наше, его читает handleAdReward.
+ *
  * Секрет обязателен: без него начислить прокрутку мог бы кто угодно.
  */
 async function handleAdReward(url, env) {
