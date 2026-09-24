@@ -1,6 +1,6 @@
 {
   "source": "csv:draws_7x49.csv",
-  "draws": 69,
+  "draws": 71,
   "game": "7x49",
   "insufficient": true,
   "draws_needed": 251,
