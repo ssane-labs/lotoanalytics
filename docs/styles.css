@@ -992,75 +992,49 @@ details.why[open] > summary .chev { transform: rotate(180deg); }
 .freq-field + .freq-field { margin-top: 14px; }
 .freq-field__label { display: block; margin-top: 12px; font-size: 12.5px; font-weight: 600; color: var(--ink-4); }
 
-/* --------------------------------------------------------- барабан */
+/* ------------------------------------------------ слот-автомат */
 
-/* Лотерейный барабан на время подбора. Клетка вращается, шары мечутся
-   внутри по случайным точкам (координаты задаёт скрипт), числа мелькают.
-   В конце шары высыпаются вниз, и на их место выкатывается результат. */
-.drum {
-  display: flex;
-  justify-content: center;
-  padding: 22px 0 10px;
-  animation: enter 0.35s var(--ease);
-}
-.drum__cage {
+/* В каждом шаре результата крутится лента чисел, как барабан игрового
+   автомата. Ленты останавливаются по очереди с небольшим отскоком, каждая
+   на своём числе. */
+.ball--reel {
   position: relative;
-  width: 176px;
-  height: 176px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 36% 30%, var(--accent-soft), transparent 68%);
-  box-shadow: inset 0 0 0 1.5px var(--rule), 0 14px 34px -22px var(--glow);
+  overflow: hidden;
+  animation: none;
 }
-.drum__cage::before,
-.drum__cage::after {
-  content: "";
+.reel {
   position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  border: 1.5px dashed var(--accent);
-  opacity: 0.55;
-  animation: spin 1.6s linear infinite;
+  inset: 0 0 auto 0;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
 }
-.drum__cage::after {
-  inset: -7px;
-  border-style: solid;
-  border-color: var(--accent) transparent transparent transparent;
-  opacity: 0.8;
-  animation-duration: 0.9s;
-}
-.drum__ball {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 28px;
-  height: 28px;
-  margin: -14px 0 0 -14px;
+/* Высота ленты — столько высот шара, сколько в ней чисел: тогда проценты
+   сдвига считаются в «числах», а не в пикселях. */
+.reel > span {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  border: 1px solid var(--ink-3);
-  background: var(--paper);
-  color: var(--ink);
-  font-size: 11.5px;
-  font-weight: 700;
-  animation: drumball 0.8s ease-in-out infinite alternate;
-  will-change: transform;
+  height: var(--cell, 100%);
+  flex: none;
 }
-.drum__ball.is-accent { background: var(--accent); border-color: var(--accent); color: var(--paper); }
-@keyframes drumball {
-  0% { transform: translate(var(--x0), var(--y0)) rotate(0deg); }
-  33% { transform: translate(var(--x1), var(--y1)) rotate(120deg); }
-  66% { transform: translate(var(--x2), var(--y2)) rotate(240deg); }
-  100% { transform: translate(var(--x3), var(--y3)) rotate(360deg); }
+.ball--reel { --cell: 100%; }
+.reel.is-spinning {
+  height: 1600%;
+  filter: blur(0.6px);
+  animation: reelloop 0.36s linear infinite;
 }
-.drum.is-done .drum__cage { animation: drumclose 0.36s var(--ease) forwards; }
-.drum.is-done .drum__ball { animation: drumout 0.36s ease-in forwards; }
-@keyframes drumout {
-  to { transform: translate(var(--x3), 120px) scale(0.6); opacity: 0; }
+.reel.is-spinning > span { height: calc(100% / 16); }
+@keyframes reelloop { to { transform: translateY(-50%); } }
+.reel.is-landing {
+  animation-name: reelstop;
+  animation-timing-function: cubic-bezier(0.2, 0.75, 0.25, 1.12);
+  animation-fill-mode: both;
 }
-@keyframes drumclose {
-  to { transform: scale(0.85); opacity: 0; }
+@keyframes reelstop {
+  from { transform: translateY(0); filter: blur(0.8px); }
+  80% { filter: blur(0); }
+  to { transform: translateY(var(--to)); filter: blur(0); }
 }
 
 .ticket + .ticket { margin-top: 12px; }

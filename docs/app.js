@@ -14,11 +14,11 @@ import {
   PopularityModel,
   FACTOR_LABELS,
   generate,
-} from './model.js?v=c9967b3c';
-import { CONFIG } from './config.js?v=c9967b3c';
-import { DrawAI } from './ai.js?v=c9967b3c';
-import { Wallet, spinsWord } from './wallet.js?v=c9967b3c';
-import { NumberField } from './numfield.js?v=c9967b3c';
+} from './model.js?v=ca1a5b33';
+import { CONFIG } from './config.js?v=ca1a5b33';
+import { DrawAI } from './ai.js?v=ca1a5b33';
+import { Wallet, spinsWord } from './wallet.js?v=ca1a5b33';
+import { NumberField } from './numfield.js?v=ca1a5b33';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -743,22 +743,6 @@ function renderRunButton() {
   btn.setAttribute('aria-label', `Подобрать. Спишется ${spinsWord(need)}`);
 }
 
-/** Справка о нейросети рядом с её подбором. */
-function aiNoteNode() {
-  const d = state.aiData.fields[0];
-  const node = el('div', 'note note--quiet');
-  node.style.marginTop = '4px';
-  const p = el('p', 'muted');
-  p.append(el('strong', null, 'Нейросеть. '));
-  p.append(document.createTextNode(
-    `Перцептрон ${d.arch.inputs}→${d.arch.hidden.join('→')}→1, обучен на ` +
-    `${fmtInt(d.draws_used)} тиражах (${fmtInt(d.samples)} примеров), ` +
-    'переобучается каждый день.',
-  ));
-  node.append(p);
-  return node;
-}
-
 /** Не хватило прокруток: объясняем и ведём в магазин. */
 function shortOnSpins(need) {
   const node = section('Не хватает прокруток', { accent: true });
@@ -777,7 +761,7 @@ function shortOnSpins(need) {
   return node;
 }
 
-/** Анимация кнопки: пока крутится барабан, кнопка занята и это видно. */
+/** Пока идёт подбор, кнопка занята и это видно. */
 function setRunning(on) {
   const btn = $('#gen-run');
   btn.classList.toggle('is-running', on);
@@ -843,17 +827,16 @@ async function runGenerator() {
   setRunning(true);
   haptic('medium');
 
-  // Барабан появляется сразу и крутится, пока идёт списание и подбор, —
-  // но не меньше секунды: подбор занимает миллисекунды, и без паузы
-  // результат появлялся бы раньше, чем палец отпустит кнопку.
-  const drum = drumNode(state.model.game.fields[0].pool);
-  results.replaceChildren(drum.node);
-  drum.node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
-  const spinFloor = sleep(reduceMotion ? 0 : 1300);
+  // Шары результата появляются сразу, и в каждом крутится лента чисел, пока
+  // идёт списание и подбор. Когда результат готов, ленты останавливаются по
+  // очереди слева направо — каждая на своём числе.
+  const reels = reelsNode(state.model.game, state.genCount);
+  results.replaceChildren(reels.node);
+  reels.node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
+  const spinFloor = sleep(reduceMotion ? 0 : 700);
 
   const paid = await wallet.spend(need, 'generate');
   if (!paid.ok) {
-    drum.stop();
     state.busy = false;
     setRunning(false);
     results.replaceChildren();
@@ -883,15 +866,9 @@ async function runGenerator() {
     const shown = picks.map((p) => ({ ...p, ticket: shuffledTicket(p.ticket) }));
 
     await spinFloor;
-    await drum.finish();
-    results.replaceChildren();
-    const list = section(shown.length === 1 ? 'Ваша комбинация' : `Билеты · ${shown.length}`,
-      { accent: true });
-    shown.forEach((pick, i) => list.append(ticketNode(pick, i, shown.length)));
-    results.append(list);
+    await reels.land(shown.map((p) => p.ticket));
 
     const tail = section(null);
-    if (useAI) tail.append(aiNoteNode());
     const share = el('button', 'btn btn--ghost share-btn');
     share.type = 'button';
     share.append(icon('share', 16), document.createTextNode('Поделиться билетами'));
@@ -899,10 +876,8 @@ async function runGenerator() {
     tail.append(share);
     results.append(tail);
     haptic('medium');
-    results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
   } catch (err) {
     await spinFloor;
-    drum.stop();
     results.replaceChildren();
     errBox.textContent = err.message;
     errBox.hidden = false;
@@ -912,55 +887,90 @@ async function runGenerator() {
   }
 }
 
-/** Подобранный билет: только числа, в порядке выпадения. */
-function ticketNode(pick, index, total) {
-  const node = el('div', 'ticket');
-  if (total > 1) node.append(el('div', 'ticket__head', `Билет ${index + 1}`));
-  node.append(ballsNode(pick.ticket, { accent: true, roll: index < 4 }));
-  return node;
+/** Лента из случайных чисел поля; последним идёт final, если задан. */
+function reelStrip(pool, length, final = null) {
+  const strip = el('span', 'reel');
+  for (let i = 0; i < length; i += 1) {
+    strip.append(el('span', null, String(1 + Math.floor(Math.random() * pool))));
+  }
+  if (final !== null) strip.append(el('span', null, String(final)));
+  return strip;
 }
 
 /**
- * Лотерейный барабан на время подбора: шары мечутся внутри вращающейся
- * клетки, числа на них мелькают. finish() — шары высыпаются вниз, и на их
- * место выкатывается результат.
+ * Билеты-«слот-автомат»: пустые шары с крутящимися лентами. land(tickets)
+ * останавливает ленты по очереди на числах билетов и ждёт последнюю.
  */
-function drumNode(pool) {
-  const node = el('div', 'drum');
-  const cage = el('div', 'drum__cage');
-  node.append(cage);
-  const balls = [];
-  const R = 58;
-  const spot = () => {
-    const a = Math.random() * Math.PI * 2;
-    const r = Math.sqrt(Math.random()) * R;
-    return [`${Math.round(Math.cos(a) * r)}px`, `${Math.round(Math.sin(a) * r)}px`];
-  };
-  for (let i = 0; i < 12; i += 1) {
-    const ball = el('div', `drum__ball${i % 3 === 0 ? ' is-accent' : ''}`,
-      String(1 + Math.floor(Math.random() * pool)));
-    [['--x0', '--y0'], ['--x1', '--y1'], ['--x2', '--y2'], ['--x3', '--y3']].forEach(([x, y]) => {
-      const [px, py] = spot();
-      ball.style.setProperty(x, px);
-      ball.style.setProperty(y, py);
+function reelsNode(game, count) {
+  const node = section(count === 1 ? 'Ваша комбинация' : `Билеты · ${count}`, { accent: true });
+  const slots = [];
+  for (let t = 0; t < count; t += 1) {
+    const ticket = el('div', 'ticket');
+    if (count > 1) ticket.append(el('div', 'ticket__head', `Билет ${t + 1}`));
+    const wrap = el('div', `balls${game.fields.length > 1 ? ' balls--multi' : ''}`);
+    const row = [];
+    game.fields.forEach((field, f) => {
+      if (f > 0) wrap.append(el('span', 'balls__plus', '+'));
+      for (let i = 0; i < field.pick; i += 1) {
+        const ball = el('div', `ball ball--reel ${f > 0 ? 'ball--extra' : 'ball--accent'}`);
+        const strip = reelStrip(field.pool, 8);
+        // Бесшовная прокрутка: вторая половина ленты повторяет первую.
+        [...strip.children].forEach((c) => strip.append(c.cloneNode(true)));
+        strip.classList.add('is-spinning');
+        strip.style.animationDuration = `${(0.32 + Math.random() * 0.12).toFixed(2)}s`;
+        ball.append(strip);
+        wrap.append(ball);
+        row.push({ ball, pool: field.pool, field: f });
+      }
     });
-    ball.style.animationDuration = `${(0.55 + Math.random() * 0.45).toFixed(2)}s`;
-    ball.style.animationDelay = `${(-Math.random()).toFixed(2)}s`;
-    cage.append(ball);
-    balls.push(ball);
+    ticket.append(wrap);
+    node.append(ticket);
+    slots.push(row);
   }
-  const flicker = reduceMotion ? null : setInterval(() => {
-    balls.forEach((b) => { b.textContent = String(1 + Math.floor(Math.random() * pool)); });
-  }, 110);
-  const stop = () => { if (flicker) clearInterval(flicker); };
+
   return {
     node,
-    stop,
-    finish() {
-      stop();
-      if (reduceMotion) return Promise.resolve();
-      node.classList.add('is-done');
-      return sleep(360);
+    land(tickets) {
+      let last = 0;
+      tickets.forEach((ticket, t) => {
+        const values = ticket.flat();
+        slots[t].forEach((slot, i) => {
+          const final = values[i];
+          if (reduceMotion) {
+            slot.ball.replaceChildren(document.createTextNode(String(final)));
+            slot.ball.classList.remove('ball--reel');
+            return;
+          }
+          const steps = 10 + i * 2;
+          const strip = reelStrip(slot.pool, steps, final);
+          strip.style.height = `${(steps + 1) * 100}%`;
+          [...strip.children].forEach((c) => { c.style.height = `${100 / (steps + 1)}%`; });
+          // Лента едет вниз до последнего числа; доля — в процентах её высоты.
+          strip.style.setProperty('--to', `${(-steps / (steps + 1)) * 100}%`);
+          const delay = t * 90 + i * 110;
+          const duration = 620 + i * 40;
+          strip.style.animationDelay = `${delay}ms`;
+          strip.style.animationDuration = `${duration}ms`;
+          strip.classList.add('is-landing');
+          // Конец ленты — по событию, а если анимация замерла (приложение
+          // свернули), то по таймеру: число на шаре должно стать итоговым
+          // в любом случае.
+          let settled = false;
+          const settle = () => {
+            if (settled) return;
+            settled = true;
+            slot.ball.replaceChildren(document.createTextNode(String(final)));
+            slot.ball.classList.remove('ball--reel');
+            slot.ball.classList.add('is-landed');
+            if (t === 0) haptic('light');
+          };
+          strip.addEventListener('animationend', settle, { once: true });
+          setTimeout(settle, delay + duration + 150);
+          slot.ball.replaceChildren(strip);
+          last = Math.max(last, delay + duration);
+        });
+      });
+      return sleep(reduceMotion ? 0 : last + 60);
     },
   };
 }
