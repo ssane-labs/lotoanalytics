@@ -1,13 +1,14 @@
 /**
- * Модель популярности и расчёт EV — порт scripts/lotto/popularity.py и ev.py.
+ * Модель популярности и расчёт выплаты — порт scripts/lotto/popularity.py и ev.py.
  *
  * Логика продублирована на двух языках сознательно: Python нужен для сборки
- * данных и тестов, JS — чтобы Mini App считал всё на клиенте и работал без
- * сервера на GitHub Pages. Идентичность двух реализаций проверяется тестом
- * tests/test_parity.py по общему набору векторов.
+ * данных и обучения, JS — чтобы Mini App считал всё на клиенте и работал без
+ * сервера на GitHub Pages. Идентичность проверяет tests/parity.test.mjs по
+ * общему набору векторов.
  *
- * Параметры модели приходят из docs/data/6x45_model.json — единственного
- * источника правды (генерируется из model_params.json).
+ * Билет — массив полей: [[4, 17, 23, 31, 38, 44]] в «6 из 45»,
+ * [[3, 7, 12, 18], [2, 9, 14, 20]] в «4 из 20». Параметры приходят из
+ * docs/data/<игра>_model.json (собирается из model_params.json).
  */
 
 export const FACTOR_LABELS = {
@@ -16,10 +17,13 @@ export const FACTOR_LABELS = {
   arithmetic: 'Арифметическая прогрессия',
   grid: 'Узор на бланке',
   sum: 'Сумма чисел',
-  parity: 'Чётные / нечётные',
+  parity: 'Чётные и нечётные',
   range: 'Узкий диапазон',
-  history: 'Повтор прошлого тиража',
+  history: 'Повтор выпавшей комбинации',
 };
+
+/** Поля меньше этого размера узоров не образуют. Как в popularity.py. */
+const MIN_PATTERN_PICK = 3;
 
 export function combinations(n, k) {
   if (k < 0 || k > n) return 0;
@@ -28,39 +32,53 @@ export function combinations(n, k) {
   return Math.round(out);
 }
 
-/** Модель, собранная из JSON. Хранит параметры и предвычисленные структуры. */
+/** Плоский список или список полей — в билет с отсортированными полями. */
+export function asTicket(game, input) {
+  if (Array.isArray(input[0])) return input.map((f) => [...f].sort((a, b) => a - b));
+  const out = [];
+  let pos = 0;
+  for (const f of game.fields) {
+    out.push(input.slice(pos, pos + f.pick).sort((a, b) => a - b));
+    pos += f.pick;
+  }
+  return out;
+}
+
+/** Номер поля зашит в число — так повтор прошлого тиража ищется одной проверкой. */
+const flat = (ticket) => ticket.flatMap((f, i) => f.map((n) => i * 100 + n));
+
 export class PopularityModel {
   constructor(payload) {
     this.game = payload.game;
     this.cfg = payload.popularity;
     this.meanWeight = payload.mean_weight;
-    this.totalCombinations =
-      payload.game.total_combinations ||
-      combinations(payload.game.pool, payload.game.pick);
+    this.calibration = this.cfg.calibration || null;
+    this.randomShare = this.calibration ? this.calibration.random_share : 0;
+    this.totalCombinations = payload.game.total_combinations
+      || this.game.fields.reduce((acc, f) => acc * combinations(f.pool, f.pick), 1);
 
-    this.numberOverrides = new Map(
-      Object.entries(this.cfg.number_weights.overrides).map(([k, v]) => [
-        Number(k),
-        v,
-      ]),
-    );
-    // Для фактора «повтор выпавшей комбинации»: точные совпадения ищем по
-    // ключу, «5 из 6» — перебором, но только по последним тиражам.
-    this.recentWinners = (payload.recent_winners || []).map((c) =>
-      [...c].sort((a, b) => a - b),
-    );
+    this.recentWinners = (payload.recent_winners || []).map((t) => flat(asTicket(this.game, t)));
     this.recentWinnerKeys = new Set(this.recentWinners.map((c) => c.join(',')));
   }
 
-  numberFactor(combo) {
+  literatureWeight(n) {
     const nw = this.cfg.number_weights;
+    if (nw.overrides[String(n)] !== undefined) return nw.overrides[String(n)];
+    if (n <= 12) return nw.base_1_12;
+    if (n <= 31) return nw.base_13_31;
+    return nw.base_32_45;
+  }
+
+  numberFactor(ticket) {
     let out = 1;
-    for (const n of combo) {
-      if (this.numberOverrides.has(n)) out *= this.numberOverrides.get(n);
-      else if (n <= 12) out *= nw.base_1_12;
-      else if (n <= 31) out *= nw.base_13_31;
-      else out *= nw.base_32_45;
-    }
+    ticket.forEach((combo, i) => {
+      if (this.calibration) {
+        const w = this.calibration.field_weights[i];
+        for (const n of combo) out *= w[n - 1];
+      } else if (i === 0) {
+        for (const n of combo) out *= this.literatureWeight(n);
+      }
+    });
     return out;
   }
 
@@ -92,9 +110,8 @@ export class PopularityModel {
     return 1;
   }
 
-  gridFactor(combo) {
+  gridFactor(combo, cols) {
     const c = this.cfg.grid_pattern;
-    const cols = this.game.slip.cols;
     const positions = combo
       .map((n) => [Math.floor((n - 1) / cols), (n - 1) % cols])
       .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -152,12 +169,13 @@ export class PopularityModel {
       : 1;
   }
 
-  historyFactor(combo) {
+  historyFactor(ticket) {
     if (!this.recentWinners.length) return 1;
     const c = this.cfg.past_winner_repeat;
-    if (this.recentWinnerKeys.has(combo.join(','))) return c.exact_repeat_multiplier;
-    const need = combo.length - 1;
-    const target = new Set(combo);
+    const key = flat(ticket);
+    if (this.recentWinnerKeys.has(key.join(','))) return c.exact_repeat_multiplier;
+    const need = key.length - 1;
+    const target = new Set(key);
     for (const old of this.recentWinners) {
       let hits = 0;
       for (const n of old) if (target.has(n)) hits += 1;
@@ -167,26 +185,41 @@ export class PopularityModel {
   }
 
   breakdown(input) {
-    const combo = [...input].sort((a, b) => a - b);
-    return {
-      numbers: this.numberFactor(combo),
-      consecutive: this.consecutiveFactor(combo),
-      arithmetic: this.arithmeticFactor(combo),
-      grid: this.gridFactor(combo),
-      sum: this.sumFactor(combo),
-      parity: this.parityFactor(combo),
-      range: this.rangeFactor(combo),
-      history: this.historyFactor(combo),
+    const ticket = asTicket(this.game, input);
+    const out = {
+      numbers: this.numberFactor(ticket),
+      consecutive: 1,
+      arithmetic: 1,
+      grid: 1,
+      sum: 1,
+      parity: 1,
+      range: 1,
+      history: this.historyFactor(ticket),
     };
+    ticket.forEach((combo, i) => {
+      const field = this.game.fields[i];
+      if (field.pick < MIN_PATTERN_PICK) return;
+      out.consecutive *= this.consecutiveFactor(combo);
+      out.arithmetic *= this.arithmeticFactor(combo);
+      out.grid *= this.gridFactor(combo, field.slip.cols);
+      out.sum *= this.sumFactor(combo);
+      out.parity *= this.parityFactor(combo);
+      out.range *= this.rangeFactor(combo);
+    });
+    return out;
   }
 
-  weight(combo) {
-    return Object.values(this.breakdown(combo)).reduce((a, b) => a * b, 1);
+  weight(ticket) {
+    return Object.values(this.breakdown(ticket)).reduce((a, b) => a * b, 1);
   }
 
-  /** Оценка доли всех ставок тиража, приходящейся на эту комбинацию. */
-  pickShare(combo) {
-    return this.weight(combo) / (this.meanWeight * this.totalCombinations);
+  /**
+   * Доля всех ставок тиража, приходящаяся на этот билет. Автовыбор делит
+   * свою долю поровну между всеми билетами, остальные ставки следуют весу.
+   */
+  pickShare(ticket) {
+    const rho = this.randomShare;
+    return (rho + (1 - rho) * this.weight(ticket) / this.meanWeight) / this.totalCombinations;
   }
 }
 
@@ -194,39 +227,52 @@ export class PopularityModel {
 // Ожидаемая выплата
 // ---------------------------------------------------------------------------
 
-export function matchProbability(game, matched) {
-  const { pick, pool } = game;
+export function fieldMatchProbability(field, matched) {
+  const { pick, pool } = field;
   if (matched < 0 || matched > pick) return 0;
-  return (
-    (combinations(pick, matched) * combinations(pool - pick, pick - matched)) /
-    combinations(pool, pick)
-  );
+  return (combinations(pick, matched) * combinations(pool - pick, pick - matched))
+    / combinations(pool, pick);
 }
 
-/** E[1/(1+K)] для K ~ Poisson(lam): ожидаемая доля джекпота. */
+/** Сочетание совпадений по полям; число — совпадения в главном поле. */
+export function matchProbability(game, matched) {
+  const m = Array.isArray(matched) ? matched : [matched];
+  let out = 1;
+  m.forEach((k, i) => { out *= fieldMatchProbability(game.fields[i], k); });
+  return out;
+}
+
+export function categoryProbability(game, index) {
+  return game.categories[index].match.reduce((s, m) => s + matchProbability(game, m), 0);
+}
+
+/** E[1/(1+K)] для K ~ Poisson(lam): ожидаемая доля суперприза. */
 export function expectedShareFactor(lam) {
   if (lam <= 1e-12) return 1;
   return (1 - Math.exp(-lam)) / lam;
 }
 
-export function evaluateEV(model, combo, jackpotRub, players) {
+export function fixedTiersEV(game) {
+  let total = 0;
+  game.prizes_rub.forEach((prize, i) => {
+    if (prize === null || i >= game.categories.length) return;
+    total += categoryProbability(game, i) * Number(prize);
+  });
+  return total;
+}
+
+export function evaluateEV(model, ticket, jackpotRub, players) {
   const game = model.game;
   const n = players || game.typical_players_per_draw;
-  const q = model.pickShare(combo);
+  const q = model.pickShare(ticket);
 
   const lam = Math.max(n - 1, 0) * q;
   const share = expectedShareFactor(lam);
   const lamBase = Math.max(n - 1, 0) / model.totalCombinations;
   const shareBase = expectedShareFactor(lamBase);
 
-  let evFixed = 0;
-  for (const [k, prize] of Object.entries(game.prizes_rub)) {
-    if (prize === null) continue;
-    evFixed += matchProbability(game, Number(k)) * Number(prize);
-  }
-
-  const pJackpot = matchProbability(game, game.pick);
-  const evJackpot = pJackpot * jackpotRub * share;
+  const evFixed = fixedTiersEV(game);
+  const evJackpot = (1 / model.totalCombinations) * jackpotRub * share;
   const gross = evFixed + evJackpot;
 
   return {
@@ -243,27 +289,50 @@ export function evaluateEV(model, combo, jackpotRub, players) {
 }
 
 export function breakevenJackpot(model, shareFactor = 1) {
-  const game = model.game;
-  let evFixed = 0;
-  for (const [k, prize] of Object.entries(game.prizes_rub)) {
-    if (prize === null) continue;
-    evFixed += matchProbability(game, Number(k)) * Number(prize);
-  }
-  const deficit = game.ticket_price_rub - evFixed;
+  const deficit = model.game.ticket_price_rub - fixedTiersEV(model.game);
   if (deficit <= 0) return 0;
-  return deficit / (matchProbability(game, game.pick) * shareFactor);
+  return deficit * model.totalCombinations / shareFactor;
 }
 
 // ---------------------------------------------------------------------------
 // Генератор
 // ---------------------------------------------------------------------------
 
+/** Частичный Фишер—Йетс: равномерная выборка `need` из `work` (на месте). */
+function sampleUniform(work, need) {
+  for (let i = 0; i < need; i += 1) {
+    const j = i + Math.floor(Math.random() * (work.length - i));
+    [work[i], work[j]] = [work[j], work[i]];
+  }
+  return work.slice(0, need);
+}
+
+/** Взвешенная выборка без возвращения (Эфраимидис—Спиракис). */
+function sampleWeighted(work, need, weights) {
+  return work
+    .map((n) => [Math.random() ** (1 / Math.max(weights[n - 1], 1e-9)), n])
+    .sort((a, b) => b[0] - a[0])
+    .slice(0, need)
+    .map(([, n]) => n);
+}
+
+export function randomTicket(game) {
+  return game.fields.map((f) => {
+    const work = Array.from({ length: f.pool }, (_, i) => i + 1);
+    return sampleUniform(work, f.pick).sort((a, b) => a - b);
+  });
+}
+
 /**
- * Отбор наименее популярных комбинаций из равномерной выборки.
+ * Отбор наименее популярных билетов из равномерной выборки.
  *
- * Фильтрация не меняет вероятность выигрыша: каждая уцелевшая комбинация
- * остаётся ровно так же вероятна, как любая другая. Мы выбираем среди
- * равновероятных ту, которую вряд ли поставил кто-то ещё.
+ * Фильтрация не меняет вероятность выигрыша: каждый уцелевший билет остаётся
+ * ровно так же вероятен, как любой другой. include/exclude относятся к
+ * главному полю.
+ *
+ * numberWeights — оценки нейросети по полям (массив массивов, индекс n-1).
+ * Если заданы, кандидаты выбираются с перевесом в сторону чисел, которые сеть
+ * считает вероятнее, а в рейтинге популярность делится на оценку сети.
  */
 export function generate(model, options = {}) {
   const {
@@ -272,67 +341,56 @@ export function generate(model, options = {}) {
     exclude = [],
     candidates = 12000,
     maxOverlap = null,
-    // Оценки ИИ по числам (индекс n-1). Если заданы, кандидаты выбираются
-    // с перевесом в сторону чисел, которые сеть считает вероятнее, а в
-    // рейтинге популярность делится на суммарную оценку сети.
     numberWeights = null,
   } = options;
 
   const game = model.game;
+  const main = game.fields[0];
   const fixed = [...new Set(include)].sort((a, b) => a - b);
   const excluded = new Set(exclude);
   if (fixed.some((n) => excluded.has(n))) {
     throw new Error('Число нельзя одновременно включить и исключить');
   }
-  if (fixed.length > game.pick) {
-    throw new Error(`Можно зафиксировать не больше ${game.pick} чисел`);
+  if (fixed.length > main.pick) {
+    throw new Error(`Можно зафиксировать не больше ${main.pick} чисел`);
   }
 
-  const pool = [];
-  for (let n = 1; n <= game.pool; n += 1) {
-    if (!excluded.has(n) && !fixed.includes(n)) pool.push(n);
-  }
-  const need = game.pick - fixed.length;
-  if (pool.length < need) throw new Error('После ограничений осталось мало чисел');
+  const pools = game.fields.map((f, i) => {
+    const out = [];
+    for (let n = 1; n <= f.pool; n += 1) {
+      if (i === 0 && (excluded.has(n) || fixed.includes(n))) continue;
+      out.push(n);
+    }
+    return out;
+  });
+  const needs = game.fields.map((f, i) => (i === 0 ? f.pick - fixed.length : f.pick));
+  if (pools[0].length < needs[0]) throw new Error('После ограничений осталось мало чисел');
+
+  const aiMeans = numberWeights
+    ? pools.map((pool, i) => pool.reduce((s, n) => s + numberWeights[i][n - 1], 0) / pool.length)
+    : null;
 
   const scored = [];
   const seen = new Set();
-  const work = [...pool];
-
-  let aiMean = 1;
-  if (numberWeights) {
-    aiMean = pool.reduce((s, n) => s + numberWeights[n - 1], 0) / pool.length;
-  }
-
   for (let iter = 0; iter < candidates; iter += 1) {
-    let drawn;
-    if (numberWeights) {
-      // Взвешенная выборка без возвращения (Эфраимидис—Спиракис):
-      // ключ u^(1/w), берём `need` наибольших.
-      drawn = work
-        .map((n) => [Math.random() ** (1 / Math.max(numberWeights[n - 1], 1e-9)), n])
-        .sort((a, b) => b[0] - a[0])
-        .slice(0, need)
-        .map(([, n]) => n);
-    } else {
-      // Частичный Фишер—Йетс: равномерная выборка `need` из пула.
-      for (let i = 0; i < need; i += 1) {
-        const j = i + Math.floor(Math.random() * (work.length - i));
-        [work[i], work[j]] = [work[j], work[i]];
-      }
-      drawn = work.slice(0, need);
-    }
-    const combo = [...fixed, ...drawn].sort((a, b) => a - b);
-    const key = combo.join(',');
+    const ticket = pools.map((pool, i) => {
+      const drawn = numberWeights
+        ? sampleWeighted(pool, needs[i], numberWeights[i])
+        : sampleUniform(pool, needs[i]);
+      return (i === 0 ? [...fixed, ...drawn] : drawn).sort((a, b) => a - b);
+    });
+    const key = ticket.map((f) => f.join(',')).join('|');
     if (seen.has(key)) continue;
     seen.add(key);
-    const breakdown = model.breakdown(combo);
+    const breakdown = model.breakdown(ticket);
     const weight = Object.values(breakdown).reduce((a, b) => a * b, 1);
     let aiScore = 1;
     if (numberWeights) {
-      for (const n of combo) aiScore *= numberWeights[n - 1] / aiMean;
+      ticket.forEach((combo, i) => {
+        for (const n of combo) aiScore *= numberWeights[i][n - 1] / aiMeans[i];
+      });
     }
-    scored.push({ combo, weight, breakdown, aiScore, rank: weight / aiScore });
+    scored.push({ ticket, combo: ticket[0], weight, breakdown, aiScore, rank: weight / aiScore });
   }
 
   scored.sort((a, b) => a.rank - b.rank);
@@ -350,20 +408,12 @@ export function generate(model, options = {}) {
   return chosen;
 }
 
-/** Доля случайных комбинаций популярнее данной (1.0 = непопулярнее всех). */
-export function unpopularityPercentile(model, combo, samples = 4000) {
-  const target = model.weight(combo);
-  const game = model.game;
-  const work = [];
-  for (let n = 1; n <= game.pool; n += 1) work.push(n);
+/** Доля случайных билетов популярнее данного (1.0 = непопулярнее всех). */
+export function unpopularityPercentile(model, ticket, samples = 4000) {
+  const target = model.weight(ticket);
   let heavier = 0;
   for (let iter = 0; iter < samples; iter += 1) {
-    for (let i = 0; i < game.pick; i += 1) {
-      const j = i + Math.floor(Math.random() * (work.length - i));
-      [work[i], work[j]] = [work[j], work[i]];
-    }
-    const other = work.slice(0, game.pick).sort((a, b) => a - b);
-    if (model.weight(other) > target) heavier += 1;
+    if (model.weight(randomTicket(model.game)) > target) heavier += 1;
   }
   return heavier / samples;
 }

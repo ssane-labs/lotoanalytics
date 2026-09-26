@@ -1,36 +1,70 @@
-"""Ожидаемая выплата с учётом деления джекпота.
+"""Ожидаемая выплата с учётом деления суперприза.
 
 Всё, что здесь считается, — обычная комбинаторика и распределение Пуассона.
 Никакого «предсказания»: вероятность угадать фиксирована и равна
-C(6,m)*C(39,6-m)/C(45,6). Меняется только ожидаемый РАЗМЕР выплаты, потому
-что джекпот делится между всеми угадавшими.
+C(6,m)*C(39,6-m)/C(45,6) в «6 из 45». Меняется только ожидаемый РАЗМЕР
+выплаты, потому что суперприз делится между всеми угадавшими.
+
+В играх с двумя полями вероятность категории — сумма по сочетаниям
+совпадений, которые в неё входят: «3 X 2 и 2 X 3» в «4 из 20» — это
+(3 в первом, 2 во втором) или наоборот. Поля независимы, так что вероятность
+сочетания — произведение вероятностей по полям.
 """
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, asdict
-from typing import Iterable
+from typing import Iterable, Sequence
 
-from .popularity import GameSpec, pick_share
+from .popularity import FieldSpec, GameSpec, pick_share
 
 
-def match_probability(game: GameSpec, matched: int) -> float:
-    """Вероятность угадать ровно `matched` чисел одним билетом."""
-    k, n = game.pick, game.pool
+def field_match_probability(field: FieldSpec, matched: int) -> float:
+    """Вероятность угадать ровно `matched` чисел в одном поле."""
+    k, n = field.pick, field.pool
     if not 0 <= matched <= k:
         return 0.0
     return math.comb(k, matched) * math.comb(n - k, k - matched) / math.comb(n, k)
 
 
+def match_probability(game: GameSpec, matched: int | Sequence[int]) -> float:
+    """Вероятность сочетания совпадений по полям. Число вместо кортежа —
+    совпадения в главном поле, остальные поля не учитываются."""
+    if isinstance(matched, int):
+        matched = (matched,)
+    out = 1.0
+    for fld, m in zip(game.fields, matched):
+        out *= field_match_probability(fld, m)
+    return out
+
+
+def category_probability(game: GameSpec, index: int) -> float:
+    return sum(match_probability(game, m) for m in game.categories[index])
+
+
+def jackpot_probability(game: GameSpec) -> float:
+    return 1.0 / game.total_combinations
+
+
 def expected_share_factor(lam: float) -> float:
-    """E[1/(1+K)] для K ~ Poisson(lam) — ожидаемая доля джекпота.
+    """E[1/(1+K)] для K ~ Poisson(lam) — ожидаемая доля суперприза.
 
     K — число ДРУГИХ игроков с той же комбинацией. При lam -> 0 стремится к 1
-    (джекпот целиком ваш), при большом lam убывает как 1/lam.
+    (суперприз целиком ваш), при большом lam убывает как 1/lam.
     """
     if lam <= 1e-12:
         return 1.0
     return (1.0 - math.exp(-lam)) / lam
+
+
+def fixed_tiers_ev(game: GameSpec) -> float:
+    """Ожидаемый выигрыш во всех категориях, кроме суперприза."""
+    total = 0.0
+    for i, prize in enumerate(game.prizes_rub):
+        if prize is None or i >= len(game.categories):
+            continue
+        total += category_probability(game, i) * float(prize)
+    return total
 
 
 @dataclass
@@ -54,7 +88,7 @@ class EVResult:
 
 
 def evaluate(
-    combo: Iterable[int],
+    combo: Iterable,
     game: GameSpec,
     jackpot_rub: float,
     mean_w: float,
@@ -66,7 +100,7 @@ def evaluate(
     players = players or game.typical_players_per_draw
     q = pick_share(combo, game, mean_w, params, past_winners)
 
-    # Ожидаемое число ДРУГИХ игроков с той же комбинацией.
+    # Ожидаемое число ДРУГИХ ставок с той же комбинацией.
     lam = max(players - 1, 0) * q
     share = expected_share_factor(lam)
 
@@ -74,16 +108,8 @@ def evaluate(
     lam_baseline = max(players - 1, 0) / game.total_combinations
     share_baseline = expected_share_factor(lam_baseline)
 
-    ev_fixed = 0.0
-    for matched, prize in sorted(game.prizes_rub.items()):
-        if prize is None:
-            continue
-        ev_fixed += match_probability(game, matched) * float(prize)
-
-    p_jackpot = match_probability(game, game.pick)
-    ev_jack = p_jackpot * jackpot_rub * share
-
-    ev_total = ev_fixed + ev_jack - game.ticket_price_rub
+    ev_fixed = fixed_tiers_ev(game)
+    ev_jack = jackpot_probability(game) * jackpot_rub * share
     gross = ev_fixed + ev_jack
 
     return EVResult(
@@ -97,29 +123,15 @@ def evaluate(
         payout_advantage=share / share_baseline if share_baseline else 1.0,
         ev_fixed_tiers=ev_fixed,
         ev_jackpot=ev_jack,
-        ev_total=ev_total,
-        ev_per_100_rub=ev_total / game.ticket_price_rub * 100.0,
+        ev_total=gross - game.ticket_price_rub,
+        ev_per_100_rub=(gross - game.ticket_price_rub) / game.ticket_price_rub * 100.0,
         rtp=gross / game.ticket_price_rub,
     )
 
 
-def breakeven_jackpot(
-    game: GameSpec,
-    share_factor: float = 1.0,
-) -> float:
-    """Джекпот, при котором билет перестаёт быть убыточным (EV = 0).
-
-    Полезно для честного ответа на вопрос «когда вообще имеет смысл играть».
-    Обычно это значение в разы выше любого реального джекпота — и это надо
-    показывать пользователю, а не прятать.
-    """
-    ev_fixed = sum(
-        match_probability(game, m) * float(p)
-        for m, p in game.prizes_rub.items()
-        if p is not None
-    )
-    deficit = game.ticket_price_rub - ev_fixed
+def breakeven_jackpot(game: GameSpec, share_factor: float = 1.0) -> float:
+    """Суперприз, при котором билет перестаёт быть убыточным (EV = 0)."""
+    deficit = game.ticket_price_rub - fixed_tiers_ev(game)
     if deficit <= 0:
         return 0.0
-    p_jackpot = match_probability(game, game.pick)
-    return deficit / (p_jackpot * share_factor)
+    return deficit / (jackpot_probability(game) * share_factor)

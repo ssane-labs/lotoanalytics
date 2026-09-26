@@ -1,7 +1,7 @@
 name: Обновление данных
 
-# Раз в сутки тянем свежие тиражи, пересчитываем статистику и коммитим
-# результат в docs/data/. GitHub Pages раздаёт папку docs/ как есть, поэтому
+# Раз в сутки тянем свежие тиражи из архива Столото, переобучаем нейросеть,
+# пересчитываем статистику и коммитим результат в docs/data/. GitHub Pages раздаёт папку docs/ как есть, поэтому
 # отдельный деплой не нужен: коммит = публикация.
 
 on:
@@ -29,31 +29,10 @@ jobs:
       - name: Установить зависимости
         run: pip install -r requirements.txt
 
+      # Новые тиражи — из архива Столото. Если он не ответил, сборка идёт из
+      # накопленного в data/: приложение продолжит работать на прошлых данных.
       - name: Собрать данные
-        id: build
-        run: |
-          # Сначала пробуем сеть. Если разбор сломался, собираем из закоммиченных
-          # архивов data/draws_*.csv — приложение продолжит работать на прошлых данных.
-          if python scripts/build_data.py --fetch; then
-            echo "source=network" >> "$GITHUB_OUTPUT"
-          elif ls data/draws_*.csv >/dev/null 2>&1; then
-            echo "::warning::Сеть не дала тиражей, собираю из архивов data/draws_*.csv"
-            python scripts/build_data.py
-            echo "source=cache" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::Нет ни сети, ни архивов. Скачайте архив вручную и закоммитьте в data/draws_<игра>.csv"
-            exit 1
-          fi
-
-      - name: Проверить предсказуемость на свежих данных
-        run: |
-          for csv in data/draws_*.csv; do
-            game=$(basename "$csv" .csv); game=${game#draws_}
-            python scripts/verify_randomness.py \
-              --game "$game" \
-              --csv "$csv" \
-              --out "docs/data/${game}_randomness.json"
-          done
+        run: python scripts/build_data.py --fetch
 
       - name: Закоммитить, если что-то изменилось
         run: |
@@ -63,6 +42,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "Изменений нет — новых тиражей не появилось."
           else
-            git commit -m "Данные: обновление тиражей (источник: ${{ steps.build.outputs.source }})"
+            git commit -m "Данные: обновление тиражей"
             git push
           fi

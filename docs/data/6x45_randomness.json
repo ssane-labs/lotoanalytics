@@ -1,9 +1,0 @@
-{
-  "source": "csv:draws_6x45.csv",
-  "draws": 158,
-  "game": "6x45",
-  "insufficient": true,
-  "draws_needed": 251,
-  "expected_by_chance": 0.8,
-  "results": {}
-}

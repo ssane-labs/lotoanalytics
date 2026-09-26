@@ -35,38 +35,30 @@ function close(actual, expected, label) {
 // --- 1. Идентичность модели популярности --------------------------------
 
 const vectorsFile = read('tests/vectors.json');
+let vectorCount = 0;
 
-// Читаем первоисточник model_params.json, а не собранные docs/data: тест не
-// должен зависеть от того, когда в последний раз запускали сборку данных.
-const params = read('model_params.json');
-const spec = params.games['6x45'];
-
-// Эталон снят без истории тиражей, поэтому и здесь её отключаем: фактор
-// history зависит от того, какие данные были загружены при сборке.
-const model = new PopularityModel({
-  game: {
-    key: '6x45',
-    pick: spec.pick,
-    pool: spec.pool,
-    slip: spec.slip,
-    ticket_price_rub: spec.ticket_price_rub,
-    prizes_rub: spec.prizes_rub,
-    typical_players_per_draw: spec.typical_players_per_draw,
-  },
-  popularity: params.popularity,
-  mean_weight: 1,
-  recent_winners: [],
-});
-
-for (const vector of vectorsFile.vectors) {
-  const got = model.breakdown(vector.combo);
-  const tag = `[${vector.combo.join(',')}]`;
-
-  for (const [factor, expected] of Object.entries(vector.breakdown)) {
-    close(got[factor], expected, `${tag} фактор ${factor}`);
+// Параметры модели лежат прямо в эталоне: это итоговая конфигурация игры
+// (литература + обученные веса), та же, что уезжает в docs/data.
+// Прошлые тиражи отключены: фактор history зависит от загруженных данных.
+let model;
+for (const suite of vectorsFile.suites) {
+  const suiteModel = new PopularityModel({
+    game: suite.game,
+    popularity: suite.game.popularity,
+    mean_weight: 1,
+    recent_winners: [],
+  });
+  if (suite.name === '6x45') model = suiteModel;
+  for (const vector of suite.vectors) {
+    const got = suiteModel.breakdown(vector.ticket);
+    const tag = `${suite.name} [${vector.ticket.map((f) => f.join(',')).join(' | ')}]`;
+    for (const [factor, expected] of Object.entries(vector.breakdown)) {
+      close(got[factor], expected, `${tag} фактор ${factor}`);
+    }
+    const weight = Object.values(got).reduce((a, b) => a * b, 1);
+    close(weight, vector.weight, `${tag} итоговый вес`);
+    vectorCount += 1;
   }
-  const weight = Object.values(got).reduce((a, b) => a * b, 1);
-  close(weight, vector.weight, `${tag} итоговый вес`);
 }
 
 // --- 2. Комбинаторика ---------------------------------------------------
@@ -104,7 +96,7 @@ for (const lam of [0.01, 0.1, 0.5, 1, 2, 5, 20]) {
 // --- 4. Нейросеть: прямой проход JS совпадает с Python -------------------
 
 import { existsSync, readdirSync } from 'node:fs';
-import { DrawAI } from '../docs/ai.js';
+import { FieldAI } from '../docs/ai.js';
 
 const dataDir = join(root, 'docs', 'data');
 const aiFiles = existsSync(dataDir)
@@ -113,14 +105,15 @@ const aiFiles = existsSync(dataDir)
 for (const file of aiFiles) {
   const payload = read(`docs/data/${file}`);
   if (payload.insufficient) continue;
-  const ai = new DrawAI(payload);
-  const probs = ai.probabilities(payload.check.history);
-  payload.check.probs.forEach((expected, i) => {
-    close(probs[i], expected, `${file} вероятность числа ${i + 1}`);
+  payload.fields.forEach((net, f) => {
+    const probs = new FieldAI(net).probabilities();
+    net.probs.forEach((expected, i) => {
+      close(probs[i], expected, `${file} поле ${f + 1} вероятность числа ${i + 1}`);
+    });
   });
 }
 
 console.log(
-  `OK: ${vectorsFile.vectors.length} векторов, ${aiFiles.length} нейросетей, ${checks} проверок, ` +
+  `OK: ${vectorCount} векторов, ${aiFiles.length} файлов нейросетей, ${checks} проверок, ` +
     `расхождение Python/JS < ${TOLERANCE}`,
 );

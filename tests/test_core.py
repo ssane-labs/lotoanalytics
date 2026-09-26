@@ -38,6 +38,24 @@ PARAMS = load_params()
 GAME = load_game("6x45", PARAMS)
 
 
+def _without_calibration(params: dict) -> dict:
+    """Параметры с литературными весами — для тестов механики факторов.
+
+    Обученные веса меняются от прогона к прогону и отражают российских
+    игроков (у них, например, 13 популярно), а тесты ниже проверяют, что
+    каждый фактор считается как задумано.
+    """
+    import copy
+
+    out = copy.deepcopy(params)
+    for game in out["games"].values():
+        game.pop("calibration", None)
+    return out
+
+
+LIT = _without_calibration(PARAMS)
+
+
 # --------------------------------------------------------------- комбинаторика
 
 def test_total_combinations():
@@ -59,14 +77,28 @@ def test_win_probability_is_identical_for_every_combination():
         assert EV.match_probability(GAME, 6) == 1 / GAME.total_combinations, combo
 
 
-def test_every_game_loads_and_prizes_cover_pick():
+def test_every_game_loads_and_categories_are_consistent():
     for key in PARAMS["games"]:
         game = load_game(key, PARAMS)
-        assert game.pick < game.pool, key
-        assert game.slip_rows * game.slip_cols >= game.pool, key
-        assert game.prizes_rub[game.pick] is None, key
-        total = sum(EV.match_probability(game, m) for m in range(game.pick + 1))
-        assert abs(total - 1.0) < 1e-12, key
+        for f in game.fields:
+            assert f.pick < f.pool, key
+            assert f.slip_rows * f.slip_cols >= f.pool, key
+            total = sum(EV.field_match_probability(f, m) for m in range(f.pick + 1))
+            assert abs(total - 1.0) < 1e-12, key
+        # Первая категория — суперприз: совпало всё во всех полях.
+        assert game.categories[0] == (tuple(f.pick for f in game.fields),), key
+        assert abs(EV.category_probability(game, 0) - 1 / game.total_combinations) < 1e-18, key
+        assert game.prizes_rub[0] is None, key
+        # Категории не пересекаются, и вместе их вероятность меньше единицы.
+        seen = [m for c in game.categories for m in c]
+        assert len(seen) == len(set(seen)), key
+        assert sum(EV.category_probability(game, i) for i in range(len(game.categories))) < 1, key
+
+
+def test_two_field_games_multiply_their_odds():
+    assert load_game("4x20", PARAMS).total_combinations == 4845 ** 2
+    assert load_game("5x36plus", PARAMS).total_combinations == 376_992 * 4
+    assert load_game("5x2", PARAMS).total_combinations == 2_118_760 * 45
 
 
 def test_game_overrides_apply_only_to_their_game():
@@ -76,21 +108,21 @@ def test_game_overrides_apply_only_to_their_game():
     combo45 = (4, 17, 23, 31, 38, 44)
     combo49 = (4, 12, 19, 24, 28, 31, 34)
     # Сумма 150 — ровно пик 7 из 49; сумма 157 у 6 из 45 далеко от пика 118.
-    assert popularity_breakdown(combo49, g49, PARAMS)["sum"] > 1.3
-    assert popularity_breakdown(combo45, GAME, PARAMS)["sum"] < 1.3
+    assert popularity_breakdown(combo49, g49, LIT)["sum"] > 1.3
+    assert popularity_breakdown(combo45, GAME, LIT)["sum"] < 1.3
 
 
 # ---------------------------------------------------------------- популярность
 
 def test_pattern_combinations_are_heavier_than_random():
-    plain = popularity_weight((13, 36, 38, 39, 43, 44), GAME, PARAMS)
+    plain = popularity_weight((13, 36, 38, 39, 43, 44), GAME, LIT)
     for pattern in [(1, 2, 3, 4, 5, 6), (5, 10, 15, 20, 25, 30), (1, 6, 11, 16, 21, 26)]:
-        assert popularity_weight(pattern, GAME, PARAMS) > plain * 100
+        assert popularity_weight(pattern, GAME, LIT) > plain * 100
 
 
 def test_birthday_combination_is_heavier_than_high_numbers():
-    birthday = popularity_weight((3, 7, 11, 12, 21, 28), GAME, PARAMS)
-    high = popularity_weight((33, 35, 38, 41, 43, 45), GAME, PARAMS)
+    birthday = popularity_weight((3, 7, 11, 12, 21, 28), GAME, LIT)
+    high = popularity_weight((33, 35, 38, 41, 43, 45), GAME, LIT)
     assert birthday > high * 5
 
 
@@ -101,8 +133,8 @@ def test_thirteen_is_avoided_by_players():
     нечётные, ни одна из комбинаций не образует прогрессию или узор. Иначе
     тест прошёл бы по совсем другой причине.
     """
-    with13 = popularity_breakdown((13, 22, 29, 36, 40, 45), GAME, PARAMS)
-    without = popularity_breakdown((15, 22, 29, 36, 40, 45), GAME, PARAMS)
+    with13 = popularity_breakdown((13, 22, 29, 36, 40, 45), GAME, LIT)
+    without = popularity_breakdown((15, 22, 29, 36, 40, 45), GAME, LIT)
 
     assert with13["numbers"] < without["numbers"]
     for factor in with13:
@@ -112,9 +144,47 @@ def test_thirteen_is_avoided_by_players():
 
 
 def test_weight_is_order_independent():
-    a = popularity_weight((44, 13, 38, 36, 43, 39), GAME, PARAMS)
-    b = popularity_weight((13, 36, 38, 39, 43, 44), GAME, PARAMS)
+    a = popularity_weight((44, 13, 38, 36, 43, 39), GAME, LIT)
+    b = popularity_weight((13, 36, 38, 39, 43, 44), GAME, LIT)
     assert a == b
+
+
+def test_calibration_learned_known_preferences():
+    """Обученная модель видит то, что видно и простой регрессией по итогам:
+    числа до 31 («дни рождения») ставят охотнее, чем числа за 31."""
+    cal = PARAMS["games"]["6x45"].get("calibration")
+    if not cal:
+        return
+    w = cal["field_weights"][0]
+    assert max(range(45), key=lambda i: w[i]) + 1 in (7, 11, 13)
+    assert sum(w[:31]) / 31 > sum(w[31:]) / 14
+    assert 0 <= cal["random_share"] < 1
+    assert cal["holdout"]["loglik_gain"] > 0
+
+
+def test_random_share_puts_a_floor_under_pick_share():
+    """Автовыбор ставит любой билет с одинаковой частотой, поэтому доля
+    ставок на билет не падает ниже доли автовыбора."""
+    from lotto.popularity import random_share
+
+    rho = random_share(GAME, PARAMS)
+    mw = mean_weight(GAME, PARAMS, samples=5_000, seed=3)
+    for combo in [(36, 37, 38, 39, 40, 41), (1, 2, 3, 4, 5, 6), (13, 36, 38, 39, 43, 44)]:
+        share = pick_share(combo, GAME, mw, PARAMS) * GAME.total_combinations
+        assert share >= rho - 1e-12
+
+
+def test_multi_field_ticket_breakdown():
+    g = load_game("4x20", PARAMS)
+    flat = popularity_weight([1, 2, 3, 4, 5, 9, 13, 17], g, PARAMS)
+    nested = popularity_weight([[1, 2, 3, 4], [5, 9, 13, 17]], g, PARAMS)
+    assert flat == nested
+    # Бонусный номер «5 из 36» узоров не образует: одно поле из пяти чисел
+    # даёт ровно те же структурные множители, что и билет целиком.
+    g = load_game("5x36plus", PARAMS)
+    a = popularity_breakdown([[3, 11, 19, 27, 35], [2]], g, PARAMS)
+    b = popularity_breakdown([[3, 11, 19, 27, 35], [4]], g, PARAMS)
+    assert a["consecutive"] == b["consecutive"] and a["sum"] == b["sum"]
 
 
 def test_pick_shares_sum_to_about_one():
@@ -138,8 +208,8 @@ def test_pick_shares_sum_to_about_one():
 # ------------------------------------------------------------------ генератор
 
 def test_generator_beats_random_on_popularity():
-    mw = mean_weight(GAME, PARAMS, samples=20_000, seed=7)
-    picks = generate(GAME, count=5, candidates=8_000, params=PARAMS, seed=5)
+    mw = mean_weight(GAME, LIT, samples=20_000, seed=7)
+    picks = generate(GAME, count=5, candidates=8_000, params=LIT, seed=5)
     assert len(picks) == 5
     for cand in picks:
         assert cand.weight < mw / 10
@@ -183,9 +253,10 @@ def test_expected_share_factor_bounds():
 
 
 def test_unpopular_combination_has_better_payout():
-    mw = mean_weight(GAME, PARAMS, samples=20_000, seed=21)
-    popular = EV.evaluate((1, 2, 3, 4, 5, 6), GAME, 500_000_000, mw, params=PARAMS)
-    rare = EV.evaluate((13, 36, 38, 39, 43, 44), GAME, 500_000_000, mw, params=PARAMS)
+    mw = mean_weight(GAME, LIT, samples=20_000, seed=21)
+    # Полтора миллиона ставок — чтобы деление суперприза было заметно.
+    popular = EV.evaluate((1, 2, 3, 4, 5, 6), GAME, 500_000_000, mw, players=1_500_000, params=LIT)
+    rare = EV.evaluate((13, 36, 38, 39, 43, 44), GAME, 500_000_000, mw, players=1_500_000, params=LIT)
 
     # Шанс выиграть одинаков...
     assert EV.match_probability(GAME, 6) == 1 / GAME.total_combinations
@@ -206,8 +277,8 @@ def test_ev_is_negative_at_realistic_jackpot():
 def test_breakeven_jackpot_is_above_typical_prize():
     breakeven = EV.breakeven_jackpot(GAME)
     assert breakeven > 0
-    # Порог окупаемости заведомо выше обычных суперпризов.
-    assert breakeven > 100_000_000
+    # Порог окупаемости заведомо выше суперприза, который сейчас на кону.
+    assert breakeven > GAME.default_jackpot_rub
 
 
 # ------------------------------------------------------------------ статистика
@@ -258,25 +329,27 @@ def test_ai_features_shape_and_ranges():
     from lotto import ai as AI
 
     draws = [r.numbers for r in synthetic(60, GAME.pick, GAME.pool, seed=4)]
+    gap = 2 + len(AI.WINDOWS)
     for n in (1, 23, 45):
         x = AI.features(draws, n, GAME.pool, GAME.pick)
         assert len(x) == AI.N_FEATURES
-        assert 0 <= x[AI.N_FEATURES - 3] <= 1  # разрыв нормирован
+        assert 0 <= x[gap] <= 1  # разрыв нормирован
     assert AI.features([], 7, GAME.pool, GAME.pick)[-1] == 0.0
 
 
 def test_ai_trains_deterministically_and_reports_holdout():
+    import numpy as np
     from lotto import ai as AI
 
-    draws = [r.numbers for r in synthetic(40, GAME.pick, GAME.pool, seed=9)]
-    m1, info = AI.train(draws, GAME.pool, GAME.pick, epochs=3)
-    m2, _ = AI.train(draws, GAME.pool, GAME.pick, epochs=3)
-    assert m1.W1 == m2.W1 and m1.b2 == m2.b2
-    probs = [m1.predict(AI.features(draws, n, GAME.pool, GAME.pick))
-             for n in range(1, GAME.pool + 1)]
-    assert all(0 < p < 1 for p in probs)
+    draws = [r.numbers for r in synthetic(150, GAME.pick, GAME.pool, seed=9)]
+    m1, info = AI.train(draws, GAME.pool, GAME.pick, epochs=2)
+    m2, _ = AI.train(draws, GAME.pool, GAME.pick, epochs=2)
+    assert all(np.array_equal(a, b) for a, b in zip(m1.W, m2.W))
+    feats = AI.feature_matrix(draws, GAME.pool, GAME.pick)[-1]
+    probs = m1.predict(feats)
+    assert ((probs > 0) & (probs < 1)).all()
     # Средняя вероятность близка к базовой частоте 6/45.
-    assert abs(sum(probs) / len(probs) - GAME.pick / GAME.pool) < 0.08
+    assert abs(probs.mean() - GAME.pick / GAME.pool) < 0.08
     assert info["holdout"]["expected_by_chance"] == round(36 / 45, 4)
 
 
@@ -288,6 +361,30 @@ def test_ai_refuses_too_little_history():
     except ValueError:
         return
     raise AssertionError("на трёх тиражах обучение должно отказываться")
+
+
+def test_history_fields_roundtrip():
+    from lotto import history as H
+
+    fields = ((3, 7, 12, 18), (2, 9, 14, 20))
+    assert H.parse_fields(H.format_fields(fields), [4, 4]) == fields
+    assert H.parse_fields("6 10 18 15 3 7 10 16", [4, 4]) == ((6, 10, 15, 18), (3, 7, 10, 16))
+    try:
+        H.validate(((1, 2, 3, 4), (5, 6, 7, 21)), [{"pick": 4, "pool": 20}] * 2)
+    except ValueError:
+        return
+    raise AssertionError("число 21 в поле «4 из 20» должно отвергаться")
+
+
+def test_results_aligned_by_title():
+    """Тираж без категории «2 из 6» не должен учить модель, что в ней никто
+    не выиграл."""
+    from lotto import history as H
+
+    r = H.Result(1, 1000, None, 70, [0, 1, 20, 300], [0, 1, 2, 3],
+                 ["6 из 6", "5 из 6", "4 из 6", "3 из 6"])
+    counts, _ = H.aligned(r, ["6 из 6", "5 из 6", "4 из 6", "3 из 6", "2 из 6"])
+    assert counts == [0, 1, 20, 300, None]
 
 
 # --------------------------------------------------------------------- CSV

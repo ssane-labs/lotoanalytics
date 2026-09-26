@@ -204,24 +204,43 @@ export class Wallet {
   async watchAd() {
     if (!this.adBlockId) return { ok: false, error: 'Реклама не подключена.' };
     if (!this.online) return { ok: false, error: 'Реклама доступна внутри Telegram.' };
+    const before = this.total;
+
+    // Признак досмотра — событие onReward, а не только исход show(). На части
+    // клиентов промис отклоняется уже после того, как награда засчитана
+    // (например, если закрыть экран после ролика), и без этого прокрутка
+    // пропадала бы у человека, который честно всё досмотрел.
+    let rewarded = false;
+    let controller;
+    const onReward = () => { rewarded = true; };
     try {
-      const controller = await adController(this.adBlockId);
-      await controller.show();
+      controller = await adController(this.adBlockId);
+      controller.addEventListener?.('onReward', onReward);
+      const result = await controller.show();
+      if (result?.done) rewarded = true;
     } catch (err) {
-      // Adsgram отклоняет промис и когда ролика нет, и когда его закрыли
-      // досрочно. Для пользователя это одно и то же: награды нет.
-      const reason = err?.description || err?.error || err?.message;
-      return { ok: false, error: reason ? String(reason) : 'Ролик не досмотрен — прокрутка не начислена.' };
+      if (!rewarded) {
+        const reason = describeAdError(err);
+        this.post('/api/ad-claim', { failed: reason }).catch(() => {});
+        return { ok: false, error: reason };
+      }
+    } finally {
+      controller?.removeEventListener?.('onReward', onReward);
     }
+
     try {
       const data = await this.post('/api/ad-claim');
-      if (data.ok === false) {
-        this.applyServer(data);
-        return { ok: false, error: data.reason || 'Начислить не удалось.' };
-      }
       this.applyServer(data);
+      if (data.ok === false) return { ok: false, error: data.reason || 'Начислить не удалось.' };
       return { ok: true, reward: data.reward || this.economy.AD_REWARD };
     } catch (err) {
+      // Запрос мог не дойти, а Adsgram тем временем начислил прокрутку сам,
+      // через Reward URL. Прежде чем показывать ошибку, спрашиваем баланс.
+      for (let i = 0; i < 3; i += 1) {
+        await new Promise((r) => setTimeout(r, 1500));
+        await this.load();
+        if (this.total > before) return { ok: true, reward: this.total - before };
+      }
       return { ok: false, error: `Не удалось начислить: ${err.message}` };
     }
   }
@@ -244,6 +263,21 @@ export function spinsWord(n) {
   if (last === 1) return `${n} прокрутка`;
   if (last >= 2 && last <= 4) return `${n} прокрутки`;
   return `${n} прокруток`;
+}
+
+/** Ответ Adsgram при отказе — в понятную фразу. Сырые описания английские. */
+function describeAdError(err) {
+  const raw = String(err?.description || err?.error || err?.message || '').toLowerCase();
+  if (err?.state === 'playing' || raw.includes('skip') || raw.includes('close')) {
+    return 'Реклама закрыта до конца — прокрутка не начислена.';
+  }
+  if (raw.includes('no ad') || raw.includes('not found') || raw.includes('nobanner') || raw.includes('banner')) {
+    return 'Сейчас нет рекламы для показа. Попробуйте позже.';
+  }
+  if (raw.includes('too long') || raw.includes('nonstop') || raw.includes('non stop')) {
+    return 'Рекламная сеть ограничила показы. Попробуйте позже.';
+  }
+  return raw ? `Реклама не показалась: ${raw}` : 'Реклама не досмотрена — прокрутка не начислена.';
 }
 
 function readLocal() {

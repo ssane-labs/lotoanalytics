@@ -170,13 +170,12 @@ const MIGRATION_SPINS = 15;
 
 const TEXT = {
   start:
-    'Это лотерейный аналитик.\n\n' +
-    'Он не предсказывает тиражи — предсказать их невозможно, и внутри есть ' +
-    'вкладка «Проверка», где это измерено на реальных данных.\n\n' +
-    'Он делает другое: считает, сколько человек играют теми же числами, что ' +
-    'и вы. Джекпот делится между всеми, кто угадал, поэтому комбинация, ' +
-    'которую не поставил больше никто, приносит при выигрыше в разы больше ' +
-    'денег. Шанс выиграть при этом не меняется — и мы этого не обещаем.\n\n' +
+    'Лотерейный аналитик для «6 из 45», «7 из 49», «4 из 20», «5 из 36» ' +
+    'и «Большого Спортлото».\n\n' +
+    'Суперприз делится между всеми, кто угадал. Аналитик оценивает, сколько ' +
+    'человек ставят те же числа, что и вы, и подбирает комбинации, которые ' +
+    'ставят реже всего, — чтобы при выигрыше суперприз достался вам целиком. ' +
+    'Модель обучена на итогах тиражей Столото.\n\n' +
     'Одна прокрутка каждый день бесплатно.',
   help:
     'Команды:\n' +
@@ -185,17 +184,7 @@ const TEXT = {
     '/buy — пакеты прокруток\n' +
     '/invite — позвать друга и получить прокрутки\n' +
     '/refund — вернуть звёзды за последнюю покупку (48 часов)\n' +
-    '/honest — почему предсказать тираж нельзя\n' +
     '/help — это сообщение',
-  honest:
-    'Коротко: шар не помнит прошлых тиражей.\n\n' +
-    'Модель, обученная на всех прошлых тиражах, сходится ровно к «все ' +
-    'комбинации равновероятны» — 1 к 8 145 060 для «6 из 45». Мы обучили ' +
-    'несколько моделей, включая градиентный бустинг, и проверили их на ' +
-    'тиражах, которых они не видели. Ни одна не обошла случайный выбор ' +
-    '(0,8 совпадения на тираж). Таблица с результатами — во вкладке ' +
-    '«Проверка», код проверки открыт.\n\n' +
-    'Если кто-то продаёт вам «числа на завтра» — он продаёт случайные числа.',
   unknown: 'Не знаю такой команды. Попробуйте /help',
 };
 
@@ -592,21 +581,59 @@ async function handleSpend(request, env) {
  * считает его сервер. Даже поддельный вызов не даст больше пяти прокруток
  * в неделю.
  */
-async function grantAdReward(env, userId) {
+/**
+ * Один просмотр приходит двумя путями: приложение сообщает о досмотре само, и
+ * Adsgram зовёт Reward URL. Кто пришёл вторым в пределах этого окна — тот
+ * же просмотр: начисление не повторяем, но и ошибкой не отвечаем.
+ *
+ * Раньше второй вызов получал отказ «слишком часто», и приложение показывало
+ * ошибку ровно тогда, когда прокрутка уже была начислена.
+ */
+const AD_SAME_VIEW_MS = 90_000;
+
+async function grantAdReward(env, userId, source) {
   const rec = await readWallet(env, userId);
-  if (adsLeft(rec) <= 0) {
-    return { rec, ok: false, reason: 'На этой неделе бесплатные просмотры закончились.' };
+  if (Date.now() - Number(rec.last_ad || 0) < AD_SAME_VIEW_MS) {
+    await logAd(env, { user: userId, source, result: 'тот же просмотр' });
+    return { rec, ok: true, duplicate: true };
   }
-  // Два начисления подряд за секунду — это не два ролика. Ролик короткий, но
-  // не мгновенный.
-  if (Date.now() - Number(rec.last_ad || 0) < 10_000) {
-    return { rec, ok: false, reason: 'Слишком часто. Попробуйте ещё раз через несколько секунд.' };
+  if (adsLeft(rec) <= 0) {
+    await logAd(env, { user: userId, source, result: 'лимит недели' });
+    return { rec, ok: false, reason: 'На этой неделе просмотры за прокрутки закончились.' };
   }
   rec.ads_used += 1;
   rec.bonus += ECONOMY.AD_REWARD;
   rec.last_ad = Date.now();
   await writeWallet(env, userId, rec);
+  await logAd(env, { user: userId, source, result: `+${ECONOMY.AD_REWARD}` });
   return { rec, ok: true };
+}
+
+/**
+ * Журнал последних рекламных событий для /ads. Без него не понять, кто из
+ * двух путей начисления не дошёл: приложение или вызов Adsgram.
+ */
+const AD_LOG_KEY = 'adlog';
+const AD_LOG_SIZE = 30;
+
+async function logAd(env, entry) {
+  try {
+    const log = JSON.parse((await env.SUBS.get(AD_LOG_KEY)) || '[]');
+    log.unshift({ at: Date.now(), ...entry });
+    await env.SUBS.put(AD_LOG_KEY, JSON.stringify(log.slice(0, AD_LOG_SIZE)));
+  } catch (err) {
+    console.error('adlog failed', err);
+  }
+}
+
+async function adsReport(env) {
+  const log = JSON.parse((await env.SUBS.get(AD_LOG_KEY)) || '[]');
+  if (!log.length) {
+    return 'Рекламных событий ещё не было: ни приложение, ни Adsgram не сообщали о просмотрах.';
+  }
+  const time = (ms) => new Date(ms + MSK_SHIFT_MS).toISOString().slice(5, 19).replace('T', ' ');
+  return 'Последние рекламные события (время МСК):\n\n' + log.map((e) =>
+    `${time(e.at)} · ${e.source} · ${e.user ?? '—'} · ${e.result}`).join('\n');
 }
 
 async function handleAdClaim(request, env) {
@@ -614,9 +641,17 @@ async function handleAdClaim(request, env) {
   const user = await verifyInitData(body.initData, env);
   if (!user) return json({ error: 'invalid initData' }, 401);
 
-  const result = await grantAdReward(env, user.id);
+  // Приложение сообщает и о сбоях показа: так в журнале видно, доходит ли
+  // дело до ролика вообще.
+  if (body.failed) {
+    await logAd(env, { user: user.id, source: 'приложение', result: `сбой: ${String(body.failed).slice(0, 120)}` });
+    const rec = await readWallet(env, user.id);
+    return walletResponse(env, user.id, rec, { ok: false, logged: true });
+  }
+
+  const result = await grantAdReward(env, user.id, 'приложение');
   return walletResponse(env, user.id, result.rec, result.ok
-    ? { reward: ECONOMY.AD_REWARD }
+    ? { reward: ECONOMY.AD_REWARD, duplicate: Boolean(result.duplicate) }
     : { ok: false, reason: result.reason });
 }
 
@@ -634,12 +669,19 @@ async function handleAdClaim(request, env) {
  */
 async function handleAdReward(url, env) {
   const secret = env.AD_REWARD_SECRET;
+  const raw = url.searchParams.get('userid') || url.searchParams.get('userId') || '';
   if (!secret || url.searchParams.get('key') !== secret) {
+    // Неверный ключ тоже пишем в журнал: это самая частая причина, по
+    // которой Reward URL «не работает».
+    await logAd(env, { user: Number(raw) || null, source: 'Adsgram', result: 'неверный key в Reward URL' });
     return new Response('forbidden', { status: 403 });
   }
-  const userId = Number(url.searchParams.get('userid') || 0);
-  if (!userId) return new Response('bad userid', { status: 400 });
-  const result = await grantAdReward(env, userId);
+  const userId = Number(raw);
+  if (!userId) {
+    await logAd(env, { user: null, source: 'Adsgram', result: `нет userid: «${raw.slice(0, 40)}»` });
+    return new Response('bad userid', { status: 400 });
+  }
+  const result = await grantAdReward(env, userId, 'Adsgram');
   return json({ ok: result.ok, reason: result.reason });
 }
 
@@ -658,7 +700,7 @@ async function createInvoiceLink(env, packKey, userId) {
       title: pack.title,
       description:
         `${pack.spins} подбор${pack.spins === 1 ? 'а' : 'ов'} комбинаций, которые почти ` +
-        'никто не ставит. Прокрутки не сгорают. Вероятность выигрыша не меняется.',
+        'никто не ставит. Прокрутки не сгорают.',
       payload: JSON.stringify({ pack: packKey, uid: userId }),
       provider_token: '', // для Stars токен провайдера не нужен
       currency: 'XTR',
@@ -736,10 +778,7 @@ async function handleUpdate(update, env) {
     await attributePayment(env, userId, Number(pay.total_amount || 0));
     return tg(env, 'sendMessage', {
       chat_id: chatId,
-      text: `Начислено ${pack.spins} прокруток. На балансе: ${totalSpins(rec)}.\n\n` +
-        'Напоминаю то, за что вы НЕ платили: шанс выиграть не изменился и ' +
-        'измениться не может. Прокрутки — это подбор комбинаций, которые не ' +
-        'ставит никто, то есть размер выплаты, а не вероятность.',
+      text: `Начислено ${pack.spins} прокруток. На балансе: ${totalSpins(rec)}.`,
       reply_markup: appKeyboard(env),
     });
   }
@@ -770,9 +809,6 @@ async function handleUpdate(update, env) {
       );
     }
 
-    case '/honest':
-      return send(TEXT.honest, { reply_markup: appKeyboard(env) });
-
     case '/help':
       return send(TEXT.help);
 
@@ -797,6 +833,10 @@ async function handleUpdate(update, env) {
       if (!isAdmin(env, userId)) return send(TEXT.unknown);
       return send(await sourcesReport(env));
 
+    case '/ads':
+      if (!isAdmin(env, userId)) return send(TEXT.unknown);
+      return send(await adsReport(env));
+
     case '/refund': {
       const result = await refundLastPayment(env, userId);
       return send(result.ok
@@ -812,7 +852,7 @@ async function handleUpdate(update, env) {
             .map((p) => `${p.title} — ${p.stars} ⭐ (${Math.round(p.stars / p.spins)} ⭐ за прокрутку)`)
             .join('\n') +
           '\n\nОдна прокрутка каждый день бесплатно, ещё ' +
-          `${ECONOMY.ADS_PER_WEEK} в неделю — за короткий ролик.\n` +
+          `${ECONOMY.ADS_PER_WEEK} в неделю — за просмотр рекламы.\n` +
           'Откройте приложение и нажмите «Пополнить».',
         { reply_markup: appKeyboard(env) },
       );
@@ -840,7 +880,7 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'spins-v1',
+        build: 'spins-v2',
         packs: Object.keys(PACKS),
         economy: ECONOMY,
         kv_subs: Boolean(env.SUBS),

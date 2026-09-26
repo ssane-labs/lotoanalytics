@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="styles.css?v=7a9d6659">
+<link rel="stylesheet" href="styles.css?v=89671c74">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -35,10 +35,6 @@
     </g>
     <g id="i-bars">
       <path d="M4.5 20V12.4M9.5 20V4.6M14.5 20v-5.2M19.5 20V8.6"/>
-    </g>
-    <g id="i-flask">
-      <path d="M9.6 3.2v5.4L4.9 17.4A2 2 0 0 0 6.7 20.4h10.6a2 2 0 0 0 1.8-3l-4.7-8.8V3.2"/>
-      <path d="M8.4 3.2h7.2M7.6 14.4h8.8"/>
     </g>
     <g id="i-star">
       <path d="M12 3.4l2.66 5.4 5.96.87-4.31 4.2 1.02 5.93L12 17l-5.33 2.8 1.02-5.93-4.31-4.2 5.96-.87z"/>
@@ -85,13 +81,6 @@
 
 <div class="app" id="app">
 
-  <div class="view" id="banners" hidden>
-    <div class="note" id="synthetic-banner" hidden>
-      <p><strong>Демо-данные.</strong> Загружена синтетическая история тиражей,
-      а не реальная.</p>
-    </div>
-  </div>
-
   <!-- ===================== ПОДБОР ===================== -->
   <section class="view" id="view-generate">
 
@@ -102,12 +91,11 @@
         <span class="badge" id="game-title">Спортлото «6 из 45»</span>
         <span class="meta" id="data-meta">Загрузка данных…</span>
       </div>
-      <h2>Числа, за которые не придётся драться</h2>
+      <h2>Комбинации, которые редко ставят</h2>
       <p class="lede">
-        Шанс выиграть одинаков у любой комбинации — <b id="odds-line">1 к 8 145 060</b>,
-        и мы его не меняем. Зато джекпот делится между всеми, кто угадал.
-        Подбираем числа, которых почти нет в чужих билетах: выигрыш тот же,
-        делить его не с кем.
+        Суперприз делится между всеми, кто угадал. Аналитик подбирает
+        комбинации, которые другие игроки ставят реже всего, — чтобы при
+        выигрыше он достался вам целиком.
       </p>
     </div>
 
@@ -181,11 +169,11 @@
       <span class="eyebrow eyebrow--accent">Бланк</span>
       <h2>Сколько человек играют вашими числами</h2>
       <p class="lede">
-        Отметьте комбинацию, которую собираетесь поставить. Посчитаем, сколько
-        игроков обычно выбирают то же самое и какая доля джекпота останется
-        вам, если он зайдёт.
+        Отметьте комбинацию, которую собираетесь поставить. Разбор покажет,
+        как часто её выбирают другие игроки и какая доля суперприза достанется
+        вам при выигрыше.
       </p>
-      <div class="slip" id="slip" role="group" aria-label="Игровой бланк"></div>
+      <div id="slip" role="group" aria-label="Игровой бланк"></div>
       <div class="slip-foot">
         <span id="slip-counter" class="muted">0 / 6</span>
         <button class="btn btn--ghost btn--sm" id="slip-random" type="button">
@@ -204,24 +192,24 @@
     <div id="check-result"></div>
   </section>
 
-  <!-- ===================== СТАТИСТИКА ===================== -->
+  <!-- ===================== ДАННЫЕ ===================== -->
   <section class="view" id="view-stats" hidden>
 
     <div class="section section--head">
       <span class="eyebrow eyebrow--accent">Данные</span>
-      <div class="note" id="uniformity-banner">
-        <p><span class="spinner"></span> Проверяем данные…</p>
-      </div>
+      <h2 id="stats-title">История тиражей</h2>
+      <p class="lede" id="stats-lede"></p>
+    </div>
+
+    <div class="section">
+      <span class="eyebrow">Последние тиражи</span>
+      <ul class="draws" id="latest-draws"></ul>
     </div>
 
     <div class="section">
       <span class="eyebrow">Частота выпадения</span>
-      <h3>Что уже выпало</h3>
-      <p class="muted">
-        Столбики показывают историю. Они <b>не говорят</b>, что выпадет дальше:
-        шар не помнит прошлых тиражей. Пунктир — среднее ожидание.
-      </p>
-      <div class="freq" id="freq-chart"></div>
+      <p class="muted">Сколько раз выпадало каждое число за всю историю. Пунктир — среднее.</p>
+      <div id="freq-charts"></div>
     </div>
 
     <div class="section">
@@ -236,80 +224,32 @@
 
     <div class="section">
       <span class="eyebrow">Давно не выпадали</span>
-      <p class="muted">
-        Любимая цифра «систем игры». Во вкладке «Проверка» видно, что ставка
-        на такие числа не работает — мы это измерили.
-      </p>
       <ul class="numlist" id="list-overdue"></ul>
     </div>
 
     <div class="section">
-      <span class="eyebrow">Факты против интуиции</span>
+      <span class="eyebrow">Статистика тиражей</span>
       <dl class="rows" id="facts"></dl>
     </div>
-  </section>
 
-  <!-- ===================== ПРОВЕРКА ===================== -->
-  <section class="view" id="view-proof" hidden>
-
-    <div class="section section--head">
-      <span class="eyebrow eyebrow--accent">Эксперимент</span>
-      <h2>Можно ли предсказать тираж?</h2>
-      <p class="lede">
-        Мы обучили семь моделей на истории тиражей и проверили их на тиражах,
-        которых они не видели. Вот что получилось.
-      </p>
+    <div class="section" id="model-section">
+      <span class="eyebrow">Модель популярности</span>
+      <div id="model-body"></div>
     </div>
 
     <div class="section">
-      <div class="bigstat">
-        <span class="bigstat__value" id="proof-baseline">0,800</span>
-        <span class="bigstat__label">совпадений даёт случайный выбор</span>
-      </div>
-      <div class="table-wrap" id="proof-table-wrap">
-        <table class="table" id="proof-table">
-          <thead>
-            <tr><th>Стратегия</th><th>Совпадений</th><th>p-value</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <p class="muted" id="proof-note"></p>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Почему так</span>
-      <p class="muted">
-        Тираж — это выборка из равномерного распределения. Модель, обученная на
-        любом количестве прошлых тиражей, в пределе сходится ровно к нему:
-        «все комбинации равновероятны». Всё, что модель находит сверх этого, —
-        шум обучающей выборки, и на новых данных он не воспроизводится.
-      </p>
-      <p class="muted">
-        Поэтому мы не продаём предсказания. Мы считаем то, что действительно
-        считается: сколько человек поставит ту же комбинацию, что и вы.
-      </p>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Экономика игры</span>
-      <dl class="rows" id="ev-facts"></dl>
-      <p class="muted" style="margin-top:14px">
-        Ожидаемая выплата ниже цены билета — так устроена любая лотерея.
-        Если вы всё равно играете, единственное, что в вашей власти, — не
-        делить выигрыш с сотней других людей.
-      </p>
+      <span class="eyebrow">Об игре</span>
+      <dl class="rows" id="game-facts"></dl>
     </div>
 
     <div class="section">
       <div class="note note--quiet">
-        <span class="eyebrow">Честное предупреждение</span>
+        <span class="eyebrow">Ответственная игра</span>
         <p class="muted">
-          Приложение не предсказывает результаты тиражей и не повышает шанс
-          выигрыша — это невозможно, и цифры выше это показывают. Мы считаем
-          только одно: насколько популярна комбинация у других игроков.
-          Лотерея — развлечение с отрицательным матожиданием, а не способ
-          заработка. Не тратьте больше, чем готовы потерять.
+          Приложение не предсказывает результаты тиражей и не меняет шанс
+          выигрыша. Ожидаемая выплата билета ниже его цены при любой
+          комбинации. Лотерея — развлечение, а не способ заработка: не тратьте
+          больше, чем готовы потерять.
         </p>
         <a class="link" href="https://www.stoloto.ru/responsible-gaming"
            target="_blank" rel="noopener noreferrer">
@@ -337,16 +277,12 @@
       <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-bars"/></svg>
       <span>Данные</span>
     </button>
-    <button class="tab" data-view="proof" type="button">
-      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-flask"/></svg>
-      <span>Проверка</span>
-    </button>
   </nav>
 
 </div>
 
 <div class="fatal" id="fatal" hidden></div>
 
-<script type="module" src="app.js?v=7a9d6659"></script>
+<script type="module" src="app.js?v=89671c74"></script>
 </body>
 </html>

@@ -1,33 +1,305 @@
 {
-  "_comment": "Единственный источник правды для модели популярности. Читается и Python-скриптами, и фронтендом Mini App. Веса — оценки на основе опубликованных исследований выбора чисел игроками (Simon 1998, Cook & Clotfelter 1993, Wang et al. 2016) и не измерены на российских данных. Это ЯВНО помечено в UI. Калибровать при появлении данных о распределении ставок.",
-  "version": 1,
+  "_comment": "Единственный источник правды для модели популярности и описания игр. Читается и Python-скриптами, и Mini App. Структурные факторы (узоры, прогрессии, суммы) взяты из опубликованных исследований выбора чисел (Simon 1998, Cook & Clotfelter 1993, Wang et al. 2016). Веса отдельных чисел и доля случайных ставок обучаются на итогах тиражей Столото — блок calibration у каждой игры пишет scripts/calibrate_popularity.py.",
+  "version": 2,
   "games": {
     "6x45": {
       "title": "Спортлото «6 из 45»",
-      "pick": 6,
-      "pool": 45,
-      "ticket_price_rub": 100,
-      "slip": { "rows": 9, "cols": 5, "order": "row-major" },
-      "prizes_comment": "ПРОВЕРЬТЕ по официальным правилам перед публикацией. jackpot=null означает пари-мьютюэль (делится между победителями).",
-      "prizes_rub": { "2": 100, "3": 300, "4": 1500, "5": 30000, "6": null },
-      "typical_players_per_draw": 1500000,
-      "default_jackpot_rub": 300000000,
-      "lotocafe_slug": "archive-6-iz-45"
+      "short": "6 из 45",
+      "stoloto": "6x45",
+      "fields": [{"pick": 6, "pool": 45, "slip": {"rows": 9, "cols": 5}}],
+      "ticket_price_rub": 70,
+      "typical_players_per_draw": 14000,
+      "default_jackpot_rub": 45000000,
+      "categories": [
+        {"title": "6 из 6", "match": [[6]]},
+        {"title": "5 из 6", "match": [[5]]},
+        {"title": "4 из 6", "match": [[4]]},
+        {"title": "3 из 6", "match": [[3]]},
+        {"title": "2 из 6", "match": [[2]]}
+      ],
+      "popularity_overrides": {},
+      "calibration": {
+        "_comment": "Обучено scripts/calibrate_popularity.py на итогах тиражей Столото. Не править руками.",
+        "fitted_at": "2026-09-26T12:12:36+00:00",
+        "draws": 8000,
+        "date_from": "2023-12-07",
+        "date_to": "2026-09-26",
+        "bets": 131928524,
+        "winners": 16345810,
+        "random_share": 0.5742,
+        "holdout": {
+          "draws": 1600,
+          "loglik_gain": 2551.3,
+          "loglik_gain_per_draw": 1.5946,
+          "structure": {"vs_numbers_only": 120.1, "vs_literature": 1146.7}
+        },
+        "structure": {
+          "no_adjacent": 1.9919,
+          "run3": 0.0785,
+          "balanced": 0.6811,
+          "extreme": 0.7438,
+          "sum_peak": 0.7706,
+          "narrow": 0.0865,
+          "patterns": 0.1497
+        },
+        "field_weights": [
+          [
+            0.6778, 0.9521, 1.2681, 1.1053, 1.2954, 1.1328, 1.495, 1.3082, 1.295, 1.0372, 1.3558,
+            1.2512, 1.372, 1.0924, 1.0539, 0.9339, 1.2687, 0.9276, 1.108, 0.9594, 1.3019, 1.1416,
+            1.2251, 0.9623, 1.0504, 0.9353, 1.1429, 1.0153, 1.0489, 0.8903, 0.8396, 0.8348, 1.0691,
+            0.8092, 0.7458, 0.6424, 0.5829, 0.6992, 0.737, 0.6897, 0.7935, 0.7636, 0.7359, 0.8198,
+            0.6339
+          ]
+        ]
+      }
     },
     "7x49": {
       "title": "Гослото «7 из 49»",
-      "pick": 7,
-      "pool": 49,
-      "ticket_price_rub": 150,
-      "slip": { "rows": 7, "cols": 7, "order": "row-major" },
-      "prizes_comment": "ПРОВЕРЬТЕ по официальным правилам перед публикацией: суммы фиксированных выигрышей — оценка. jackpot=null означает пари-мьютюэль.",
-      "prizes_rub": { "2": 50, "3": 150, "4": 1000, "5": 10000, "6": 100000, "7": null },
-      "typical_players_per_draw": 500000,
-      "default_jackpot_rub": 100000000,
-      "lotocafe_slug": "archive-7-iz-49",
+      "short": "7 из 49",
+      "stoloto": "7x49",
+      "fields": [{"pick": 7, "pool": 49, "slip": {"rows": 7, "cols": 7}}],
+      "ticket_price_rub": 40,
+      "typical_players_per_draw": 17000,
+      "default_jackpot_rub": 10000000,
+      "categories": [
+        {"title": "7 из 7", "match": [[7]]},
+        {"title": "6 из 7", "match": [[6]]},
+        {"title": "5 из 7", "match": [[5]]},
+        {"title": "4 из 7", "match": [[4]]},
+        {"title": "3 из 7", "match": [[3]]},
+        {"title": "2 из 7", "match": [[2]]}
+      ],
       "popularity_overrides": {
         "_comment": "Равномерное среднее суммы 7 из 49 — 175. Человеческий пик смещён вниз так же, как в 6 из 45 (118 против 138).",
-        "sum_window": { "human_peak": 150, "sigma": 40, "peak_multiplier": 1.35 }
+        "sum_window": {"human_peak": 150, "sigma": 40, "peak_multiplier": 1.35},
+        "decade_clustering": {"narrow_range_threshold": 16}
+      },
+      "calibration": {
+        "_comment": "Обучено scripts/calibrate_popularity.py на итогах тиражей Столото. Не править руками.",
+        "fitted_at": "2026-09-26T12:13:16+00:00",
+        "draws": 8000,
+        "date_from": "2023-05-17",
+        "date_to": "2026-09-26",
+        "bets": 140395129,
+        "winners": 33711302,
+        "random_share": 0.5093,
+        "holdout": {
+          "draws": 1600,
+          "loglik_gain": 13358.7,
+          "loglik_gain_per_draw": 8.3492,
+          "structure": {"vs_numbers_only": 174.9, "vs_literature": 301.4}
+        },
+        "structure": {
+          "no_adjacent": 2.5556,
+          "run3": 0.1373,
+          "balanced": 1.0,
+          "extreme": 1.2892,
+          "sum_peak": 0.8049,
+          "narrow": 0.2156,
+          "patterns": 0.1864
+        },
+        "field_weights": [
+          [
+            0.7399, 1.0026, 1.3096, 1.216, 1.1787, 1.0735, 1.5395, 1.1889, 1.37, 1.109, 1.3303,
+            1.1564, 1.4214, 0.9849, 0.9643, 1.0878, 1.3692, 1.1708, 1.2329, 1.0044, 1.0968, 1.027,
+            1.2032, 1.0345, 1.1638, 1.1335, 1.2073, 0.9616, 0.8665, 0.8959, 0.9364, 0.9577, 1.1778,
+            0.8076, 0.6986, 0.6435, 0.8356, 0.8396, 0.8466, 0.8055, 0.8418, 0.6387, 0.6728, 0.7668,
+            0.8095, 0.5904, 0.8363, 0.6285, 0.6261
+          ]
+        ]
+      }
+    },
+    "4x20": {
+      "title": "Спортлото «4 из 20»",
+      "short": "4 из 20",
+      "stoloto": "4x20",
+      "fields": [
+        {"pick": 4, "pool": 20, "slip": {"rows": 4, "cols": 5}},
+        {"pick": 4, "pool": 20, "slip": {"rows": 4, "cols": 5}}
+      ],
+      "ticket_price_rub": 300,
+      "typical_players_per_draw": 100000,
+      "default_jackpot_rub": 300000000,
+      "categories": [
+        {"title": "4 X 4", "match": [[4, 4]]},
+        {"title": "4 X 3 и 3 X 4", "match": [[4, 3], [3, 4]]},
+        {"title": "4 X 2 и 2 X 4", "match": [[4, 2], [2, 4]]},
+        {"title": "4 X 1 и 1 X 4", "match": [[4, 1], [1, 4]]},
+        {"title": "4 X 0 и 0 X 4", "match": [[4, 0], [0, 4]]},
+        {"title": "3 X 3", "match": [[3, 3]]},
+        {"title": "3 X 2 и 2 X 3", "match": [[3, 2], [2, 3]]},
+        {"title": "3 X 1 и 1 X 3", "match": [[3, 1], [1, 3]]},
+        {"title": "3 X 0 и 0 X 3", "match": [[3, 0], [0, 3]]},
+        {"title": "2 X 2", "match": [[2, 2]]},
+        {"title": "2 X 1 и 1 X 2", "match": [[2, 1], [1, 2]]},
+        {"title": "2 X 0 и 0 X 2", "match": [[2, 0], [0, 2]]}
+      ],
+      "popularity_overrides": {
+        "_comment": "Среднее суммы 4 из 20 — 42; людской пик ниже, как и в других играх.",
+        "sum_window": {"human_peak": 36, "sigma": 12, "peak_multiplier": 1.35},
+        "decade_clustering": {"narrow_range_threshold": 7}
+      },
+      "calibration": {
+        "_comment": "Обучено scripts/calibrate_popularity.py на итогах тиражей Столото. Не править руками.",
+        "fitted_at": "2026-09-26T12:13:49+00:00",
+        "draws": 8000,
+        "date_from": "2023-12-29",
+        "date_to": "2026-09-26",
+        "bets": 0,
+        "winners": 30774796,
+        "random_share": 0.016,
+        "holdout": {
+          "draws": 1600,
+          "loglik_gain": 431.1,
+          "loglik_gain_per_draw": 0.2694,
+          "structure": {"vs_numbers_only": 186.2, "vs_literature": 15517.3}
+        },
+        "structure": {
+          "no_adjacent": 1.2608,
+          "run3": 0.8935,
+          "balanced": 0.9623,
+          "extreme": 0.9524,
+          "sum_peak": 0.9908,
+          "narrow": 0.6846,
+          "patterns": 0.1755
+        },
+        "field_weights": [
+          [
+            0.8172, 1.0041, 1.0607, 1.0062, 1.0086, 0.9959, 1.2496, 1.0654, 1.1483, 1.0049, 1.0324,
+            1.0156, 1.088, 0.9562, 0.9957, 0.9117, 0.8931, 0.9301, 0.9475, 0.8687
+          ],
+          [
+            0.8858, 1.008, 1.0575, 1.019, 1.0255, 1.0458, 1.1329, 1.0668, 1.1304, 1.0506, 1.1033,
+            0.9487, 1.0144, 0.9484, 0.9128, 0.9408, 0.9736, 0.9087, 0.9521, 0.875
+          ]
+        ]
+      }
+    },
+    "5x36plus": {
+      "title": "Гослото «5 из 36»",
+      "short": "5 из 36",
+      "stoloto": "5x36plus",
+      "fields": [
+        {"pick": 5, "pool": 36, "slip": {"rows": 6, "cols": 6}},
+        {"pick": 1, "pool": 4, "slip": {"rows": 1, "cols": 4}}
+      ],
+      "ticket_price_rub": 75,
+      "typical_players_per_draw": 330,
+      "default_jackpot_rub": 3000000,
+      "categories": [
+        {"title": "5 + 1", "match": [[5, 1]]},
+        {"title": "5", "match": [[5, 0]]},
+        {"title": "4", "match": [[4, 0], [4, 1]]},
+        {"title": "3", "match": [[3, 0], [3, 1]]},
+        {"title": "2", "match": [[2, 0], [2, 1]]}
+      ],
+      "popularity_overrides": {
+        "_comment": "Среднее суммы 5 из 36 — 92,5.",
+        "sum_window": {"human_peak": 80, "sigma": 22, "peak_multiplier": 1.35},
+        "decade_clustering": {"narrow_range_threshold": 12}
+      },
+      "calibration": {
+        "_comment": "Обучено scripts/calibrate_popularity.py на итогах тиражей Столото. Не править руками.",
+        "fitted_at": "2026-09-26T12:14:34+00:00",
+        "draws": 8000,
+        "date_from": "2026-05-12",
+        "date_to": "2026-09-26",
+        "bets": 7301808,
+        "winners": 470264,
+        "random_share": 0.0261,
+        "holdout": {
+          "draws": 1600,
+          "loglik_gain": 216.1,
+          "loglik_gain_per_draw": 0.1351,
+          "structure": {"vs_numbers_only": -4.9, "vs_literature": 66.3}
+        },
+        "structure": {
+          "no_adjacent": 1.0,
+          "run3": 1.0,
+          "balanced": 1.0,
+          "extreme": 1.0,
+          "sum_peak": 1.0,
+          "narrow": 1.0,
+          "patterns": 0.0
+        },
+        "field_weights": [
+          [
+            0.8496, 0.9736, 1.0937, 1.0254, 1.0902, 0.9736, 1.1991, 1.0616, 1.0975, 1.0098, 1.1449,
+            1.0228, 1.0853, 1.0224, 0.9834, 0.9685, 1.1398, 1.0107, 1.0274, 0.9733, 1.0989, 1.0068,
+            1.0414, 0.9091, 0.9247, 0.9816, 1.0901, 1.0215, 0.9457, 0.8864, 0.8999, 0.8944, 0.9559,
+            0.8935, 0.8682, 0.8294
+          ],
+          [1.3098, 0.5532, 0.4121, 1.725]
+        ]
+      }
+    },
+    "5x2": {
+      "title": "«Большое Спортлото»",
+      "short": "5 из 50",
+      "stoloto": "5x2",
+      "fields": [
+        {"pick": 5, "pool": 50, "slip": {"rows": 10, "cols": 5}},
+        {"pick": 2, "pool": 10, "slip": {"rows": 2, "cols": 5}}
+      ],
+      "ticket_price_rub": 30,
+      "typical_players_per_draw": 100000,
+      "default_jackpot_rub": 30000000,
+      "categories": [
+        {"title": "5+2", "match": [[5, 2]]},
+        {"title": "5+1", "match": [[5, 1]]},
+        {"title": "5+0", "match": [[5, 0]]},
+        {"title": "4+2", "match": [[4, 2]]},
+        {"title": "4+1", "match": [[4, 1]]},
+        {"title": "4+0", "match": [[4, 0]]},
+        {"title": "3+2", "match": [[3, 2]]},
+        {"title": "2+2", "match": [[2, 2]]},
+        {"title": "3+1", "match": [[3, 1]]},
+        {"title": "3+0", "match": [[3, 0]]},
+        {"title": "1+2", "match": [[1, 2]]},
+        {"title": "2+1", "match": [[2, 1]]},
+        {"title": "2+0", "match": [[2, 0]]},
+        {"title": "1+1", "match": [[1, 1]]},
+        {"title": "1+0", "match": [[1, 0]]}
+      ],
+      "popularity_overrides": {
+        "_comment": "Среднее суммы 5 из 50 — 127,5.",
+        "sum_window": {"human_peak": 105, "sigma": 30, "peak_multiplier": 1.35},
+        "decade_clustering": {"narrow_range_threshold": 16}
+      },
+      "calibration": {
+        "_comment": "Обучено scripts/calibrate_popularity.py на итогах тиражей Столото. Не править руками.",
+        "fitted_at": "2026-09-26T12:14:59+00:00",
+        "draws": 3312,
+        "date_from": "2022-04-12",
+        "date_to": "2026-09-26",
+        "bets": 0,
+        "winners": 31672715,
+        "random_share": 0.722,
+        "holdout": {
+          "draws": 663,
+          "loglik_gain": 6995.5,
+          "loglik_gain_per_draw": 10.5513,
+          "structure": {"vs_numbers_only": -73.2, "vs_literature": 240.0}
+        },
+        "structure": {
+          "no_adjacent": 1.0,
+          "run3": 1.0,
+          "balanced": 1.0,
+          "extreme": 1.0,
+          "sum_peak": 1.0,
+          "narrow": 1.0,
+          "patterns": 0.0
+        },
+        "field_weights": [
+          [
+            0.5717, 0.7984, 1.4776, 1.1998, 1.3968, 1.1562, 1.9183, 1.2403, 1.3951, 1.0386, 1.1781,
+            1.2373, 1.9958, 1.1705, 1.1581, 0.9821, 1.6253, 1.1233, 1.2681, 0.7875, 1.2063, 1.129,
+            1.3705, 1.0302, 1.2546, 1.104, 1.4983, 1.0447, 1.0016, 0.7093, 0.7193, 0.8041, 1.5602,
+            0.8985, 0.7976, 0.654, 1.0223, 0.8101, 0.7079, 0.3327, 0.4932, 0.5419, 0.6288, 0.8309,
+            0.7789, 0.4444, 0.765, 0.2949, 0.3704, 0.4775
+          ],
+          [0.3957, 0.9685, 1.5646, 1.205, 1.101, 0.8036, 1.5301, 1.0173, 0.9977, 0.4166]
+        ]
       }
     }
   },
@@ -38,12 +310,12 @@
       "base_1_12": 1.85,
       "base_13_31": 1.45,
       "base_32_45": 0.55,
-      "overrides": { "7": 2.30, "13": 0.62, "3": 1.60, "11": 1.55, "21": 1.20, "33": 0.85, "40": 0.70 }
+      "overrides": {"7": 2.3, "13": 0.62, "3": 1.6, "11": 1.55, "21": 1.2, "33": 0.85, "40": 0.7}
     },
     "consecutive_run": {
       "_comment": "Игроки одновременно (а) избегают соседних пар в 'обычных' ставках и (б) массово ставят шутливые 1-2-3-4-5-6. Оба эффекта учтены.",
       "no_adjacent_pair_bonus": 1.25,
-      "run_length_multiplier": { "3": 1.4, "4": 3.0, "5": 12.0, "6": 60.0 }
+      "run_length_multiplier": {"3": 1.4, "4": 3.0, "5": 12.0, "6": 60.0}
     },
     "arithmetic_progression": {
       "_comment": "Полная арифметическая прогрессия (5,10,15,20,25,30) — популярный шаблон.",
@@ -66,8 +338,8 @@
     },
     "parity_balance": {
       "_comment": "Игроки предпочитают 'сбалансированные' 3 чётных / 3 нечётных.",
-      "balanced_3_3_multiplier": 1.30,
-      "extreme_0_6_multiplier": 0.70
+      "balanced_3_3_multiplier": 1.3,
+      "extreme_0_6_multiplier": 0.7
     },
     "decade_clustering": {
       "_comment": "Множитель, если все числа умещаются в узкий диапазон (кроме уже учтённых линий).",

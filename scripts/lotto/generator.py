@@ -1,10 +1,13 @@
 """Генератор непопулярных комбинаций.
 
-ВАЖНО про честность метода. Мы отбираем комбинации из РАВНОМЕРНОЙ выборки по
-всему пространству. Любая фильтрация оставляет каждую уцелевшую комбинацию
-ровно так же вероятной, как и любую другую: шанс выиграть у выданного билета
-точно тот же самый 1/C(45,6). Мы не «повышаем шанс» — мы выбираем среди
-равновероятных ту, которую вряд ли поставил кто-то ещё.
+ВАЖНО про честность метода. Мы отбираем билеты из РАВНОМЕРНОЙ выборки по
+всему пространству. Любая фильтрация оставляет каждый уцелевший билет ровно
+так же вероятным, как любой другой: шанс выиграть у выданного билета тот же
+самый 1/C(45,6). Мы не «повышаем шанс» — мы выбираем среди равновероятных тот,
+который вряд ли поставил кто-то ещё.
+
+Ограничения include/exclude относятся к главному полю: именно там человек
+хочет «оставить свою семёрку». Остальные поля подбираются целиком.
 """
 from __future__ import annotations
 
@@ -12,18 +15,23 @@ import random
 from dataclasses import dataclass
 from typing import Sequence
 
-from .popularity import GameSpec, popularity_breakdown, popularity_weight
+from .popularity import GameSpec, Ticket, as_ticket, popularity_breakdown, popularity_weight, random_ticket
 
 
 @dataclass
 class Candidate:
-    combo: tuple[int, ...]
+    ticket: Ticket
     weight: float
     breakdown: dict[str, float]
 
+    @property
+    def combo(self) -> tuple[int, ...]:
+        """Главное поле — для однопольных игр это весь билет."""
+        return self.ticket[0]
+
     def to_dict(self) -> dict:
         return {
-            "combo": list(self.combo),
+            "numbers": [list(f) for f in self.ticket],
             "weight": self.weight,
             "breakdown": self.breakdown,
         }
@@ -40,14 +48,10 @@ def generate(
     seed: int | None = None,
     distinct_overlap: int | None = None,
 ) -> list[Candidate]:
-    """Вернуть `count` комбинаций с наименьшим весом популярности.
+    """Вернуть `count` билетов с наименьшим весом популярности.
 
-    include/exclude — пользовательские ограничения (например, «оставь мою
-    семёрку»). Они сужают пространство, но внутри него выбор остаётся
-    равномерным, поэтому вероятность выигрыша не меняется.
-
-    distinct_overlap — максимально допустимое пересечение между выданными
-    комбинациями, чтобы набор билетов покрывал разные числа.
+    distinct_overlap — максимально допустимое пересечение главных полей
+    выданных билетов, чтобы набор покрывал разные числа.
     """
     include = tuple(sorted(set(include)))
     excluded = set(exclude)
@@ -63,18 +67,20 @@ def generate(
 
     rng = random.Random(seed)
     scored: list[Candidate] = []
-    seen: set[tuple[int, ...]] = set()
+    seen: set[Ticket] = set()
 
     for _ in range(candidates):
-        combo = tuple(sorted(include + tuple(rng.sample(pool, need))))
-        if combo in seen:
+        rest = random_ticket(game, rng)[1:]
+        main = tuple(sorted(include + tuple(rng.sample(pool, need))))
+        ticket = (main,) + rest
+        if ticket in seen:
             continue
-        seen.add(combo)
-        breakdown = popularity_breakdown(combo, game, params, past_winners)
+        seen.add(ticket)
+        breakdown = popularity_breakdown(ticket, game, params, past_winners)
         weight = 1.0
         for value in breakdown.values():
             weight *= value
-        scored.append(Candidate(combo, weight, breakdown))
+        scored.append(Candidate(ticket, weight, breakdown))
 
     scored.sort(key=lambda c: c.weight)
 
@@ -94,22 +100,20 @@ def generate(
 
 
 def percentile_of(
-    combo: Sequence[int],
+    combo,
     game: GameSpec,
     params: dict | None = None,
     samples: int = 20_000,
     seed: int = 777,
 ) -> float:
-    """Доля случайных комбинаций, которые популярнее данной (0..1).
+    """Доля случайных билетов, которые популярнее данного (0..1).
 
     1.0 означает «непопулярнее всех» — то, что нам нужно.
     """
     rng = random.Random(seed)
-    target = popularity_weight(combo, game, params)
-    pool = list(range(1, game.pool + 1))
+    target = popularity_weight(as_ticket(combo, game), game, params)
     heavier = 0
     for _ in range(samples):
-        other = rng.sample(pool, game.pick)
-        if popularity_weight(other, game, params) > target:
+        if popularity_weight(random_ticket(game, rng), game, params) > target:
             heavier += 1
     return heavier / samples

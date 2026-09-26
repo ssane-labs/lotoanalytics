@@ -1,10 +1,13 @@
 /**
- * Mini App: подбор непопулярных комбинаций, разбор своей комбинации,
- * статистика тиражей и проверка предсказуемости.
+ * Mini App: подбор непопулярных комбинаций, разбор своей комбинации и
+ * история тиражей.
  *
  * Вся математика считается в браузере: на GitHub Pages нет бэкенда, данные
  * приезжают статическими JSON из docs/data/. Воркер нужен только для кошелька
  * прокруток — без него приложение работает, просто с бесплатным лимитом.
+ *
+ * Билет везде — массив полей: [[…6 чисел]] в «6 из 45», два поля по четыре
+ * числа в «4 из 20», пять чисел и бонусный номер в «5 из 36».
  */
 
 import {
@@ -12,13 +15,12 @@ import {
   FACTOR_LABELS,
   generate,
   evaluateEV,
-  breakevenJackpot,
   unpopularityPercentile,
-} from './model.js?v=7a9d6659';
-import { CONFIG } from './config.js?v=7a9d6659';
-import { DrawAI } from './ai.js?v=7a9d6659';
-import { Wallet, spinsWord } from './wallet.js?v=7a9d6659';
-import { NumberField } from './numfield.js?v=7a9d6659';
+} from './model.js?v=89671c74';
+import { CONFIG } from './config.js?v=89671c74';
+import { DrawAI } from './ai.js?v=89671c74';
+import { Wallet, spinsWord } from './wallet.js?v=89671c74';
+import { NumberField } from './numfield.js?v=89671c74';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -34,12 +36,14 @@ const state = {
   model: null,
   meta: null,
   stats: null,
-  proof: null,
+  /** Сырой _model.json: в нём сведения об обучении модели популярности. */
+  modelData: null,
   /** Нейросеть текущей игры: сырой JSON и модель (null, если не обучена). */
   aiData: null,
   ai: null,
   genMode: 'classic',
-  selected: new Set(),
+  /** Отмеченные на бланке числа — по множеству на каждое поле. */
+  selected: [],
   jackpot: 300_000_000,
   genCount: 1,
   /** Поля «мои числа» и «убрать» — компонент с числами-фишками. */
@@ -162,14 +166,28 @@ function rowsList(items) {
   return dl;
 }
 
-function ballsNode(combo, { accent = false, roll = false } = {}) {
-  const wrap = el('div', 'balls');
-  combo.forEach((n, i) => {
-    const b = el('div', `ball${accent ? ' ball--accent' : ''}`, String(n));
-    b.style.animationDelay = `${i * 45}ms`;
-    wrap.append(b);
+/**
+ * Шары билета. Второе поле и бонусный номер идут после «+» другим цветом:
+ * это отдельный набор чисел, а не продолжение первого.
+ */
+function ballsNode(ticket, { accent = false, roll = false, quiet = false } = {}) {
+  const fields = Array.isArray(ticket[0]) ? ticket : [ticket];
+  const wrap = el('div', `balls${fields.length > 1 ? ' balls--multi' : ''}`);
+  const items = [];
+  fields.forEach((combo, f) => {
+    if (f > 0) wrap.append(el('span', 'balls__plus', '+'));
+    combo.forEach((n) => {
+      let cls = 'ball';
+      if (f > 0) cls += ' ball--extra';
+      else if (accent) cls += ' ball--accent';
+      if (quiet) cls += ' ball--quiet';
+      const b = el('div', cls, String(n));
+      b.style.animationDelay = `${items.length * 45}ms`;
+      wrap.append(b);
+      items.push({ node: b, value: n, pool: state.model?.game?.fields?.[f]?.pool || 45 });
+    });
   });
-  if (roll) rollBalls(wrap, combo);
+  if (roll) rollBalls(items);
   return wrap;
 }
 
@@ -183,13 +201,12 @@ function ballsNode(combo, { accent = false, roll = false } = {}) {
 const rolling = [];
 let rollLoop = null;
 
-function rollBalls(wrap, combo) {
+function rollBalls(items) {
   if (reduceMotion) return;
-  const pool = state.model?.game?.pool || 45;
   const now = performance.now();
-  [...wrap.children].forEach((node, i) => {
+  items.forEach(({ node, value, pool }, i) => {
     node.classList.add('is-rolling');
-    rolling.push({ node, value: combo[i], until: now + 340 + i * 75, pool });
+    rolling.push({ node, value, until: now + 340 + i * 75, pool });
   });
   if (!rollLoop) rollLoop = requestAnimationFrame(rollTick);
 
@@ -197,7 +214,7 @@ function rollBalls(wrap, combo) {
   // вместе с ним замирает и докрутка — шар так и остался бы показывать
   // случайное число вместо подобранного. Таймер доводит числа до места
   // независимо от того, рисует ли браузер кадры.
-  const lastLanding = 340 + (combo.length - 1) * 75 + 120;
+  const lastLanding = 340 + (items.length - 1) * 75 + 120;
   setTimeout(() => settleRolling({ force: true }), lastLanding);
 }
 
@@ -265,20 +282,28 @@ function whyNode(breakdown) {
     };
   })));
   details.append(el('p', 'muted',
-    '× — так выбирают чаще, это против нас. ÷ — так выбирают реже.'));
+    '× — такие комбинации выбирают чаще среднего, ÷ — реже.'));
   return details;
 }
 
-/** Полный разбор одной комбинации. */
-function analysisSection(combo, breakdown, { title, roll = false } = {}) {
+/** Полный разбор одного билета. */
+function analysisSection(ticket, breakdown, { title, roll = false } = {}) {
   const node = section(title || null);
-  node.append(ballsNode(combo, { accent: true, roll }));
-  node.append(meterNode(unpopularityPercentile(state.model, combo, 3000)));
+  node.append(ballsNode(ticket, { accent: true, roll }));
+  node.append(meterNode(unpopularityPercentile(state.model, ticket, 3000)));
 
-  const ev = evaluateEV(state.model, combo, state.jackpot);
+  const ev = evaluateEV(state.model, ticket, state.jackpot);
   const rivals = ev.expectedCoWinners;
+  // Во сколько раз чаще или реже среднего ставят этот билет — с учётом
+  // автовыбора, который распределяет свою долю поровну.
+  const density = ev.pickShare * state.model.totalCombinations;
 
   node.append(specGrid([
+    {
+      k: 'Ставят',
+      v: `×${fmtDec(density)}`,
+      tone: density < 0.95 ? 'good' : density > 1.5 ? 'accent' : null,
+    },
     {
       k: 'Соперников',
       v: rivals < 0.01 ? '< 0,01' : fmtDec(rivals),
@@ -289,22 +314,22 @@ function analysisSection(combo, breakdown, { title, roll = false } = {}) {
       v: `${Math.round(ev.shareFactor * 100)}%`,
       tone: ev.shareFactor > 0.8 ? 'good' : ev.shareFactor < 0.4 ? 'accent' : null,
     },
-    {
-      k: 'К средней',
-      v: `×${fmtDec(ev.payoutAdvantage)}`,
-      tone: ev.payoutAdvantage >= 1 ? 'good' : 'accent',
-    },
-    { k: 'Выплата', v: fmtMoney(ev.evTotal + state.model.game.ticket_price_rub), tone: 'dim' },
+    { k: 'Ваш суперприз', v: `${fmtBig(state.jackpot * ev.shareFactor)} ₽`, tone: 'dim' },
   ]));
 
   let cls = 'note note--good';
-  let text = 'Чисто: такую комбинацию почти наверняка не поставил никто, кроме вас. Джекпот делить не придётся.';
+  let text = density < 0.95
+    ? `Такую комбинацию ставят в ${fmtDec(1 / density, 1)} раза реже среднего. При выигрыше суперприз, скорее всего, достанется вам целиком.`
+    : 'При выигрыше суперприз, скорее всего, достанется вам целиком.';
   if (ev.shareFactor < 0.4) {
     cls = 'note';
-    text = `Ходовой шаблон. При выигрыше вам достанется около ${Math.round(ev.shareFactor * 100)}% джекпота — остальное заберут те, кто выбрал то же самое.`;
+    text = `Популярная комбинация. При выигрыше вам достанется около ${Math.round(ev.shareFactor * 100)}% суперприза, остальное — тем, кто поставил то же самое.`;
   } else if (ev.shareFactor < 0.85) {
     cls = 'note';
-    text = 'Комбинация умеренно популярна — есть шанс поделить джекпот с кем-то ещё.';
+    text = 'Комбинацию ставят заметно чаще среднего: суперприз, возможно, придётся делить.';
+  } else if (density > 1.5) {
+    cls = 'note';
+    text = `Такую комбинацию ставят в ${fmtDec(density, 1)} раза чаще среднего.`;
   }
   const note = el('div', cls);
   note.style.marginTop = '18px';
@@ -324,7 +349,6 @@ function initTabs() {
       const target = tab.dataset.view;
       tabs.forEach((t) => t.classList.toggle('is-active', t === tab));
       document.querySelectorAll('.view').forEach((view) => {
-        if (view.id === 'banners') return;
         view.hidden = view.id !== `view-${target}`;
       });
       window.scrollTo({ top: 0 });
@@ -338,7 +362,6 @@ function showView(name) {
     t.classList.toggle('is-active', t.dataset.view === name);
   });
   document.querySelectorAll('.view').forEach((view) => {
-    if (view.id === 'banners') return;
     view.hidden = view.id !== `view-${name}`;
   });
 }
@@ -407,7 +430,7 @@ function wordTail(n) {
 function walletHint() {
   const b = wallet.balance;
   if (wallet.online) {
-    if (b.free > 0) return 'Одна бесплатная сегодня уже здесь';
+    if (b.free > 0) return 'Бесплатная на сегодня доступна';
     if (wallet.adsLeft > 0) return `Ещё ${wallet.adsLeft} за рекламу на этой неделе`;
     if (wallet.total === 0) return 'Бесплатная вернётся завтра';
     return 'Купленные прокрутки не сгорают';
@@ -427,8 +450,8 @@ function renderStore({ open = false } = {}) {
   host.append(el('h3', null, 'Как это устроено'));
   host.append(el('p', 'muted',
     `Прокрутка — одна подобранная комбинация. ${wallet.economy.FREE_PER_DAY} бесплатная каждый день, ` +
-    `ещё до ${wallet.economy.ADS_PER_WEEK} в неделю — за короткий ролик. ` +
-    'Купленные не сгорают и не требуют подписки: платите только за то, чем пользуетесь.'));
+    `ещё до ${wallet.economy.ADS_PER_WEEK} в неделю за просмотр рекламы. ` +
+    'Купленные прокрутки не сгорают, подписки нет.'));
 
   host.append(adNode());
 
@@ -451,20 +474,6 @@ function renderStore({ open = false } = {}) {
   const ref = referralNode();
   if (ref) host.append(ref);
 
-  // Дисклеймер стоит именно здесь, а не только на вкладке «Проверка»: это
-  // экран, где человек платит, и предупреждение обязано быть там же, где
-  // деньги, а не в разделе, куда можно не зайти.
-  const note = el('div', 'note note--quiet');
-  note.style.marginTop = '22px';
-  note.append(el('p', 'fineprint',
-    'Приложение не предсказывает результаты тиражей и не повышает шанс ' +
-    'выигрыша — это невозможно, и во вкладке «Проверка» мы это измерили. ' +
-    'Прокрутки оплачивают подбор комбинаций, которые редко выбирают другие ' +
-    'игроки: это влияет на размер выплаты при выигрыше, а не на его ' +
-    'вероятность. Ожидаемая выплата билета ниже его цены — так устроена ' +
-    'любая лотерея. Лотерея это развлечение, а не способ заработка: ' +
-    'не тратьте больше, чем готовы потерять.'));
-  host.append(note);
 }
 
 /** Кнопка просмотра рекламы. Прячем целиком, если рекламы нет. */
@@ -483,7 +492,7 @@ function adNode() {
   const btn = el('button', 'btn btn--ghost');
   btn.type = 'button';
   btn.append(icon('play', 16),
-    document.createTextNode(`Смотреть ролик · +${wallet.economy.AD_REWARD}`));
+    document.createTextNode(`Смотреть рекламу · +${wallet.economy.AD_REWARD}`));
   btn.disabled = left <= 0;
   btn.addEventListener('click', async () => {
     haptic('light');
@@ -495,16 +504,18 @@ function adNode() {
     if (result.ok) {
       haptic('medium');
       renderStore({ open: true });
+      $('#store-section .adbox')?.append(el('p', 'muted pay-note',
+        `Начислено: ${spinsWord(result.reward || wallet.economy.AD_REWARD)}.`));
       return;
     }
     btn.disabled = wallet.adsLeft <= 0;
-    label.textContent = `Смотреть ролик · +${wallet.economy.AD_REWARD}`;
+    label.textContent = `Смотреть рекламу · +${wallet.economy.AD_REWARD}`;
     wrap.append(el('p', 'error pay-note', result.error || 'Реклама недоступна.'));
   });
   wrap.append(btn);
   wrap.append(el('p', 'fineprint',
-    'Ролик короткий, его показывает рекламная сеть Telegram. Прокрутка ' +
-    'начисляется после полного просмотра.'));
+    'Рекламу показывает сеть Adsgram. Прокрутка начисляется, если досмотреть ' +
+    'рекламу до конца.'));
   return wrap;
 }
 
@@ -707,14 +718,15 @@ async function shareLink(url, text) {
   window.open(shareUrl, '_blank', 'noopener');
 }
 
+const ticketText = (ticket) => ticket.map((f) => f.join(' ')).join(' + ');
+
 function shareCombos(picks) {
   const { title } = state.model.game;
-  const lines = picks.map((p) => p.combo.join(' · '));
-  const how = state.genMode === 'ai' ? 'нейросеть' : 'аналитик';
+  const lines = picks.map((p) => ticketText(p.ticket));
+  const how = state.genMode === 'ai' ? 'нейросеть' : 'модель популярности';
   shareLink(
     inviteLink(),
-    `Мои числа для ${title}, подобрал ${how}:\n${lines.join('\n')}\n\n` +
-    'Такие комбинации почти никто не ставит — при выигрыше джекпот не придётся делить.',
+    `Мои числа для ${title} (подобрала ${how}):\n${lines.join('\n')}`,
   );
 }
 
@@ -727,8 +739,7 @@ function renderDonate() {
   host.append(el('span', 'eyebrow', 'Поддержка'));
   host.append(el('h3', null, 'Поддержать проект'));
   host.append(el('p', 'muted',
-    'Расчёты, история тиражей и проверка моделей открыты и бесплатны. ' +
-    'Если проект оказался полезен — можно поддержать разработку.'));
+    'Если приложение пригодилось, можно поддержать разработку на Boosty.'));
   const btn = el('button', 'btn btn--ghost');
   btn.type = 'button';
   btn.append(icon('heart', 16), document.createTextNode('Поддержать на Boosty'));
@@ -739,10 +750,10 @@ function renderDonate() {
 // -------------------------------------------------------------- генератор
 
 const MODE_HINTS = {
-  classic: 'Считаем, как часто такую комбинацию выбирают люди, и берём ту, ' +
-    'что не встречается почти ни у кого.',
-  ai: 'Сеть обучена на всей истории тиражей и переобучается каждый день. ' +
-    'Из её вариантов оставляем самые редкие у игроков.',
+  classic: 'Из 15 000 случайных комбинаций выбирается та, которую, по оценке ' +
+    'модели популярности, реже всего ставят другие игроки.',
+  ai: 'Нейросеть отбирает числа по истории тиражей, из её вариантов ' +
+    'выбирается самый редкий у других игроков.',
 };
 
 function initGenerator() {
@@ -791,33 +802,19 @@ function renderRunButton() {
   btn.setAttribute('aria-label', `Подобрать. Спишется ${spinsWord(need)}`);
 }
 
-/** Честная справка о нейросети рядом с её подбором. */
+/** Справка о нейросети рядом с её подбором. */
 function aiNoteNode() {
-  const d = state.aiData;
+  const d = state.aiData.fields[0];
   const node = el('div', 'note note--quiet');
   node.style.marginTop = '4px';
   const p = el('p', 'muted');
   p.append(el('strong', null, 'Нейросеть. '));
   p.append(document.createTextNode(
-    `Перцептрон ${d.arch.inputs}→${d.arch.hidden}→1, обучен на ` +
-    `${fmtInt(d.draws_used)} тиражах (${fmtInt(d.samples)} примеров) и ` +
-    'переобучается каждый день. Сеть выбирает числа, которые считает ' +
-    'вероятнее, а из её вариантов мы берём те, что реже ставят другие.',
+    `Перцептрон ${d.arch.inputs}→${d.arch.hidden.join('→')}→1, обучен на ` +
+    `${fmtInt(d.draws_used)} тиражах (${fmtInt(d.samples)} примеров), ` +
+    'переобучается каждый день.',
   ));
   node.append(p);
-  if (!d.holdout || d.holdout.draws < 10) {
-    // На паре тиражей средняя «угаданность» — чистый шум, показывать её как
-    // результат нечестно в обе стороны.
-    node.append(el('p', 'muted',
-      'Проверку на тиражах, которых сеть не видела, покажем, когда их накопится ' +
-      'хотя бы десять. Шанс выиграть от нейросети не меняется: тиражи независимы.'));
-  } else {
-    node.append(el('p', 'muted',
-      `На ${fmtInt(d.holdout.draws)} тиражах, которых сеть не видела, она угадала в среднем ` +
-      `${fmtDec(d.holdout.mean_matches)} числа — случайный выбор даёт ` +
-      `${fmtDec(d.holdout.expected_by_chance)}. Шанс выиграть от этого не меняется: ` +
-      'тиражи независимы, и это видно по цифрам.'));
-  }
   return node;
 }
 
@@ -827,7 +824,7 @@ function shortOnSpins(need) {
   const note = el('div', 'note');
   note.append(el('p', null, `Чтобы продолжить, нужно ещё ${spinsWord(need)}.`));
   note.append(el('p', 'muted', wallet.canWatchAds
-    ? 'Посмотрите короткий ролик — прокрутка начислится сразу. Или возьмите пакет, он не сгорает.'
+    ? 'Прокрутку можно получить за просмотр рекламы или купить пакетом — купленные не сгорают.'
     : 'Одна прокрутка приходит бесплатно каждый день. Пакеты — ниже.'));
   node.append(note);
   const btn = el('button', 'btn btn--accent');
@@ -844,7 +841,7 @@ function setRunning(on) {
   const btn = $('#gen-run');
   btn.classList.toggle('is-running', on);
   btn.disabled = on;
-  $('#gen-run-label').textContent = on ? 'Крутим барабан' : 'Подобрать';
+  $('#gen-run-label').textContent = on ? 'Подбор…' : 'Подобрать';
   $('#gen-run-price').hidden = on;
 }
 
@@ -866,8 +863,8 @@ async function runGenerator() {
   }
 
   // Параметры читаем до списания: если ограничения противоречивы, прокрутки
-  // не должны сгореть впустую.
-  const pool = state.model.game.pool;
+  // не должны сгореть впустую. Ограничения — для главного поля.
+  const { pool, pick } = state.model.game.fields[0];
   const include = state.includeField.value();
   const exclude = state.excludeField.value();
   const clash = include.filter((n) => exclude.includes(n));
@@ -876,12 +873,12 @@ async function runGenerator() {
     errBox.hidden = false;
     return;
   }
-  if (include.length > state.model.game.pick) {
-    errBox.textContent = `Своих чисел не может быть больше ${state.model.game.pick}.`;
+  if (include.length > pick) {
+    errBox.textContent = `Своих чисел не может быть больше ${pick}.`;
     errBox.hidden = false;
     return;
   }
-  if (pool - exclude.length < state.model.game.pick) {
+  if (pool - exclude.length < pick) {
     errBox.textContent = 'Убрано слишком много чисел — выбирать не из чего.';
     errBox.hidden = false;
     return;
@@ -921,14 +918,14 @@ async function runGenerator() {
       // Взвешенная выборка дороже равномерной, кандидатов берём меньше.
       candidates: useAI ? 6000 : 15000,
       maxOverlap: spread && state.genCount > 1 ? 2 : null,
-      numberWeights: useAI ? state.ai.probabilities(state.model.recentWinners) : null,
+      numberWeights: useAI ? state.ai.probabilities() : null,
     });
     if (!picks.length) throw new Error('С такими ограничениями подобрать не удалось');
 
     await spinFloor;
     results.replaceChildren();
     if (picks.length === 1) {
-      results.append(analysisSection(picks[0].combo, picks[0].breakdown,
+      results.append(analysisSection(picks[0].ticket, picks[0].breakdown,
         { title: 'Ваша комбинация', roll: true }));
     } else {
       // Несколько билетов свёрнуты до самих чисел: полный разбор каждого
@@ -940,10 +937,6 @@ async function runGenerator() {
 
     const tail = section(null);
     if (useAI) tail.append(aiNoteNode());
-    tail.append(el('p', 'muted',
-      'Каждая из этих комбинаций выигрывает ровно с той же вероятностью, ' +
-      'что и любая другая. Отличается только одно — сколько человек поставили ' +
-      'то же самое.'));
     const share = el('button', 'btn btn--ghost share-btn');
     share.type = 'button';
     share.append(icon('share', 16), document.createTextNode('Поделиться билетами'));
@@ -973,7 +966,7 @@ function ticketNode(pick, index, total) {
   const chev = icon('chevron', 14);
   chev.classList.add('chev');
   head.append(chev);
-  summary.append(head, ballsNode(pick.combo, { accent: true, roll: index < 4 }));
+  summary.append(head, ballsNode(pick.ticket, { accent: true, roll: index < 4 }));
   details.append(summary);
 
   // Разбор строится при первом раскрытии: оценка незаметности перебирает
@@ -981,7 +974,7 @@ function ticketNode(pick, index, total) {
   details.addEventListener('toggle', () => {
     if (!details.open || details.dataset.ready) return;
     details.dataset.ready = '1';
-    const body = analysisSection(pick.combo, pick.breakdown);
+    const body = analysisSection(pick.ticket, pick.breakdown);
     body.querySelector('.balls')?.remove();
     details.append(body);
     haptic('light');
@@ -991,63 +984,84 @@ function ticketNode(pick, index, total) {
 
 // ---------------------------------------------------------- свой билет
 
-/** Клетки бланка — заново для каждой игры: размер поля у игр разный. */
+/** Бланк — по сетке на каждое поле игры. */
 function buildSlip() {
-  const slip = $('#slip');
-  const { pool, slip: layout } = state.model.game;
-  slip.replaceChildren();
-  slip.style.setProperty('--slip-cols', String(layout?.cols || 5));
-  for (let n = 1; n <= pool; n += 1) {
-    const cell = el('button', 'slip__cell', String(n));
-    cell.type = 'button';
-    cell.dataset.n = String(n);
-    cell.setAttribute('aria-pressed', 'false');
-    slip.append(cell);
-  }
-  state.selected.clear();
+  const host = $('#slip');
+  const { fields } = state.model.game;
+  host.replaceChildren();
+  state.selected = fields.map(() => new Set());
+  fields.forEach((field, f) => {
+    const wrap = el('div', 'slip-field');
+    if (fields.length > 1) {
+      const label = el('div', 'slip-field__label');
+      label.append(el('span', null, `Поле ${f + 1} · ${field.pick} из ${field.pool}`));
+      const counter = el('span', null, '');
+      counter.dataset.counter = String(f);
+      label.append(counter);
+      wrap.append(label);
+    }
+    const grid = el('div', 'slip');
+    // Колонок не меньше, чем у главного поля: иначе бонусный номер из
+    // четырёх клеток растянулся бы на всю ширину огромными кругами.
+    const cols = Math.max(field.slip?.cols || 5, fields[0].slip?.cols || 5);
+    grid.style.setProperty('--slip-cols', String(cols));
+    for (let n = 1; n <= field.pool; n += 1) {
+      const cell = el('button', 'slip__cell', String(n));
+      cell.type = 'button';
+      cell.dataset.n = String(n);
+      cell.dataset.field = String(f);
+      cell.setAttribute('aria-pressed', 'false');
+      grid.append(cell);
+    }
+    wrap.append(grid);
+    host.append(wrap);
+  });
   renderSlip();
 }
 
 function initSlip() {
-  const slip = $('#slip');
-  slip.addEventListener('click', (event) => {
+  $('#slip').addEventListener('click', (event) => {
     const cell = event.target.closest('.slip__cell');
     if (!cell) return;
     const n = Number(cell.dataset.n);
-    if (state.selected.has(n)) state.selected.delete(n);
-    else if (state.selected.size < state.model.game.pick) state.selected.add(n);
+    const f = Number(cell.dataset.field);
+    const chosen = state.selected[f];
+    if (chosen.has(n)) chosen.delete(n);
+    else if (chosen.size < state.model.game.fields[f].pick) chosen.add(n);
     else return;
     haptic('light');
     renderSlip();
   });
 
   $('#slip-clear').addEventListener('click', () => {
-    state.selected.clear();
+    state.selected.forEach((s) => s.clear());
     renderSlip();
   });
 
   $('#slip-random').addEventListener('click', () => {
-    const { pick, pool: size } = state.model.game;
-    const bag = Array.from({ length: size }, (_, i) => i + 1);
-    for (let i = 0; i < pick; i += 1) {
-      const j = i + Math.floor(Math.random() * (bag.length - i));
-      [bag[i], bag[j]] = [bag[j], bag[i]];
-    }
-    state.selected = new Set(bag.slice(0, pick));
+    state.selected = state.model.game.fields.map(({ pick, pool }) => {
+      const bag = Array.from({ length: pool }, (_, i) => i + 1);
+      for (let i = 0; i < pick; i += 1) {
+        const j = i + Math.floor(Math.random() * (bag.length - i));
+        [bag[i], bag[j]] = [bag[j], bag[i]];
+      }
+      return new Set(bag.slice(0, pick));
+    });
     haptic('medium');
     renderSlip();
   });
 }
 
-const comboKey = (combo) => `${state.gameKey}:${combo.join('-')}`;
+const comboKey = (ticket) => `${state.gameKey}:${ticket.map((f) => f.join('-')).join('+')}`;
 
 /** Предложение оплатить разбор. Цена названа до нажатия, а не после. */
-function checkOfferSection(combo) {
+function checkOfferSection(ticket) {
   const node = section('Разбор комбинации', { accent: true });
-  node.append(ballsNode(combo, { accent: false }));
+  node.append(ballsNode(ticket, { accent: false }));
   node.append(el('p', 'muted',
-    'Посчитаем ожидаемое число соперников на тот же билет, вашу долю джекпота ' +
-    'и покажем, какие привычки игроков сработали против вас.'));
+    'Разбор покажет, во сколько раз чаще или реже среднего ставят эту ' +
+    'комбинацию, сколько ещё людей, вероятно, поставили её же и какая доля ' +
+    'суперприза достанется вам.'));
 
   const btn = el('button', 'btn btn--accent btn--roll');
   btn.type = 'button';
@@ -1071,14 +1085,13 @@ function checkOfferSection(combo) {
         node.append(el('p', 'error pay-note', paid.error));
         return;
       }
-      // Остаёмся на этом экране: человек только что выбрал шесть чисел, и
-      // увести его на другую вкладку — значит заставить выбирать заново.
-      // Кнопка внутри блока уведёт в магазин, когда он сам решит.
+      // Остаёмся на этом экране: человек только что выбрал числа, и увести
+      // его на другую вкладку — значит заставить выбирать заново.
       $('#check-result').replaceChildren(shortOnSpins(paid.need || cost.check));
       renderStore();
       return;
     }
-    rememberUnlocked(comboKey(combo));
+    rememberUnlocked(comboKey(ticket));
     renderSlip({ roll: true });
   });
   node.append(btn);
@@ -1089,39 +1102,46 @@ function checkOfferSection(combo) {
 
 function renderSlip({ roll = false } = {}) {
   if (!state.model) return;
-  const { pick } = state.model.game;
-  const full = state.selected.size === pick;
+  const { fields } = state.model.game;
+  const full = fields.every((f, i) => state.selected[i].size === f.pick);
 
   document.querySelectorAll('.slip__cell').forEach((cell) => {
-    const on = state.selected.has(Number(cell.dataset.n));
+    const f = Number(cell.dataset.field);
+    const on = state.selected[f].has(Number(cell.dataset.n));
     cell.classList.toggle('is-on', on);
     cell.setAttribute('aria-pressed', String(on));
-    cell.disabled = full && !on;
+    cell.disabled = state.selected[f].size === fields[f].pick && !on;
   });
-  $('#slip-counter').textContent = `${state.selected.size} / ${pick}`;
+  document.querySelectorAll('[data-counter]').forEach((node) => {
+    const f = Number(node.dataset.counter);
+    node.textContent = `${state.selected[f].size} / ${fields[f].pick}`;
+  });
+  const picked = state.selected.reduce((s, set) => s + set.size, 0);
+  const need = fields.reduce((s, f) => s + f.pick, 0);
+  $('#slip-counter').textContent = `${picked} / ${need}`;
 
   const box = $('#check-result');
   if (!full) {
     box.replaceChildren(el('p', 'skeleton',
-      `Отметьте ещё ${pick - state.selected.size}, чтобы увидеть разбор`));
+      `Отметьте ещё ${need - picked}, чтобы увидеть разбор`));
     return;
   }
 
-  const combo = [...state.selected].sort((a, b) => a - b);
-  if (!state.unlocked.has(comboKey(combo))) {
-    box.replaceChildren(checkOfferSection(combo));
+  const ticket = state.selected.map((s) => [...s].sort((a, b) => a - b));
+  if (!state.unlocked.has(comboKey(ticket))) {
+    box.replaceChildren(checkOfferSection(ticket));
     return;
   }
 
   box.replaceChildren(
-    analysisSection(combo, state.model.breakdown(combo), { title: 'Ваша комбинация', roll }),
+    analysisSection(ticket, state.model.breakdown(ticket), { title: 'Ваша комбинация', roll }),
     jackpotSection(),
   );
 }
 
 function jackpotSection() {
-  const node = section('Размер джекпота');
-  node.append(el('p', 'muted', 'Подставьте текущий суперприз — доля пересчитается.'));
+  const node = section('Размер суперприза');
+  node.append(el('p', 'muted', 'По умолчанию — суперприз ближайшего тиража. Можно подставить свой.'));
   const input = el('input');
   input.type = 'text';
   input.inputMode = 'numeric';
@@ -1137,59 +1157,72 @@ function jackpotSection() {
   return node;
 }
 
-// ------------------------------------------------------------ статистика
+// ---------------------------------------------------------------- данные
 
-function renderStats() {
-  const stats = state.stats;
-  const banner = $('#uniformity-banner');
-  const uni = stats.uniformity;
+const fmtDate = (iso, opts = { day: 'numeric', month: 'short', year: 'numeric' }) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('ru-RU', opts);
+};
 
-  // На малом архиве статистика — это шум, и показывать её как знание нечестно.
-  if (!state.meta.enough_for_stats) {
-    banner.className = 'note';
-    banner.replaceChildren(
-      (() => {
-        const p = el('p');
-        p.append(el('strong', null, 'Данных пока мало. '));
-        p.append(document.createTextNode(
-          `Собрано ${fmtInt(state.meta.draws_count)} тиражей из ` +
-          `${fmtInt(state.meta.min_draws_for_stats)}, нужных для выводов. ` +
-          'Архив пополняется каждый день. Всё ниже — то, что уже собрано, ' +
-          'а не закономерность.',
-        ));
-        return p;
-      })(),
-    );
-  } else {
-    banner.className = uni.p_value >= 0.01 ? 'note note--good' : 'note';
-    const p = el('p');
-    p.append(el('strong', null, `Хи-квадрат: p = ${String(uni.p_value).replace('.', ',')}. `));
-    p.append(document.createTextNode(uni.verdict));
-    banner.replaceChildren(p);
-  }
-
-  const chart = $('#freq-chart');
-  chart.replaceChildren();
-  const counts = stats.numbers.map((x) => x.count);
+function freqChart(summary) {
+  const chart = el('div', 'freq');
+  const counts = summary.numbers.map((x) => x.count);
   const maxCount = Math.max(...counts, 1);
-  const expected = stats.numbers[0]?.expected || 0;
-  const hot = new Set(stats.hot.map((x) => x.n));
-
-  stats.numbers.forEach((item, i) => {
+  const expected = summary.numbers[0]?.expected || 0;
+  const hot = new Set(summary.hot.map((x) => x.n));
+  summary.numbers.forEach((item, i) => {
     const bar = el('div', 'freq__bar');
     bar.style.height = `${(item.count / maxCount) * 100}%`;
     bar.style.animationDelay = `${i * 8}ms`;
     if (hot.has(item.n)) bar.classList.add('is-hot');
-    bar.title = `${item.n}: ${item.count} (ожидалось ${item.expected})`;
+    bar.title = `${item.n}: ${item.count} (в среднем ${item.expected})`;
     chart.append(bar);
   });
   const mean = el('div', 'freq__mean');
   mean.style.bottom = `${(expected / maxCount) * 100}%`;
   chart.append(mean);
+  return chart;
+}
+
+function renderStats() {
+  const { meta, model, stats } = state;
+  const { fields } = model.game;
+  const main = stats.fields[0];
+
+  $('#stats-title').textContent = model.game.title;
+  // Дата кончается на «г.», поэтому предложение после неё без своей точки.
+  $('#stats-lede').textContent =
+    `${fmtInt(meta.draws_count)} тиражей, с ${fmtDate(meta.first_date)} по ` +
+    `${fmtDate(meta.latest_draw.date)} Источник — архив тиражей Столото, ` +
+    'обновляется каждый день.';
+
+  const draws = $('#latest-draws');
+  draws.replaceChildren();
+  (meta.latest_draws || []).slice(0, 10).forEach((d) => {
+    const li = el('li');
+    const m = el('span', 'draws__meta');
+    m.append(el('b', null, `№ ${d.draw}`), document.createTextNode(fmtDate(d.date, { day: 'numeric', month: 'short' })));
+    li.append(m, ballsNode(d.numbers, { quiet: false }));
+    draws.append(li);
+  });
+
+  const charts = $('#freq-charts');
+  charts.replaceChildren();
+  stats.fields.forEach((summary, i) => {
+    const wrap = el('div', 'freq-field');
+    if (fields.length > 1) wrap.append(el('span', 'freq-field__label', `Поле ${i + 1}`));
+    wrap.append(freqChart(summary));
+    charts.append(wrap);
+  });
 
   const fillList = (sel, items, suffix) => {
     const list = $(sel);
     list.replaceChildren();
+    // В играх с двумя полями списки — по первому полю, и это сказано в
+    // заголовке, а не в каждой строке.
+    const eyebrow = list.parentElement.querySelector('.eyebrow');
+    eyebrow.dataset.base = eyebrow.dataset.base || eyebrow.textContent;
+    eyebrow.textContent = fields.length > 1 ? `${eyebrow.dataset.base} · поле 1` : eyebrow.dataset.base;
     items.forEach((item) => {
       const li = el('li');
       li.append(el('span', 'ball ball--quiet', String(item.n)));
@@ -1197,84 +1230,100 @@ function renderStats() {
       list.append(li);
     });
   };
-  fillList('#list-hot', stats.hot,
-    (x) => `${x.count} раз · ${x.deviation > 0 ? '+' : ''}${x.deviation} к среднему`);
-  fillList('#list-cold', stats.cold,
-    (x) => `${x.count} раз · ${x.deviation} к среднему`);
-  fillList('#list-overdue', stats.overdue, (x) => `${x.gap} тиражей назад`);
+  fillList('#list-hot', main.hot,
+    (x) => `${fmtInt(x.count)} раз · ${x.deviation > 0 ? '+' : ''}${fmtInt(x.deviation)} к среднему`);
+  fillList('#list-cold', main.cold,
+    (x) => `${fmtInt(x.count)} раз · ${fmtInt(x.deviation)} к среднему`);
+  fillList('#list-overdue', main.overdue, (x) => `${fmtInt(x.gap)} тиражей назад`);
 
-  const { pick } = state.model.game;
+  const { pick } = fields[0];
   const evens = Math.floor(pick / 2);
-  const balanced = stats.parity[`${evens}_even_${pick - evens}_odd`] || 0;
+  const balanced = main.parity[`${evens}_even_${pick - evens}_odd`] || 0;
+  const uni = main.uniformity;
   const facts = rowsList([
-    { k: 'Тиражей в выборке', v: fmtInt(stats.draws_analyzed) },
-    { k: 'С парой соседних чисел', v: `${Math.round(stats.consecutive_share * 100)}%` },
-    { k: `Средняя сумма ${pick} чисел`, v: String(stats.sums.mean).replace('.', ',') },
-    { k: 'Диапазон сумм (90%)', v: `${stats.sums.p05} – ${stats.sums.p95}` },
+    { k: 'С парой соседних чисел', v: `${Math.round(main.consecutive_share * 100)}%` },
+    { k: `Средняя сумма ${pick} чисел`, v: String(main.sums.mean).replace('.', ',') },
+    { k: 'Диапазон сумм (90% тиражей)', v: `${main.sums.p05} – ${main.sums.p95}` },
     {
-      k: `Баланс ${evens} чётных / ${pick - evens} нечётных`,
-      v: `${Math.round((balanced / Math.max(stats.draws_analyzed, 1)) * 100)}%`,
+      k: `${evens} чётных и ${pick - evens} нечётных`,
+      v: `${Math.round((balanced / Math.max(main.draws_analyzed, 1)) * 100)}%`,
     },
+    { k: 'Равномерность, хи-квадрат', v: `p = ${String(uni.p_value).replace('.', ',')}` },
   ]);
   facts.id = 'facts';
   $('#facts').replaceWith(facts);
+
+  renderModelInfo();
+  renderGameFacts();
 }
 
-// -------------------------------------------------------------- проверка
-
-function renderProof() {
-  const tbody = $('#proof-table tbody');
-  tbody.replaceChildren();
-
-  if (!state.proof) {
-    $('#proof-note').textContent = 'Результаты бэктеста ещё не собраны.';
-    renderEvFacts();
+/** Что модель популярности узнала из итогов тиражей. */
+function renderModelInfo() {
+  const body = $('#model-body');
+  body.replaceChildren();
+  const cal = state.modelData.calibration;
+  const cfg = state.model.cfg;
+  if (!cal) {
+    body.append(el('p', 'muted',
+      'Для этой игры оценка популярности пока построена по опубликованным ' +
+      'исследованиям выбора чисел, без обучения на итогах тиражей.'));
     return;
   }
+  body.append(el('p', 'muted',
+    `Модель обучена на итогах ${fmtInt(cal.draws)} тиражей ` +
+    `(${fmtDate(cal.date_from)} — ${fmtDate(cal.date_to)}). Если выпадают числа, ` +
+    'которые люди любят ставить, победителей больше расчётного, если нелюбимые — ' +
+    `меньше. По ${fmtInt(cal.winners)} выигравшим ставкам восстановлено, как ` +
+    'игроки выбирают числа.'));
 
-  $('#proof-baseline').textContent = fmtDec(state.proof.expected_by_chance, 3);
-
-  if (state.proof.insufficient) {
-    // Пока данных мало, таблицу не показываем: на коротком архиве она врала
-    // бы в обе стороны. Появится сама, когда тиражей хватит.
-    $('#proof-table-wrap').hidden = true;
-    $('#proof-note').replaceChildren();
-    renderEvFacts();
-    return;
+  const weights = cfg.calibration.field_weights[0];
+  const order = weights.map((w, i) => [w, i + 1]).sort((a, b) => b[0] - a[0]);
+  const s = cfg.consecutive_run;
+  const p = cfg.parity_balance;
+  const mult = (v) => {
+    if (Math.abs(Math.log(v)) < Math.log(1.1)) return 'не влияет';
+    return v >= 1 ? `×${fmtDec(v, 1)}` : `÷${fmtDec(1 / v, 1)}`;
+  };
+  const rows = [
+    { k: 'Чаще всего ставят', v: order.slice(0, 5).map(([, n]) => n).join(', ') },
+    { k: 'Реже всего ставят', v: order.slice(-5).map(([, n]) => n).join(', ') },
+  ];
+  // Структурные множители показываем, только если обучение их приняло:
+  // там, где они не улучшили прогноз, модель держится на весах чисел.
+  if (cal.structure && cal.structure.patterns > 0) {
+    rows.push(
+      { k: 'Без соседних чисел', v: mult(s.no_adjacent_pair_bonus) },
+      { k: 'Три числа подряд', v: mult(Number(s.run_length_multiplier['3'] ?? 1)) },
+      { k: 'Поровну чётных и нечётных', v: mult(p.balanced_3_3_multiplier) },
+      { k: 'Все чётные или все нечётные', v: mult(p.extreme_0_6_multiplier) },
+      { k: 'Все числа в узком диапазоне', v: mult(cfg.decade_clustering.narrow_range_multiplier) },
+    );
   }
-  $('#proof-table-wrap').hidden = false;
-
-  Object.entries(state.proof.results)
-    .sort((a, b) => (b[1].mean_matches || 0) - (a[1].mean_matches || 0))
-    .forEach(([name, res]) => {
-      const tr = el('tr');
-      tr.append(el('td', null, name));
-      tr.append(el('td', null, fmtDec(res.mean_matches ?? 0, 3)));
-      tr.append(el('td', res.significant ? 'is-flag' : null, fmtDec(res.p_value ?? 1, 3)));
-      tbody.append(tr);
-    });
-
-  $('#proof-note').textContent = state.proof.any_significant
-    ? 'Одна из стратегий формально прошла порог значимости. При восьми проверках сразу это ожидаемая случайность, а не находка.'
-    : `Ни одна стратегия не обошла случайный выбор. Проверено на ${fmtInt(state.proof.draws)} тиражах.`;
-
-  renderEvFacts();
+  body.append(rowsList(rows));
+  body.append(el('p', 'fineprint',
+    (cal.structure && cal.structure.patterns > 0
+      ? 'Множители — во сколько раз чаще или реже такие комбинации выбирают те, ' +
+        'кто ставит числа сам. '
+      : '') +
+    `Модель проверена на ${fmtInt(cal.holdout.draws)} последних тиражах.`));
 }
 
-function renderEvFacts() {
-  const game = state.model.game;
-  // Равномерно разнесённые числа: доля джекпота у них близка к полной.
-  const sampleCombo = Array.from({ length: game.pick },
-    (_, i) => Math.min(game.pool, Math.round(((i + 0.5) * game.pool) / game.pick)));
-  const sample = evaluateEV(state.model, sampleCombo, state.jackpot);
-  const evFacts = rowsList([
+function renderGameFacts() {
+  const { model, meta } = state;
+  const game = model.game;
+  const up = meta.upcoming;
+  const rows = [
     { k: 'Цена билета', v: fmtMoney(game.ticket_price_rub) },
-    { k: 'Шанс сорвать джекпот', v: fmtOdds(state.model.totalCombinations) },
-    { k: `Возврат при джекпоте ${fmtBig(state.jackpot)} ₽`, v: `${Math.round(sample.rtp * 100)}%`, tone: 'accent' },
-    { k: 'Джекпот безубыточности', v: `${fmtBig(breakevenJackpot(state.model))} ₽` },
-  ]);
-  evFacts.id = 'ev-facts';
-  $('#ev-facts').replaceWith(evFacts);
+    { k: up ? `Суперприз тиража № ${up.draw}` : 'Суперприз', v: `${fmtBig(state.jackpot)} ₽`, tone: 'accent' },
+    { k: 'Шанс выиграть суперприз', v: fmtOdds(model.totalCombinations) },
+    {
+      k: game.players_source === 'опубликовано' ? 'Ставок в тираже' : 'Ставок в тираже (оценка)',
+      v: fmtInt(game.typical_players_per_draw),
+    },
+  ];
+  const facts = rowsList(rows);
+  facts.id = 'game-facts';
+  $('#game-facts').replaceWith(facts);
 }
 
 // ------------------------------------------------------------------ старт
@@ -1282,16 +1331,8 @@ function renderEvFacts() {
 function renderMeta() {
   const { meta, model } = state;
   $('#game-title').textContent = model.game.title;
-  $('#odds-line').textContent = fmtOdds(model.totalCombinations);
-
-  const when = new Date(meta.generated_at);
-  const date = Number.isNaN(when.getTime())
-    ? meta.generated_at
-    : when.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
-  $('#data-meta').textContent = `${fmtInt(meta.draws_count)} тиражей · ${date}`;
-
-  $('#banners').hidden = !meta.synthetic;
-  $('#synthetic-banner').hidden = !meta.synthetic;
+  const when = fmtDate(meta.generated_at, { day: 'numeric', month: 'short' });
+  $('#data-meta').textContent = `${fmtInt(meta.draws_count)} тиражей · ${when}`;
 }
 
 /** Кнопки выбора лотереи. При одной игре выбирать нечего — скрыты. */
@@ -1300,10 +1341,12 @@ function renderGamePicker() {
   picker.replaceChildren();
   picker.hidden = state.games.length < 2;
   state.games.forEach((game) => {
+    const f = game.fields?.[0] || game;
     const chip = el('button', `seg__btn${game.key === state.gameKey ? ' is-active' : ''}`,
-      `${game.pick} из ${game.pool}`);
+      game.short || `${f.pick} из ${f.pool}`);
     chip.type = 'button';
     chip.dataset.game = game.key;
+    chip.title = game.title || '';
     picker.append(chip);
   });
 }
@@ -1326,9 +1369,9 @@ function initGamePicker() {
   });
 }
 
-/** Поля «мои числа» и «убрать». Диапазон зависит от игры. */
+/** Поля «мои числа» и «убрать» — для главного поля билета. */
 function initNumberFields() {
-  const pool = state.model.game.pool;
+  const { pool } = state.model.game.fields[0];
   state.includeField = new NumberField($('#gen-include'), {
     pool,
     placeholder: 'например 7',
@@ -1341,38 +1384,36 @@ function initNumberFields() {
 
 /** Загружает данные игры и перерисовывает все экраны под неё. */
 async function loadGame(key) {
-  const [meta, modelData, stats, proof, aiData] = await Promise.all([
+  const [meta, modelData, stats, aiData] = await Promise.all([
     loadJSON(`${key}_meta.json`),
     loadJSON(`${key}_model.json`),
     loadJSON(`${key}_stats.json`),
-    loadJSON(`${key}_randomness.json`, { optional: true }),
     loadJSON(`${key}_ai.json`, { optional: true }),
   ]);
   state.aiData = aiData;
-  state.ai = aiData && !aiData.insufficient ? new DrawAI(aiData) : null;
+  state.ai = aiData && !aiData.insufficient && aiData.fields ? new DrawAI(aiData) : null;
 
   state.gameKey = key;
   state.meta = meta;
+  state.modelData = modelData;
   state.model = new PopularityModel(modelData);
   state.stats = stats;
-  state.proof = proof;
   state.jackpot = modelData.game.default_jackpot_rub || state.jackpot;
 
   $('#gen-results').replaceChildren();
   $('#gen-error').hidden = true;
-  $('#proof-table-wrap').hidden = false;
 
+  const { pool } = state.model.game.fields[0];
   if (!state.includeField) initNumberFields();
   else {
-    state.includeField.setPool(state.model.game.pool);
-    state.excludeField.setPool(state.model.game.pool);
+    state.includeField.setPool(pool);
+    state.excludeField.setPool(pool);
   }
 
   renderGamePicker();
   renderMeta();
   buildSlip();
   renderStats();
-  renderProof();
   renderRunButton();
 }
 
@@ -1418,7 +1459,7 @@ async function main() {
   try {
     const index = await loadJSON('meta.json');
     state.games = (index.games || []).filter((g) => g && g.key);
-    if (!state.games.length) state.games = [{ key: DEFAULT_GAME, pick: 6, pool: 45 }];
+    if (!state.games.length) state.games = [{ key: DEFAULT_GAME, short: '6 из 45' }];
 
     let saved = null;
     try {

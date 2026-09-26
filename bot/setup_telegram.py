@@ -54,7 +54,6 @@ COMMANDS = [
     {"command": "spins", "description": "Сколько прокруток на балансе"},
     {"command": "buy", "description": "Пакеты прокруток"},
     {"command": "invite", "description": "Позвать друга: +3 прокрутки обоим"},
-    {"command": "honest", "description": "Почему предсказать тираж нельзя"},
     {"command": "help", "description": "Что умеет бот"},
 ]
 
