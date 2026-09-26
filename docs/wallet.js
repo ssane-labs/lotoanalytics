@@ -121,7 +121,11 @@ export class Wallet {
       body: JSON.stringify({ initData: this.tg?.initData, ...body }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `сервер ответил ${res.status}`);
+    if (!res.ok) {
+      const err = new Error(data.error || `сервер ответил ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
     return data;
   }
 
@@ -172,17 +176,30 @@ export class Wallet {
   async spend(cost, reason) {
     if (cost <= 0) return { ok: true };
     if (this.online) {
-      try {
-        const data = await this.post('/api/spend', { cost, reason });
-        if (data.ok === false) {
+      // Мобильная сеть внутри Telegram рвётся («Load failed»). Запрос
+      // повторяем, а общий идентификатор операции не даёт воркеру списать
+      // дважды, если первый запрос всё-таки дошёл.
+      const op = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      let lastError = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const data = await this.post('/api/spend', { cost, reason, op });
           this.applyServer(data);
-          return { ok: false, need: Math.max(1, cost - this.total) };
+          if (data.ok === false) return { ok: false, need: Math.max(1, cost - this.total) };
+          return { ok: true };
+        } catch (err) {
+          lastError = err;
+          if (err.status) break; // сервер ответил ошибкой — повтор не поможет
+          await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
         }
-        this.applyServer(data);
-        return { ok: true };
-      } catch (err) {
-        return { ok: false, error: err.message, need: 0 };
       }
+      return {
+        ok: false,
+        need: 0,
+        error: lastError?.status
+          ? `Сервер ответил ошибкой: ${lastError.message}`
+          : 'Нет связи с сервером. Попробуйте ещё раз.',
+      };
     }
 
     const rec = this.refreshedLocal();

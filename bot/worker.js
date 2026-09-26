@@ -474,10 +474,17 @@ async function handleSpend(request, env) {
   }
 
   const rec = await readWallet(env, user.id);
+  // Повтор того же списания (ответ на первый запрос потерялся в сети) —
+  // прокрутки уже списаны, второй раз не списываем.
+  const op = typeof body.op === 'string' ? body.op.slice(0, 64) : null;
+  if (op && rec.last_op === op) {
+    return walletResponse(env, user.id, rec, { spent: cost, repeated: true });
+  }
   if (!spendFrom(rec, cost)) {
     await writeWallet(env, user.id, rec);
     return walletResponse(env, user.id, rec, { ok: false, reason: 'not enough spins' });
   }
+  if (op) rec.last_op = op;
   await writeWallet(env, user.id, rec);
   return walletResponse(env, user.id, rec, { spent: cost });
 }
@@ -771,11 +778,40 @@ async function handleUpdate(update, env) {
   }
 }
 
+// ------------------------------------------------------------ меню команд
+
+// Меню команд в Telegram. Воркер сам выставляет его после выкатки: версия
+// меню хранится в KV, и при первом запросе новой сборки, если версия
+// отличается, меню обновляется. Руками запускать setup_telegram.py не нужно.
+// Список обязан совпадать с обработчиками в handleUpdate.
+const COMMANDS = [
+  { command: 'start', description: 'Открыть аналитику' },
+  { command: 'spins', description: 'Сколько прокруток на балансе' },
+  { command: 'buy', description: 'Пакеты прокруток' },
+  { command: 'invite', description: 'Позвать друга: +3 прокрутки обоим' },
+  { command: 'help', description: 'Что умеет бот' },
+];
+const COMMANDS_VERSION = COMMANDS.map((c) => `${c.command}:${c.description}`).join('|');
+let commandsChecked = false;
+
+async function syncCommands(env) {
+  if (commandsChecked || !env.SUBS || !env.BOT_TOKEN) return;
+  commandsChecked = true;
+  try {
+    if ((await env.SUBS.get('cmd:version')) === COMMANDS_VERSION) return;
+    const res = await tg(env, 'setMyCommands', { commands: COMMANDS });
+    if (res.ok) await env.SUBS.put('cmd:version', COMMANDS_VERSION);
+  } catch (err) {
+    console.error('setMyCommands failed', err);
+  }
+}
+
 // ------------------------------------------------------------------ вход
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    ctx?.waitUntil?.(syncCommands(env));
 
     if (request.method === 'OPTIONS') {
       return preflight();
@@ -789,7 +825,8 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'spins-v2',
+        build: 'spins-v3',
+        commands_synced: (await env.SUBS?.get('cmd:version')) === COMMANDS_VERSION,
         packs: Object.keys(PACKS),
         economy: ECONOMY,
         kv_subs: Boolean(env.SUBS),

@@ -14,13 +14,11 @@ import {
   PopularityModel,
   FACTOR_LABELS,
   generate,
-  evaluateEV,
-  unpopularityPercentile,
-} from './model.js?v=89671c74';
-import { CONFIG } from './config.js?v=89671c74';
-import { DrawAI } from './ai.js?v=89671c74';
-import { Wallet, spinsWord } from './wallet.js?v=89671c74';
-import { NumberField } from './numfield.js?v=89671c74';
+} from './model.js?v=c9967b3c';
+import { CONFIG } from './config.js?v=c9967b3c';
+import { DrawAI } from './ai.js?v=c9967b3c';
+import { Wallet, spinsWord } from './wallet.js?v=c9967b3c';
+import { NumberField } from './numfield.js?v=c9967b3c';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -143,18 +141,6 @@ function section(eyebrow, { accent = false } = {}) {
   return node;
 }
 
-/** Сетка «подпись / значение» — основной способ показа данных в этом языке. */
-function specGrid(items) {
-  const grid = el('div', 'spec');
-  items.forEach(({ k, v, tone }) => {
-    const cell = el('div', 'spec__cell');
-    cell.append(el('span', 'spec__k', k));
-    cell.append(el('span', `spec__v${tone ? ` is-${tone}` : ''}`, v));
-    grid.append(cell);
-  });
-  return grid;
-}
-
 function rowsList(items) {
   const dl = el('dl', 'rows');
   items.forEach(({ k, v, tone }) => {
@@ -239,22 +225,6 @@ function rollTick() {
   rollLoop = rolling.length ? requestAnimationFrame(rollTick) : null;
 }
 
-function meterNode(percentile) {
-  const wrap = el('div', 'meter');
-  const track = el('div', 'meter__track');
-  const fill = el('div', 'meter__fill');
-  const pct = Math.round(percentile * 100);
-  fill.style.width = `${Math.max(pct, 1)}%`;
-  track.append(fill);
-
-  const label = el('div', 'meter__label');
-  const right = el('span');
-  right.append(el('b', null, String(pct)), document.createTextNode(' / 100'));
-  label.append(el('span', null, 'Незаметность'), right);
-  wrap.append(track, label);
-  return wrap;
-}
-
 /** Раскрытие «из чего сложилась оценка» — только сработавшие факторы. */
 function whyNode(breakdown) {
   const details = el('details', 'why');
@@ -286,57 +256,28 @@ function whyNode(breakdown) {
   return details;
 }
 
-/** Полный разбор одного билета. */
-function analysisSection(ticket, breakdown, { title, roll = false } = {}) {
-  const node = section(title || null);
+/**
+ * Порядок выпадения, а не по возрастанию: подобранный билет выглядит как
+ * шары, только что выкатившиеся из барабана.
+ */
+function shuffledTicket(ticket) {
+  return ticket.map((field) => {
+    const out = [...field];
+    for (let i = out.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  });
+}
+
+/** Разбор своей комбинации: числа и какие привычки игроков в ней сработали. */
+function checkSection(ticket, breakdown, { roll = false } = {}) {
+  const node = section('Ваша комбинация');
   node.append(ballsNode(ticket, { accent: true, roll }));
-  node.append(meterNode(unpopularityPercentile(state.model, ticket, 3000)));
-
-  const ev = evaluateEV(state.model, ticket, state.jackpot);
-  const rivals = ev.expectedCoWinners;
-  // Во сколько раз чаще или реже среднего ставят этот билет — с учётом
-  // автовыбора, который распределяет свою долю поровну.
-  const density = ev.pickShare * state.model.totalCombinations;
-
-  node.append(specGrid([
-    {
-      k: 'Ставят',
-      v: `×${fmtDec(density)}`,
-      tone: density < 0.95 ? 'good' : density > 1.5 ? 'accent' : null,
-    },
-    {
-      k: 'Соперников',
-      v: rivals < 0.01 ? '< 0,01' : fmtDec(rivals),
-      tone: rivals < 0.5 ? 'good' : 'accent',
-    },
-    {
-      k: 'Ваша доля',
-      v: `${Math.round(ev.shareFactor * 100)}%`,
-      tone: ev.shareFactor > 0.8 ? 'good' : ev.shareFactor < 0.4 ? 'accent' : null,
-    },
-    { k: 'Ваш суперприз', v: `${fmtBig(state.jackpot * ev.shareFactor)} ₽`, tone: 'dim' },
-  ]));
-
-  let cls = 'note note--good';
-  let text = density < 0.95
-    ? `Такую комбинацию ставят в ${fmtDec(1 / density, 1)} раза реже среднего. При выигрыше суперприз, скорее всего, достанется вам целиком.`
-    : 'При выигрыше суперприз, скорее всего, достанется вам целиком.';
-  if (ev.shareFactor < 0.4) {
-    cls = 'note';
-    text = `Популярная комбинация. При выигрыше вам достанется около ${Math.round(ev.shareFactor * 100)}% суперприза, остальное — тем, кто поставил то же самое.`;
-  } else if (ev.shareFactor < 0.85) {
-    cls = 'note';
-    text = 'Комбинацию ставят заметно чаще среднего: суперприз, возможно, придётся делить.';
-  } else if (density > 1.5) {
-    cls = 'note';
-    text = `Такую комбинацию ставят в ${fmtDec(density, 1)} раза чаще среднего.`;
-  }
-  const note = el('div', cls);
-  note.style.marginTop = '18px';
-  note.append(el('p', 'muted', text));
-  node.append(note);
-
-  node.append(whyNode(breakdown));
+  const why = whyNode(breakdown);
+  why.open = true;
+  node.append(why);
   return node;
 }
 
@@ -884,15 +825,38 @@ async function runGenerator() {
     return;
   }
 
+  // Оценки нейросети — до списания: если на слабом телефоне расчёт упадёт,
+  // прокрутка не должна сгореть.
+  let numberWeights = null;
+  if (useAI) {
+    try {
+      numberWeights = state.ai.probabilities();
+    } catch (err) {
+      errBox.textContent = `Нейросеть не посчиталась: ${err.message}`;
+      errBox.hidden = false;
+      return;
+    }
+  }
+
   const need = cost.generate;
   state.busy = true;
   setRunning(true);
   haptic('medium');
 
+  // Барабан появляется сразу и крутится, пока идёт списание и подбор, —
+  // но не меньше секунды: подбор занимает миллисекунды, и без паузы
+  // результат появлялся бы раньше, чем палец отпустит кнопку.
+  const drum = drumNode(state.model.game.fields[0].pool);
+  results.replaceChildren(drum.node);
+  drum.node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
+  const spinFloor = sleep(reduceMotion ? 0 : 1300);
+
   const paid = await wallet.spend(need, 'generate');
   if (!paid.ok) {
+    drum.stop();
     state.busy = false;
     setRunning(false);
+    results.replaceChildren();
     if (paid.error) {
       errBox.textContent = paid.error;
       errBox.hidden = false;
@@ -904,11 +868,6 @@ async function runGenerator() {
     return;
   }
 
-  // Барабан крутится ощутимо: подбор занимает миллисекунды, и без паузы
-  // результат появлялся бы раньше, чем палец отпустит кнопку.
-  results.replaceChildren();
-  const spinFloor = sleep(reduceMotion ? 0 : 620);
-
   try {
     const spread = $('#gen-spread').checked;
     const picks = generate(state.model, {
@@ -918,35 +877,32 @@ async function runGenerator() {
       // Взвешенная выборка дороже равномерной, кандидатов берём меньше.
       candidates: useAI ? 6000 : 15000,
       maxOverlap: spread && state.genCount > 1 ? 2 : null,
-      numberWeights: useAI ? state.ai.probabilities() : null,
+      numberWeights,
     });
     if (!picks.length) throw new Error('С такими ограничениями подобрать не удалось');
+    const shown = picks.map((p) => ({ ...p, ticket: shuffledTicket(p.ticket) }));
 
     await spinFloor;
+    await drum.finish();
     results.replaceChildren();
-    if (picks.length === 1) {
-      results.append(analysisSection(picks[0].ticket, picks[0].breakdown,
-        { title: 'Ваша комбинация', roll: true }));
-    } else {
-      // Несколько билетов свёрнуты до самих чисел: полный разбор каждого
-      // занимает экран, и список из десяти таких разборов не читается.
-      const list = section(`Билеты · ${picks.length}`, { accent: true });
-      picks.forEach((pick, i) => list.append(ticketNode(pick, i, picks.length)));
-      results.append(list);
-    }
+    const list = section(shown.length === 1 ? 'Ваша комбинация' : `Билеты · ${shown.length}`,
+      { accent: true });
+    shown.forEach((pick, i) => list.append(ticketNode(pick, i, shown.length)));
+    results.append(list);
 
     const tail = section(null);
     if (useAI) tail.append(aiNoteNode());
     const share = el('button', 'btn btn--ghost share-btn');
     share.type = 'button';
     share.append(icon('share', 16), document.createTextNode('Поделиться билетами'));
-    share.addEventListener('click', () => shareCombos(picks));
+    share.addEventListener('click', () => shareCombos(shown));
     tail.append(share);
     results.append(tail);
     haptic('medium');
     results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
   } catch (err) {
     await spinFloor;
+    drum.stop();
     results.replaceChildren();
     errBox.textContent = err.message;
     errBox.hidden = false;
@@ -954,32 +910,59 @@ async function runGenerator() {
     state.busy = false;
     setRunning(false);
   }
-
 }
 
-/** Свёрнутый билет: в заголовке только числа, разбор — по нажатию. */
+/** Подобранный билет: только числа, в порядке выпадения. */
 function ticketNode(pick, index, total) {
-  const details = el('details', 'ticket');
-  const summary = el('summary');
-  const head = el('div', 'ticket__head');
-  head.append(el('span', null, `Билет ${index + 1} из ${total}`));
-  const chev = icon('chevron', 14);
-  chev.classList.add('chev');
-  head.append(chev);
-  summary.append(head, ballsNode(pick.ticket, { accent: true, roll: index < 4 }));
-  details.append(summary);
+  const node = el('div', 'ticket');
+  if (total > 1) node.append(el('div', 'ticket__head', `Билет ${index + 1}`));
+  node.append(ballsNode(pick.ticket, { accent: true, roll: index < 4 }));
+  return node;
+}
 
-  // Разбор строится при первом раскрытии: оценка незаметности перебирает
-  // тысячи комбинаций, и считать её для свёрнутых билетов незачем.
-  details.addEventListener('toggle', () => {
-    if (!details.open || details.dataset.ready) return;
-    details.dataset.ready = '1';
-    const body = analysisSection(pick.ticket, pick.breakdown);
-    body.querySelector('.balls')?.remove();
-    details.append(body);
-    haptic('light');
-  });
-  return details;
+/**
+ * Лотерейный барабан на время подбора: шары мечутся внутри вращающейся
+ * клетки, числа на них мелькают. finish() — шары высыпаются вниз, и на их
+ * место выкатывается результат.
+ */
+function drumNode(pool) {
+  const node = el('div', 'drum');
+  const cage = el('div', 'drum__cage');
+  node.append(cage);
+  const balls = [];
+  const R = 58;
+  const spot = () => {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.sqrt(Math.random()) * R;
+    return [`${Math.round(Math.cos(a) * r)}px`, `${Math.round(Math.sin(a) * r)}px`];
+  };
+  for (let i = 0; i < 12; i += 1) {
+    const ball = el('div', `drum__ball${i % 3 === 0 ? ' is-accent' : ''}`,
+      String(1 + Math.floor(Math.random() * pool)));
+    [['--x0', '--y0'], ['--x1', '--y1'], ['--x2', '--y2'], ['--x3', '--y3']].forEach(([x, y]) => {
+      const [px, py] = spot();
+      ball.style.setProperty(x, px);
+      ball.style.setProperty(y, py);
+    });
+    ball.style.animationDuration = `${(0.55 + Math.random() * 0.45).toFixed(2)}s`;
+    ball.style.animationDelay = `${(-Math.random()).toFixed(2)}s`;
+    cage.append(ball);
+    balls.push(ball);
+  }
+  const flicker = reduceMotion ? null : setInterval(() => {
+    balls.forEach((b) => { b.textContent = String(1 + Math.floor(Math.random() * pool)); });
+  }, 110);
+  const stop = () => { if (flicker) clearInterval(flicker); };
+  return {
+    node,
+    stop,
+    finish() {
+      stop();
+      if (reduceMotion) return Promise.resolve();
+      node.classList.add('is-done');
+      return sleep(360);
+    },
+  };
 }
 
 // ---------------------------------------------------------- свой билет
@@ -1059,9 +1042,8 @@ function checkOfferSection(ticket) {
   const node = section('Разбор комбинации', { accent: true });
   node.append(ballsNode(ticket, { accent: false }));
   node.append(el('p', 'muted',
-    'Разбор покажет, во сколько раз чаще или реже среднего ставят эту ' +
-    'комбинацию, сколько ещё людей, вероятно, поставили её же и какая доля ' +
-    'суперприза достанется вам.'));
+    'Разбор покажет, какие привычки игроков сработали в этой комбинации: ' +
+    'что делает её популярнее и что — реже встречающейся.'));
 
   const btn = el('button', 'btn btn--accent btn--roll');
   btn.type = 'button';
@@ -1133,28 +1115,7 @@ function renderSlip({ roll = false } = {}) {
     return;
   }
 
-  box.replaceChildren(
-    analysisSection(ticket, state.model.breakdown(ticket), { title: 'Ваша комбинация', roll }),
-    jackpotSection(),
-  );
-}
-
-function jackpotSection() {
-  const node = section('Размер суперприза');
-  node.append(el('p', 'muted', 'По умолчанию — суперприз ближайшего тиража. Можно подставить свой.'));
-  const input = el('input');
-  input.type = 'text';
-  input.inputMode = 'numeric';
-  input.value = nf.format(state.jackpot);
-  input.addEventListener('change', () => {
-    const parsed = Number((input.value.match(/\d/g) || []).join(''));
-    if (parsed > 0) {
-      state.jackpot = parsed;
-      renderSlip();
-    }
-  });
-  node.append(input);
-  return node;
+  box.replaceChildren(checkSection(ticket, state.model.breakdown(ticket), { roll }));
 }
 
 // ---------------------------------------------------------------- данные
