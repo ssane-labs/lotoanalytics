@@ -131,6 +131,21 @@ def as_ticket(combo: Iterable, game: GameSpec) -> Ticket:
     return tuple(out)
 
 
+def game_calibration(params: dict, game_key: str) -> dict | None:
+    """Обученные веса игры. Ежегодные тиражи (один в год — учиться не на чем)
+    берут веса у обычной игры с тем же полем: calibration_from. Играют в них
+    те же люди с теми же привычками."""
+    game = params["games"].get(game_key, {})
+    if game.get("calibration"):
+        return game["calibration"]
+    src = game.get("calibration_from")
+    cal = params["games"].get(src, {}).get("calibration") if src else None
+    if not cal:
+        return None
+    n = len(game["fields"])
+    return {**cal, "field_weights": cal["field_weights"][:n], "borrowed_from": src}
+
+
 def popularity_config(params: dict, game_key: str) -> dict:
     """Параметры популярности для конкретной игры.
 
@@ -141,10 +156,10 @@ def popularity_config(params: dict, game_key: str) -> dict:
     base = params["popularity"]
     game = params["games"].get(game_key, {})
     merged = dict(base)
+    cal = game_calibration(params, game_key)
     for group, values in (game.get("popularity_overrides") or {}).items():
         if isinstance(values, dict):
             merged[group] = {**base.get(group, {}), **values}
-    cal = game.get("calibration")
     if cal:
         merged["calibration"] = {
             "random_share": cal["random_share"],
@@ -403,7 +418,7 @@ def mean_weight(
 
 def random_share(game: GameSpec, params: dict | None = None) -> float:
     """Доля ставок, числа в которых выбрал автомат, а не человек."""
-    cal = (params or load_params())["games"][game.key].get("calibration")
+    cal = game_calibration(params or load_params(), game.key)
     return float(cal["random_share"]) if cal else 0.0
 
 

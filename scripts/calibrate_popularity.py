@@ -606,6 +606,8 @@ def main() -> int:
     params = json.loads(json.dumps(params))  # копия: load_params кэширует
     keys = [args.game] if args.game else list(params["games"])
     for key in keys:
+        if params["games"][key].get("calibration_from"):
+            continue  # веса берёт у обычной игры
         print(params["games"][key]["title"])
         cal = calibrate(key, params["games"][key], params)
         if cal:

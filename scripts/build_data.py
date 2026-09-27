@@ -38,7 +38,7 @@ from lotto import ai as lai  # noqa: E402
 from lotto import ev as lev  # noqa: E402
 from lotto import history  # noqa: E402
 from lotto import stats as lstats  # noqa: E402
-from lotto.popularity import GameSpec, load_game, load_params, mean_weight, popularity_config  # noqa: E402
+from lotto.popularity import GameSpec, game_calibration, load_game, load_params, mean_weight, popularity_config  # noqa: E402
 from lotto.stoloto_api import ApiUnavailable  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -137,7 +137,7 @@ def build_game(key: str, params: dict, args, generated: str) -> dict | None:
     print(f"  средний вес = {mw:.6f}")
 
     cfg = popularity_config(params, key)
-    cal = spec.get("calibration")
+    cal = game_calibration(params, key)
     latest = draws[-1]
 
     write_json(f"{key}_meta.json", {
@@ -148,6 +148,7 @@ def build_game(key: str, params: dict, args, generated: str) -> dict | None:
         "latest_draw": latest.to_dict(),
         "latest_draws": [d.to_dict() for d in reversed(draws[-LATEST_DRAWS:])],
         "upcoming": upcoming,
+        "annual": bool(spec.get("annual")),
     })
 
     write_json(f"{key}_model.json", {
@@ -175,6 +176,7 @@ def build_game(key: str, params: dict, args, generated: str) -> dict | None:
             "date_from": cal["date_from"], "date_to": cal["date_to"],
             "random_share": cal["random_share"], "holdout": cal["holdout"],
             "structure": cal.get("structure"),
+            "borrowed_from": cal.get("borrowed_from"),
         },
         "recent_winners": [[list(f) for f in d.fields] for d in draws[-HISTORY_FOR_MODEL:]],
     })
@@ -213,6 +215,7 @@ def build_game(key: str, params: dict, args, generated: str) -> dict | None:
         if os.path.exists(path):
             os.remove(path)
     return {"key": key, "title": game.title, "short": spec.get("short", game.title),
+            "annual": bool(spec.get("annual")),
             "fields": [{"pick": f.pick, "pool": f.pool} for f in game.fields]}
 
 

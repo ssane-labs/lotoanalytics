@@ -259,8 +259,6 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   transition: background 0.22s ease, color 0.22s ease;
 }
 .seg__btn.is-active { background: var(--accent); color: var(--paper); }
-.games { margin: 18px 0 4px; flex-wrap: wrap; }
-.games .seg__btn { flex: 1 0 auto; padding-inline: 8px; }
 
 /* ------------------------------------------------------- числа-фишки */
 
@@ -1059,3 +1057,129 @@ details.why[open] > summary .chev { transform: rotate(180deg); }
 
 .ticket + .ticket { margin-top: 12px; }
 .ticket .ticket__head { margin-bottom: 7px; }
+
+/* ------------------------------------------------- главная: подбор */
+
+.gen { display: flex; flex-direction: column; gap: 14px; }
+
+/* Режим ИИ / Анализ — первым, в карточке со скруглёнными краями. */
+.modecard {
+  padding: 6px;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  background: var(--paper-2);
+}
+.modecard .seg { border: none; background: transparent; padding: 0; border-radius: 13px; }
+.modecard .seg__btn { padding: 11px 6px; font-size: 15px; border-radius: 12px; }
+
+/* Описание свёрнуто, раскрывается по нажатию. */
+details.about > summary,
+details.fold > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+details.about > summary::-webkit-details-marker,
+details.fold > summary::-webkit-details-marker { display: none; }
+details.about .chev,
+details.fold .chev { transition: transform 0.35s var(--ease); }
+details.about[open] .chev,
+details.fold[open] .chev { transform: rotate(180deg); }
+details.about p { margin: 10px 0 0; font-size: 13.5px; }
+details.fold > summary { font-size: 15px; color: var(--ink); padding: 4px 0; }
+details.fold .eyebrow { display: block; margin-top: 22px; }
+
+/* Лотереи — лента карточек с названиями, листается пальцем. */
+.games {
+  display: flex;
+  gap: 8px;
+  margin: 0 calc(-1 * var(--pad));
+  padding: 2px var(--pad) 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--pad);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.games::-webkit-scrollbar { display: none; }
+.gamecard {
+  position: relative;
+  flex: none;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 118px;
+  max-width: 150px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+.gamecard__brand { font-size: 13.5px; font-weight: 700; line-height: 1.2; }
+.gamecard__nums { font-size: 12px; font-weight: 600; color: var(--ink-4); }
+.gamecard__tag {
+  margin-top: 3px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.gamecard.is-active { border-color: var(--accent); background: var(--accent); color: var(--paper); }
+.gamecard.is-active .gamecard__nums { color: var(--paper); opacity: 0.8; }
+.gamecard.is-active .gamecard__tag { background: rgba(0, 0, 0, 0.18); color: var(--paper); }
+
+/* Добавить / Исключить — в одну строку. */
+.numrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.numrow__cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.numrow__k { font-size: 12px; font-weight: 600; color: var(--ink-4); }
+.numrow .numfield { min-height: 40px; }
+.numrow .numfield .numfield__input { min-width: 40px; width: 40px; }
+
+/* Кнопка подбора с балансом внутри и число билетов слева. */
+.runrow { display: flex; gap: 8px; align-items: stretch; }
+.runrow .btn--roll { flex: 1; margin: 0; }
+.stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+}
+.stepper__btn {
+  width: 34px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: 20px;
+  cursor: pointer;
+}
+.stepper__value { min-width: 18px; text-align: center; font-weight: 800; font-size: 15px; }
+.btn__balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+}
+.btn__balance b { font-weight: 800; }
+.btn--roll.is-short .btn__balance { background: rgba(0, 0, 0, 0.34); }
+
+#store-section h3 { margin-top: 0; }

@@ -14,11 +14,11 @@ import {
   PopularityModel,
   FACTOR_LABELS,
   generate,
-} from './model.js?v=53204a75';
-import { CONFIG } from './config.js?v=53204a75';
-import { DrawAI } from './ai.js?v=53204a75';
-import { Wallet, spinsWord } from './wallet.js?v=53204a75';
-import { NumberField } from './numfield.js?v=53204a75';
+} from './model.js?v=5d5987e8';
+import { CONFIG } from './config.js?v=5d5987e8';
+import { DrawAI } from './ai.js?v=5d5987e8';
+import { Wallet, spinsWord } from './wallet.js?v=5d5987e8';
+import { NumberField } from './numfield.js?v=5d5987e8';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -338,46 +338,8 @@ function goToStore() {
   }, 0);
 }
 
-/** Полоса с балансом над настройками. */
-function renderWallet() {
-  const bar = $('#wallet-bar');
-  bar.hidden = false;
-  bar.replaceChildren();
-
-  const left = el('div', 'wallet__left');
-  const value = el('span', 'wallet__value', String(wallet.total));
-  left.append(icon('dice', 15), value, el('span', 'wallet__label', wordTail(wallet.total)));
-
-  const hint = el('span', 'wallet__hint', walletHint());
-
-  const top = el('button', 'wallet__top');
-  top.type = 'button';
-  top.textContent = 'Пополнить';
-  top.addEventListener('click', () => {
-    haptic('light');
-    goToStore();
-  });
-
-  const body = el('div', 'wallet__body');
-  body.append(left, hint);
-  bar.append(body, top);
-  bar.classList.toggle('is-empty', wallet.total === 0);
-}
-
 function wordTail(n) {
   return spinsWord(n).replace(/^\d+\s/, '');
-}
-
-function walletHint() {
-  const b = wallet.balance;
-  if (wallet.online) {
-    if (b.free > 0) return 'Бесплатная на сегодня доступна';
-    if (wallet.adsLeft > 0) return `Ещё ${wallet.adsLeft} за рекламу на этой неделе`;
-    if (wallet.total === 0) return 'Бесплатная вернётся завтра';
-    return 'Купленные прокрутки не сгорают';
-  }
-  if (b.free > 0) return 'Бесплатная прокрутка на сегодня';
-  return 'Следующая бесплатная — завтра';
 }
 
 /** Магазин: реклама и пакеты прокруток. */
@@ -387,12 +349,10 @@ function renderStore({ open = false } = {}) {
   host.hidden = false;
   if (open) host.dataset.open = '1';
 
-  host.append(el('span', 'eyebrow eyebrow--accent', 'Прокрутки'));
-  host.append(el('h3', null, 'Как это устроено'));
+  host.append(el('h3', null, 'Пополнить'));
   host.append(el('p', 'muted',
-    `Прокрутка — одна подобранная комбинация. ${wallet.economy.FREE_PER_DAY} бесплатная каждый день, ` +
-    `ещё до ${wallet.economy.ADS_PER_WEEK} в неделю за просмотр рекламы. ` +
-    'Купленные прокрутки не сгорают, подписки нет.'));
+    `Прокрутка — один подобранный билет. ${wallet.economy.FREE_PER_DAY} бесплатная каждый день, ` +
+    'купленные не сгорают.'));
 
   host.append(adNode());
 
@@ -697,14 +657,16 @@ const MODE_HINTS = {
     'выбирается самый редкий у других игроков.',
 };
 
+/** Сколько билетов можно подобрать за раз. */
+const COUNT_STEPS = [1, 2, 3, 5, 10];
+
 function initGenerator() {
-  const counts = $('#gen-count');
-  counts.addEventListener('click', (event) => {
-    const chip = event.target.closest('.seg__btn');
-    if (!chip) return;
-    [...counts.children].forEach((c) => c.classList.toggle('is-active', c === chip));
-    state.genCount = Number(chip.dataset.count);
-    $('#row-spread').hidden = state.genCount < 2;
+  $('#gen-count').addEventListener('click', (event) => {
+    const btn = event.target.closest('.stepper__btn');
+    if (!btn) return;
+    const i = COUNT_STEPS.indexOf(state.genCount) + Number(btn.dataset.step);
+    state.genCount = COUNT_STEPS[Math.max(0, Math.min(COUNT_STEPS.length - 1, i))];
+    $('#gen-count-value').textContent = String(state.genCount);
     renderRunButton();
     haptic('light');
   });
@@ -728,14 +690,14 @@ function renderModeChips() {
   $('#gen-mode-hint').textContent = MODE_HINTS[state.genMode];
 }
 
-/** Надпись и цена на кнопке подбора. */
+/** Кнопка подбора: внутри неё — баланс прокруток. */
 function renderRunButton() {
   const need = cost.generate;
-  // Пока барабан крутится, надпись принадлежит анимации: списание меняет
+  // Пока идёт подбор, надпись принадлежит анимации: списание меняет
   // баланс и дёргает эту функцию как раз в этот момент.
   if (!state.busy) $('#gen-run-label').textContent = 'Подобрать';
-  const price = $('#gen-run-price');
-  price.textContent = String(need);
+  $('#gen-run-price').textContent = String(wallet.total);
+  $('#gen-run-balance').setAttribute('aria-label', `На балансе ${spinsWord(wallet.total)}`);
   const btn = $('#gen-run');
   btn.classList.toggle('is-short', wallet.total < need);
   // Именительный падеж не случаен: «за 1 прокрутка» звучит как машинный
@@ -767,7 +729,7 @@ function setRunning(on) {
   btn.classList.toggle('is-running', on);
   btn.disabled = on;
   $('#gen-run-label').textContent = on ? 'Подбор…' : 'Подобрать';
-  $('#gen-run-price').hidden = on;
+  $('#gen-run-balance').hidden = on;
 }
 
 async function runGenerator() {
@@ -852,14 +814,14 @@ async function runGenerator() {
   }
 
   try {
-    const spread = $('#gen-spread').checked;
     const picks = generate(state.model, {
       count: state.genCount,
       include,
       exclude,
       // Взвешенная выборка дороже равномерной, кандидатов берём меньше.
       candidates: useAI ? 6000 : 15000,
-      maxOverlap: spread && state.genCount > 1 ? 2 : null,
+      // Несколько билетов — на разных числах, а не вариации одного.
+      maxOverlap: state.genCount > 1 ? 2 : null,
       numberWeights,
     });
     if (!picks.length) throw new Error('С такими ограничениями подобрать не удалось');
@@ -1160,12 +1122,13 @@ function renderStats() {
   const { fields } = model.game;
   const main = stats.fields[0];
 
-  $('#stats-title').textContent = model.game.title;
   // Дата кончается на «г.», поэтому предложение после неё без своей точки.
-  $('#stats-lede').textContent =
-    `${fmtInt(meta.draws_count)} тиражей, с ${fmtDate(meta.first_date)} по ` +
-    `${fmtDate(meta.latest_draw.date)} Источник — архив тиражей Столото, ` +
-    'обновляется каждый день.';
+  $('#stats-lede').textContent = meta.annual
+    ? `Тираж проводится раз в год, 31 декабря. В архиве тиражей: ${fmtInt(meta.draws_count)}. ` +
+      'Источник — архив Столото.'
+    : `${fmtInt(meta.draws_count)} тиражей, с ${fmtDate(meta.first_date)} по ` +
+      `${fmtDate(meta.latest_draw.date)} Источник — архив тиражей Столото, ` +
+      'обновляется каждый день.';
 
   const draws = $('#latest-draws');
   draws.replaceChildren();
@@ -1240,6 +1203,12 @@ function renderModelInfo() {
       'исследованиям выбора чисел, без обучения на итогах тиражей.'));
     return;
   }
+  if (cal.borrowed_from) {
+    const src = state.games.find((g) => g.key === cal.borrowed_from);
+    body.append(el('p', 'muted',
+      'Тираж раз в год — учиться на нём одном не на чем, поэтому модель берёт ' +
+      `привычки игроков из ${src ? src.title : 'обычной игры'}: играют те же люди.`));
+  }
   body.append(el('p', 'muted',
     `Модель обучена на итогах ${fmtInt(cal.draws)} тиражей ` +
     `(${fmtDate(cal.date_from)} — ${fmtDate(cal.date_to)}). Если выпадают числа, ` +
@@ -1271,6 +1240,13 @@ function renderModelInfo() {
     );
   }
   body.append(rowsList(rows));
+  const net = state.aiData?.fields?.[0];
+  if (net) {
+    body.append(el('p', 'muted',
+      `Режим «ИИ»: нейросеть ${net.arch.inputs}→${net.arch.hidden.join('→')}→1 обучена на ` +
+      `${fmtInt(net.draws_used)} тиражах и переобучается каждый день. Она отбирает числа, ` +
+      'а модель популярности выбирает из её вариантов самый редкий у игроков.'));
+  }
   body.append(el('p', 'fineprint',
     (cal.structure && cal.structure.patterns > 0
       ? 'Множители — во сколько раз чаще или реже такие комбинации выбирают те, ' +
@@ -1300,31 +1276,42 @@ function renderGameFacts() {
 // ------------------------------------------------------------------ старт
 
 function renderMeta() {
-  const { meta, model } = state;
+  const { model } = state;
   document.querySelectorAll('.js-game-title').forEach((n) => { n.textContent = model.game.title; });
-  const when = fmtDate(meta.generated_at, { day: 'numeric', month: 'short' });
-  $('#data-meta').textContent = `${fmtInt(meta.draws_count)} тиражей · ${when}`;
 }
 
-/** Кнопки выбора лотереи. При одной игре выбирать нечего — скрыты. */
+/**
+ * Название лотереи без чисел: «Спортлото «6 из 45»» -> «Спортлото».
+ * Если всё название в кавычках («Большое Спортлото») — оно целиком.
+ */
+function gameBrand(title) {
+  const plain = title.replace(/«[^»]*\d[^»]*»/g, '').trim();
+  return (plain || title).replace(/[«»]/g, '').trim();
+}
+
+const gameNumbers = (fields) => fields.map((f) => `${f.pick} из ${f.pool}`).join(' + ');
+
+/** Карточки лотерей в прокручиваемой ленте: название и формула игры. */
 function renderGamePicker() {
   const picker = $('#game-picker');
   picker.replaceChildren();
   picker.hidden = state.games.length < 2;
   state.games.forEach((game) => {
-    const f = game.fields?.[0] || game;
-    const chip = el('button', `seg__btn${game.key === state.gameKey ? ' is-active' : ''}`,
-      game.short || `${f.pick} из ${f.pool}`);
-    chip.type = 'button';
-    chip.dataset.game = game.key;
-    chip.title = game.title || '';
-    picker.append(chip);
+    const card = el('button', `gamecard${game.key === state.gameKey ? ' is-active' : ''}`);
+    card.type = 'button';
+    card.dataset.game = game.key;
+    card.title = game.title || '';
+    card.append(el('span', 'gamecard__brand', gameBrand(game.title || game.short || game.key)));
+    if (game.fields) card.append(el('span', 'gamecard__nums', gameNumbers(game.fields)));
+    if (game.annual) card.append(el('span', 'gamecard__tag', 'раз в год'));
+    picker.append(card);
   });
+  picker.querySelector('.is-active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
 function initGamePicker() {
   $('#game-picker').addEventListener('click', async (event) => {
-    const chip = event.target.closest('.seg__btn');
+    const chip = event.target.closest('.gamecard');
     if (!chip || chip.dataset.game === state.gameKey) return;
     haptic('light');
     try {
@@ -1423,7 +1410,6 @@ async function main() {
 
   // Баланс влияет и на полосу сверху, и на цену на кнопке, и на магазин.
   wallet.onChange(() => {
-    renderWallet();
     renderRunButton();
   });
 
@@ -1444,7 +1430,7 @@ async function main() {
     initGamePicker();
     await loadGame(first);
     renderDonate();
-    renderWallet();
+    renderStore();
 
     // Кошелёк грузится последним: без него приложение полностью рабочее,
     // просто с бесплатным лимитом.

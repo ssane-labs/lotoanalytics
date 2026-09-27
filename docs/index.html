@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="styles.css?v=53204a75">
+<link rel="stylesheet" href="styles.css?v=5d5987e8">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -84,82 +84,67 @@
   <!-- ===================== ПОДБОР ===================== -->
   <section class="view" id="view-generate">
 
-    <div class="section section--head">
-      <div class="head">
-        <span class="badge js-game-title" id="game-title">Спортлото «6 из 45»</span>
-        <span class="meta" id="data-meta">Загрузка данных…</span>
+    <div class="section section--head gen">
+      <!-- Режим — самым первым, в отдельной карточке. -->
+      <div class="modecard">
+        <div class="seg" id="gen-mode" role="group" aria-label="Режим подбора">
+          <button class="seg__btn" data-mode="ai" type="button">ИИ</button>
+          <button class="seg__btn is-active" data-mode="classic" type="button">Анализ</button>
+        </div>
       </div>
-      <h2>Комбинации, которые редко ставят</h2>
-      <p class="lede">
-        Суперприз делится между всеми, кто угадал. Аналитик подбирает
-        комбинации, которые другие игроки ставят реже всего, — чтобы при
-        выигрыше он достался вам целиком.
-      </p>
-      <!-- Выбор лотереи — под описанием, ближе к середине экрана. -->
-      <div class="seg games" id="game-picker" role="group" aria-label="Лотерея" hidden></div>
-    </div>
 
-    <!-- Баланс прокруток. Стоит над настройками, а не в конце экрана:
-         пользователь должен видеть цену действия до того, как его совершит. -->
-    <div class="wallet" id="wallet-bar" hidden></div>
+      <details class="about">
+        <summary>
+          Как это работает
+          <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-chevron"/></svg>
+        </summary>
+        <p class="muted">
+          Суперприз делится между всеми, кто угадал. Приложение подбирает
+          комбинации, которые другие игроки ставят реже всего, — чтобы при
+          выигрыше он достался вам целиком.
+        </p>
+        <p class="muted" id="gen-mode-hint"></p>
+      </details>
 
-    <div class="section">
-      <div class="panel">
-        <div class="row">
-          <span class="row__k">Режим</span>
-          <div class="seg seg--sm" id="gen-mode" role="group" aria-label="Режим подбора">
-            <button class="seg__btn is-active" data-mode="classic" type="button">Аналитик</button>
-            <button class="seg__btn" data-mode="ai" type="button">Нейросеть</button>
-          </div>
-        </div>
-        <p class="hint" id="gen-mode-hint"></p>
+      <div class="games" id="game-picker" role="group" aria-label="Лотерея" hidden></div>
 
-        <div class="row">
-          <span class="row__k">Билетов</span>
-          <div class="seg seg--sm" id="gen-count" role="group" aria-label="Сколько билетов">
-            <button class="seg__btn is-active" data-count="1" type="button">1</button>
-            <button class="seg__btn" data-count="3" type="button">3</button>
-            <button class="seg__btn" data-count="5" type="button">5</button>
-            <button class="seg__btn" data-count="10" type="button">10</button>
-          </div>
-        </div>
-
-        <div class="row">
-          <span class="row__k">Мои числа</span>
+      <div class="numrow">
+        <label class="numrow__cell">
+          <span class="numrow__k">Добавить</span>
           <div id="gen-include"></div>
-        </div>
-
-        <div class="row">
-          <span class="row__k">Убрать</span>
+        </label>
+        <label class="numrow__cell">
+          <span class="numrow__k">Исключить</span>
           <div id="gen-exclude"></div>
-        </div>
-
-        <label class="row row--switch" id="row-spread" hidden>
-          <span class="row__k">Без повторов</span>
-          <span class="switch">
-            <input type="checkbox" id="gen-spread" checked>
-            <span class="switch__track"></span>
-          </span>
         </label>
       </div>
 
-      <button class="btn btn--accent btn--roll" id="gen-run" type="button">
-        <span class="btn__sheen" aria-hidden="true"></span>
-        <span class="btn__face">
-          <svg class="btn__dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-dice"/></svg>
-          <span id="gen-run-label">Подобрать</span>
-          <span class="btn__price" id="gen-run-price"></span>
-        </span>
-      </button>
+      <div class="runrow">
+        <div class="stepper" id="gen-count" role="group" aria-label="Сколько билетов">
+          <button class="stepper__btn" data-step="-1" type="button" aria-label="Меньше билетов">−</button>
+          <span class="stepper__value" id="gen-count-value">1</span>
+          <button class="stepper__btn" data-step="1" type="button" aria-label="Больше билетов">+</button>
+        </div>
+        <button class="btn btn--accent btn--roll" id="gen-run" type="button">
+          <span class="btn__sheen" aria-hidden="true"></span>
+          <span class="btn__face">
+            <span id="gen-run-label">Подобрать</span>
+            <span class="btn__balance" id="gen-run-balance">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-dice"/></svg>
+              <b id="gen-run-price">1</b>
+            </span>
+          </span>
+        </button>
+      </div>
       <p class="error" id="gen-error" hidden></p>
     </div>
 
     <div id="gen-results"></div>
 
-    <!-- Магазин прокруток: реклама и пакеты. Стоит здесь, потому что именно
-         на этом экране заканчиваются прокрутки. -->
-    <div class="section" id="store-section" hidden></div>
+    <!-- Пополнение: реклама, пакеты, приглашение друга. -->
+    <div class="section" id="store-section"></div>
   </section>
 
   <!-- ===================== МОЯ КОМБИНАЦИЯ ===================== -->
@@ -199,53 +184,6 @@
   <section class="view" id="view-stats" hidden>
 
     <div class="section section--head">
-      <span class="eyebrow eyebrow--accent">Данные</span>
-      <h2 id="stats-title">История тиражей</h2>
-      <p class="lede" id="stats-lede"></p>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Последние тиражи</span>
-      <ul class="draws" id="latest-draws"></ul>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Частота выпадения</span>
-      <p class="muted">Сколько раз выпадало каждое число за всю историю. Пунктир — среднее.</p>
-      <div id="freq-charts"></div>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Чаще всего</span>
-      <ul class="numlist" id="list-hot"></ul>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Реже всего</span>
-      <ul class="numlist" id="list-cold"></ul>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Давно не выпадали</span>
-      <ul class="numlist" id="list-overdue"></ul>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Статистика тиражей</span>
-      <dl class="rows" id="facts"></dl>
-    </div>
-
-    <div class="section" id="model-section">
-      <span class="eyebrow">Модель популярности</span>
-      <div id="model-body"></div>
-    </div>
-
-    <div class="section">
-      <span class="eyebrow">Об игре</span>
-      <dl class="rows" id="game-facts"></dl>
-    </div>
-
-    <div class="section">
       <div class="note note--quiet">
         <span class="eyebrow">Ответственная игра</span>
         <p class="muted">
@@ -262,6 +200,44 @@
                stroke-linejoin="round" aria-hidden="true"><use href="#i-arrow"/></svg>
         </a>
       </div>
+    </div>
+
+    <div class="section" id="model-section">
+      <span class="eyebrow eyebrow--accent">Как работает ИИ</span>
+      <h3 class="js-game-title">Спортлото «6 из 45»</h3>
+      <div id="model-body"></div>
+    </div>
+
+    <div class="section">
+      <details class="fold">
+        <summary>
+          Статистика тиражей
+          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-chevron"/></svg>
+        </summary>
+        <p class="muted" id="stats-lede"></p>
+
+        <span class="eyebrow">Последние тиражи</span>
+        <ul class="draws" id="latest-draws"></ul>
+
+        <span class="eyebrow">Частота выпадения</span>
+        <div id="freq-charts"></div>
+
+        <span class="eyebrow">Чаще всего</span>
+        <ul class="numlist" id="list-hot"></ul>
+
+        <span class="eyebrow">Реже всего</span>
+        <ul class="numlist" id="list-cold"></ul>
+
+        <span class="eyebrow">Давно не выпадали</span>
+        <ul class="numlist" id="list-overdue"></ul>
+
+        <span class="eyebrow">Статистика</span>
+        <dl class="rows" id="facts"></dl>
+
+        <span class="eyebrow">Об игре</span>
+        <dl class="rows" id="game-facts"></dl>
+      </details>
     </div>
 
     <div class="section" id="support-section"></div>
@@ -286,6 +262,6 @@
 
 <div class="fatal" id="fatal" hidden></div>
 
-<script type="module" src="app.js?v=53204a75"></script>
+<script type="module" src="app.js?v=5d5987e8"></script>
 </body>
 </html>
