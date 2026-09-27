@@ -228,21 +228,35 @@ export class Wallet {
     // (например, если закрыть экран после ролика), и без этого прокрутка
     // пропадала бы у человека, который честно всё досмотрел.
     let rewarded = false;
-    let controller;
-    const onReward = () => { rewarded = true; };
-    try {
-      controller = await adController(this.adBlockId);
-      controller.addEventListener?.('onReward', onReward);
-      const result = await controller.show();
-      if (result?.done) rewarded = true;
-    } catch (err) {
-      if (!rewarded) {
-        const reason = describeAdError(err);
-        this.post('/api/ad-claim', { failed: reason }).catch(() => {});
-        return { ok: false, error: reason };
+    let lastError = null;
+    // Показ через раз — известное поведение: переиспользованный контроллер
+    // после первого ролика часто отказывает сразу, «рекламы нет». Поэтому
+    // на каждый показ — свежий контроллер, а мгновенный отказ (ролик так и
+    // не начался) повторяем ещё раз.
+    for (let attempt = 0; attempt < 2 && !rewarded; attempt += 1) {
+      const started = Date.now();
+      let controller;
+      const onReward = () => { rewarded = true; };
+      try {
+        controller = await freshAdController(this.adBlockId);
+        controller.addEventListener?.('onReward', onReward);
+        const result = await controller.show();
+        if (result?.done) rewarded = true;
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        const instant = Date.now() - started < 2500 && err?.state !== 'playing';
+        if (!instant || rewarded) break;
+        await new Promise((r) => setTimeout(r, 900));
+      } finally {
+        controller?.removeEventListener?.('onReward', onReward);
       }
-    } finally {
-      controller?.removeEventListener?.('onReward', onReward);
+    }
+    if (!rewarded) {
+      const reason = describeAdError(lastError);
+      this.post('/api/ad-claim', { failed: reason }).catch(() => {});
+      return { ok: false, error: reason };
     }
 
     try {
@@ -346,8 +360,11 @@ function loadAdSdk() {
   return adSdk;
 }
 
-async function adController(blockId) {
+async function freshAdController(blockId) {
   const sdk = await loadAdSdk();
-  if (!adCtl) adCtl = sdk.init({ blockId });
+  try {
+    adCtl?.destroy?.();
+  } catch { /* старый контроллер уже закрыт */ }
+  adCtl = sdk.init({ blockId });
   return adCtl;
 }

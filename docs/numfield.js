@@ -56,7 +56,20 @@ export class NumberField {
     this.input.addEventListener('keydown', (event) => this.onKeyDown(event));
     this.input.addEventListener('blur', () => this.commit());
 
-    host.append(this.chips, this.input);
+    this.clearBtn = document.createElement('button');
+    this.clearBtn.type = 'button';
+    this.clearBtn.className = 'numfield__clear';
+    this.clearBtn.textContent = '×';
+    this.clearBtn.setAttribute('aria-label', 'Сбросить числа');
+    // mousedown, а не click: иначе поле успевает потерять фокус и
+    // зафиксировать недописанное число уже после сброса.
+    this.clearBtn.addEventListener('mousedown', (event) => event.preventDefault());
+    this.clearBtn.addEventListener('click', () => {
+      this.clear();
+      this.onChange(this.value());
+    });
+
+    host.append(this.chips, this.input, this.clearBtn);
     this.render();
   }
 

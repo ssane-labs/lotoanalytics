@@ -14,11 +14,11 @@ import {
   PopularityModel,
   FACTOR_LABELS,
   generate,
-} from './model.js?v=ca1a5b33';
-import { CONFIG } from './config.js?v=ca1a5b33';
-import { DrawAI } from './ai.js?v=ca1a5b33';
-import { Wallet, spinsWord } from './wallet.js?v=ca1a5b33';
-import { NumberField } from './numfield.js?v=ca1a5b33';
+} from './model.js?v=53204a75';
+import { CONFIG } from './config.js?v=53204a75';
+import { DrawAI } from './ai.js?v=53204a75';
+import { Wallet, spinsWord } from './wallet.js?v=53204a75';
+import { NumberField } from './numfield.js?v=53204a75';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -1301,7 +1301,7 @@ function renderGameFacts() {
 
 function renderMeta() {
   const { meta, model } = state;
-  $('#game-title').textContent = model.game.title;
+  document.querySelectorAll('.js-game-title').forEach((n) => { n.textContent = model.game.title; });
   const when = fmtDate(meta.generated_at, { day: 'numeric', month: 'short' });
   $('#data-meta').textContent = `${fmtInt(meta.draws_count)} тиражей · ${when}`;
 }

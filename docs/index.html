@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="styles.css?v=ca1a5b33">
+<link rel="stylesheet" href="styles.css?v=53204a75">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -85,10 +85,8 @@
   <section class="view" id="view-generate">
 
     <div class="section section--head">
-      <!-- Выбор лотереи. Кнопки появляются, когда в данных больше одной игры. -->
-      <div class="seg games" id="game-picker" role="group" aria-label="Лотерея" hidden></div>
       <div class="head">
-        <span class="badge" id="game-title">Спортлото «6 из 45»</span>
+        <span class="badge js-game-title" id="game-title">Спортлото «6 из 45»</span>
         <span class="meta" id="data-meta">Загрузка данных…</span>
       </div>
       <h2>Комбинации, которые редко ставят</h2>
@@ -97,6 +95,8 @@
         комбинации, которые другие игроки ставят реже всего, — чтобы при
         выигрыше он достался вам целиком.
       </p>
+      <!-- Выбор лотереи — под описанием, ближе к середине экрана. -->
+      <div class="seg games" id="game-picker" role="group" aria-label="Лотерея" hidden></div>
     </div>
 
     <!-- Баланс прокруток. Стоит над настройками, а не в конце экрана:
@@ -166,6 +166,9 @@
   <section class="view" id="view-check" hidden>
 
     <div class="section section--head">
+      <div class="head">
+        <span class="badge js-game-title">Спортлото «6 из 45»</span>
+      </div>
       <span class="eyebrow eyebrow--accent">Бланк</span>
       <h2>Сколько человек играют вашими числами</h2>
       <p class="lede">
@@ -283,6 +286,6 @@
 
 <div class="fatal" id="fatal" hidden></div>
 
-<script type="module" src="app.js?v=ca1a5b33"></script>
+<script type="module" src="app.js?v=53204a75"></script>
 </body>
 </html>

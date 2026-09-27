@@ -259,7 +259,7 @@ a:hover { color: var(--accent); border-color: var(--accent); }
   transition: background 0.22s ease, color 0.22s ease;
 }
 .seg__btn.is-active { background: var(--accent); color: var(--paper); }
-.games { margin-bottom: 14px; flex-wrap: wrap; }
+.games { margin: 18px 0 4px; flex-wrap: wrap; }
 .games .seg__btn { flex: 1 0 auto; padding-inline: 8px; }
 
 /* ------------------------------------------------------- числа-фишки */
@@ -302,6 +302,26 @@ a:hover { color: var(--accent); border-color: var(--accent); }
 }
 .numfield .numfield__input:focus { outline: none; border: none; }
 .numfield .numfield__input::placeholder { color: var(--ink-4); font-size: 12.5px; }
+/* Сбросить все числа поля разом. Видна, только когда есть что сбрасывать. */
+.numfield__clear {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--paper-2);
+  color: var(--ink-3);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.numfield__clear:active { transform: scale(0.9); }
+.numfield.is-empty .numfield__clear { display: none; }
 
 .numchip {
   display: inline-flex;
