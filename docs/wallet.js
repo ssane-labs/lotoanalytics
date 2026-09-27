@@ -15,6 +15,7 @@
  */
 
 const LOCAL_KEY = 'loto.wallet';
+const HISTORY_KEY = 'loto.history';
 
 /** Сутки считаем по Москве: аудитория и тиражи живут в этом времени. */
 const MSK_SHIFT_MS = 3 * 3600 * 1000;
@@ -118,7 +119,7 @@ export class Wallet {
     // Без тайм-аута зависший запрос в WebView Telegram висит бесконечно — и
     // вместе с ним экран загрузки или анимация подбора.
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    const timer = setTimeout(() => ctrl.abort(), 9_000);
     let res;
     try {
       res = await fetch(`${this.config.WORKER_URL}${path}`, {
@@ -200,7 +201,7 @@ export class Wallet {
       // дважды, если первый запрос всё-таки дошёл.
       const op = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
       let lastError = null;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
           const data = await this.post('/api/spend', { cost, reason, op });
           this.applyServer(data);
@@ -293,6 +294,66 @@ export class Wallet {
       }
       return { ok: false, error: `Не удалось начислить: ${err.message}` };
     }
+  }
+
+  // ------------------------------------------------------------- история
+
+  /**
+   * История подборов. Внутри Telegram живёт на сервере (одна на все
+   * устройства), копия — в браузере: она показывается сразу и выручает, если
+   * сервер не ответил.
+   */
+  localHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  async addHistory(entry) {
+    const all = [entry, ...this.localHistory()].slice(0, 200);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(all));
+    } catch { /* приватный режим */ }
+    if (!this.online) return;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await this.post('/api/history-add', entry);
+        return;
+      } catch (err) {
+        if (err.status) return;
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      }
+    }
+  }
+
+  async history() {
+    if (!this.online) return this.localHistory();
+    try {
+      const data = await this.post('/api/history');
+      return data.history || [];
+    } catch {
+      return this.localHistory();
+    }
+  }
+
+  /** Файл — документом в чат с ботом: скачивание из Mini App работает не везде. */
+  async sendHistoryFile() {
+    return this.post('/api/history-send');
+  }
+
+  /** Ошибка на телефоне пользователя — в журнал воркера (/errors у админа). */
+  logError(where, message) {
+    if (!this.config.WORKER_URL) return;
+    fetch(`${this.config.WORKER_URL}/api/client-log`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        initData: this.tg?.initData, where, message: String(message).slice(0, 300),
+        platform: `${this.tg?.platform || 'web'} ${this.tg?.version || ''}`,
+      }),
+    }).catch(() => {});
   }
 
   /** Ссылка на счёт: приходит заранее вместе с балансом, иначе запросим. */

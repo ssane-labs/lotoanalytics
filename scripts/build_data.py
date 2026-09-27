@@ -203,6 +203,18 @@ def build_game(key: str, params: dict, args, generated: str) -> dict | None:
                   f"против {h['log_loss_base_rate']}")
             nets.append(lai.export(net, info, [d.fields[i] for d in draws], f.pool, f.pick))
         write_json(f"{key}_ai.json", lai.export_game(nets, key))
+    elif spec.get("calibration_from") and os.path.exists(
+            os.path.join(DATA_DIR, f"{spec['calibration_from']}_ai.json")):
+        # Тираж раз в год: своей истории на обучение нет, поэтому сеть — от
+        # обычной игры с тем же полем, на её свежих тиражах.
+        src = spec["calibration_from"]
+        with open(os.path.join(DATA_DIR, f"{src}_ai.json"), encoding="utf-8") as fh:
+            borrowed = json.load(fh)
+        n = len(game.fields)
+        if not borrowed.get("insufficient") and len(borrowed.get("fields", [])) >= n:
+            borrowed = {**borrowed, "game": key, "fields": borrowed["fields"][:n], "borrowed_from": src}
+            write_json(f"{key}_ai.json", borrowed)
+            print(f"  нейросеть взята у {src}")
     else:
         write_json(f"{key}_ai.json", {
             "game": key, "insufficient": True,

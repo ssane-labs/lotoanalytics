@@ -14,11 +14,11 @@ import {
   PopularityModel,
   FACTOR_LABELS,
   generate,
-} from './model.js?v=0e0ba856';
-import { CONFIG } from './config.js?v=0e0ba856';
-import { DrawAI } from './ai.js?v=0e0ba856';
-import { Wallet, spinsWord } from './wallet.js?v=0e0ba856';
-import { NumberField } from './numfield.js?v=0e0ba856';
+} from './model.js?v=d1ec4ef4';
+import { CONFIG } from './config.js?v=d1ec4ef4';
+import { DrawAI } from './ai.js?v=d1ec4ef4';
+import { Wallet, spinsWord } from './wallet.js?v=d1ec4ef4';
+import { NumberField } from './numfield.js?v=d1ec4ef4';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -107,8 +107,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * Данные игры. Мобильная сеть внутри Telegram рвётся, поэтому три попытки с
  * тайм-аутом: без него зависший запрос оставлял экран недогруженным.
  */
+/** Версия данных — время их сборки из meta.json: обновились данные — сменился адрес. */
+let dataVersion = null;
+
 async function loadJSON(name, { optional = false } = {}) {
-  const stamp = new Date().toISOString().slice(0, 10);
+  const stamp = name === 'meta.json' ? Date.now() : (dataVersion || new Date().toISOString().slice(0, 10));
   let last = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const ctrl = new AbortController();
@@ -815,8 +818,9 @@ async function runGenerator() {
   // Страховка: что бы ни случилось со связью, анимация не крутится вечно.
   const paid = await Promise.race([
     wallet.spend(need, 'generate'),
-    sleep(45_000).then(() => ({ ok: false, need: 0, error: 'Сервер не ответил. Попробуйте ещё раз.' })),
+    sleep(25_000).then(() => ({ ok: false, need: 0, timeout: true, error: 'Сервер не ответил. Попробуйте ещё раз.' })),
   ]);
+  if (paid.error) wallet.logError('spend', `${paid.timeout ? 'тайм-аут' : paid.error}, билетов ${state.genCount}`);
   if (!paid.ok) {
     state.busy = false;
     setRunning(false);
@@ -848,6 +852,13 @@ async function runGenerator() {
 
     await spinFloor;
     await reels.land(shown.map((p) => p.ticket));
+    wallet.addHistory({
+      at: Date.now(),
+      game: state.model.game.title,
+      mode: state.genMode,
+      tickets: shown.map((p) => p.ticket),
+    }).then(renderHistory);
+    renderHistory();
 
     const tail = section(null);
     const share = el('button', 'btn btn--ghost share-btn');
@@ -858,6 +869,7 @@ async function runGenerator() {
     results.append(tail);
     haptic('medium');
   } catch (err) {
+    wallet.logError('generate', err?.stack || err?.message || err);
     await spinFloor;
     results.replaceChildren();
     errBox.textContent = err.message;
@@ -913,6 +925,7 @@ function reelsNode(game, count) {
     node,
     land(tickets) {
       let last = 0;
+      node.querySelectorAll('.ticket').forEach((t, i) => { if (i >= tickets.length) t.remove(); });
       tickets.forEach((ticket, t) => {
         const values = ticket.flat();
         slots[t].forEach((slot, i) => {
@@ -1401,11 +1414,104 @@ function openDonate() {
   else window.open(CONFIG.DONATE_URL, '_blank', 'noopener');
 }
 
+/**
+ * Нет связи при запуске: вместо ошибки — ожидание. Приложение само
+ * перезагрузится, как только сеть вернётся.
+ */
 function fail(message) {
   $('#app').hidden = true;
   const box = $('#fatal');
   box.hidden = false;
-  box.textContent = message;
+  box.textContent = 'Нет связи. Переподключаемся…';
+  wallet.logError('start', message);
+  const retry = async () => {
+    try {
+      const res = await fetch(`data/meta.json?ping=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) window.location.reload();
+    } catch { /* сети всё ещё нет */ }
+  };
+  setInterval(retry, 4000);
+  window.addEventListener('online', () => window.location.reload());
+}
+
+/** Баланс не загрузился — переспрашиваем, пока не ответит. */
+let walletRetry = null;
+function keepWalletAlive() {
+  if (wallet.server || !CONFIG.WORKER_URL || !tg?.initData || walletRetry) return;
+  walletRetry = setInterval(async () => {
+    await wallet.load();
+    if (wallet.server) {
+      clearInterval(walletRetry);
+      walletRetry = null;
+      renderStore();
+    }
+  }, 8000);
+}
+window.addEventListener('online', () => {
+  if (!wallet.server) wallet.load().then(() => renderStore());
+});
+
+// ------------------------------------------------------------ история
+
+async function renderHistory() {
+  const list = $('#history-list');
+  if (!list) return;
+  const history = await wallet.history();
+  list.replaceChildren();
+  $('#history-download').hidden = !history.length;
+  if (!history.length) {
+    list.append(el('li', 'muted', 'Здесь появятся подобранные билеты.'));
+    return;
+  }
+  history.slice(0, 30).forEach((h) => {
+    const when = new Date(h.at).toLocaleString('ru-RU',
+      { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    h.tickets.forEach((ticket, i) => {
+      const li = el('li');
+      const meta = el('span', 'history__meta');
+      meta.append(el('b', null, h.game), document.createTextNode(
+        `${when}${h.tickets.length > 1 ? ` · билет ${i + 1}` : ''} · ${h.mode === 'ai' ? 'ИИ' : 'Анализ'}`));
+      li.append(meta, ballsNode(ticket, { quiet: true }));
+      list.append(li);
+    });
+  });
+}
+
+/** CSV из истории — вне Telegram, где некуда прислать документ. */
+function historyCsv(history) {
+  const cell = (v) => `"${String(v).replace(/"/g, '""')}"`;
+  const rows = [['Дата', 'Лотерея', 'Режим', 'Билет', 'Числа']];
+  history.forEach((h) => h.tickets.forEach((t, i) => rows.push([
+    new Date(h.at).toLocaleString('ru-RU'), h.game, h.mode === 'ai' ? 'ИИ' : 'Анализ', i + 1,
+    t.map((f) => f.join(' ')).join(' + '),
+  ])));
+  return String.fromCharCode(0xFEFF) + rows.map((r) => r.map(cell).join(';')).join('\r\n');
+}
+
+function initHistory() {
+  $('#history-download').addEventListener('click', async () => {
+    const note = $('#history-note');
+    note.hidden = false;
+    haptic('light');
+    if (wallet.online) {
+      note.textContent = 'Отправляем файл…';
+      try {
+        await wallet.sendHistoryFile();
+        note.textContent = 'Файл с историей отправлен в чат с ботом.';
+      } catch (err) {
+        note.textContent = `Не удалось отправить: ${err.message}`;
+      }
+      return;
+    }
+    const blob = new Blob([historyCsv(await wallet.history())], { type: 'text/csv' });
+    const a = el('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'история-прокруток.csv';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    note.textContent = 'Файл сохранён.';
+  });
 }
 
 async function main() {
@@ -1434,6 +1540,7 @@ async function main() {
 
   try {
     const index = await loadJSON('meta.json');
+    dataVersion = encodeURIComponent(index.generated_at || '');
     state.games = (index.games || []).filter((g) => g && g.key);
     if (!state.games.length) state.games = [{ key: DEFAULT_GAME, short: '6 из 45' }];
 
@@ -1447,6 +1554,7 @@ async function main() {
     initGenerator();
     initSlip();
     initGamePicker();
+    initHistory();
     await loadGame(first);
     renderDonate();
     renderStore();
@@ -1455,6 +1563,8 @@ async function main() {
     // просто с бесплатным лимитом.
     await wallet.load();
     renderStore();
+    renderHistory();
+    keepWalletAlive();
   } catch (err) {
     fail(
       `${err.message}\n\nЕсли вы открыли файл напрямую с диска, запустите ` +

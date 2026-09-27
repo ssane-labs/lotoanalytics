@@ -81,9 +81,7 @@ const TEXT = {
   start:
     'Лотерейный аналитик для «6 из 45», «7 из 49», «4 из 20», «5 из 36» ' +
     'и «Большого Спортлото».\n\n' +
-    'Суперприз делится между всеми, кто угадал. Аналитик оценивает, сколько ' +
-    'человек ставят те же числа, что и вы, и подбирает комбинации, которые ' +
-    'ставят реже всего, — чтобы при выигрыше суперприз достался вам целиком. ' +
+    'Аналитик подбирает комбинации, которые другие игроки ставят реже всего. ' +
     'Модель обучена на итогах тиражей Столото.\n\n' +
     'Одна прокрутка каждый день бесплатно.',
   help:
@@ -92,6 +90,7 @@ const TEXT = {
     '/spins — сколько прокруток на балансе\n' +
     '/buy — пакеты прокруток\n' +
     '/invite — позвать друга и получить прокрутки\n' +
+    '/history — история прокруток файлом\n' +
     '/refund — вернуть звёзды за последнюю покупку (48 часов)\n' +
     '/help — это сообщение',
   unknown: 'Не знаю такой команды. Попробуйте /help',
@@ -181,8 +180,17 @@ async function readWallet(env, userId) {
       rec.migrated = true;
     }
   }
-  return refreshPeriods({ ...emptyWallet(), ...rec });
+  rec = refreshPeriods({ ...emptyWallet(), ...rec });
+  // Разовый подарок админам — проверять приложение, не покупая у себя же
+  // (Telegram запрещает владельцу бота платить в своём боте).
+  if (isAdmin(env, userId) && !rec.admin_gift) {
+    rec.paid += ADMIN_GIFT;
+    rec.admin_gift = Date.now();
+  }
+  return rec;
 }
+
+const ADMIN_GIFT = 100;
 
 async function writeWallet(env, userId, rec) {
   await env.SUBS.put(walletKey(userId), JSON.stringify(rec));
@@ -646,6 +654,130 @@ async function handleInvoice(request, env) {
   return json({ link, pack: packKey, stars: pack.stars, spins: pack.spins });
 }
 
+// ------------------------------------------------------ история прокруток
+
+// Подобранные билеты каждого пользователя. Хранятся на сервере, чтобы история
+// переживала переустановку Telegram и была одной на всех устройствах.
+const HISTORY_SIZE = 500;
+const historyKey = (userId) => `hist:${userId}`;
+
+async function readHistory(env, userId) {
+  try {
+    return JSON.parse((await env.SUBS.get(historyKey(userId))) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+/** Приложение сообщает подобранные билеты сразу после подбора. */
+async function handleHistoryAdd(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const user = await verifyInitData(body.initData, env);
+  if (!user) return json({ error: 'invalid initData' }, 401);
+
+  const tickets = Array.isArray(body.tickets) ? body.tickets.slice(0, 20) : [];
+  const valid = tickets.every((t) => Array.isArray(t) && t.every((f) =>
+    Array.isArray(f) && f.length <= 12 && f.every((n) => Number.isInteger(n) && n > 0 && n < 100)));
+  if (!tickets.length || !valid) return json({ error: 'bad tickets' }, 400);
+
+  const history = await readHistory(env, user.id);
+  history.unshift({
+    at: Date.now(),
+    game: String(body.game || '').slice(0, 40),
+    mode: body.mode === 'ai' ? 'ai' : 'classic',
+    tickets,
+  });
+  await env.SUBS.put(historyKey(user.id), JSON.stringify(history.slice(0, HISTORY_SIZE)));
+  return json({ ok: true, count: Math.min(history.length, HISTORY_SIZE) });
+}
+
+async function handleHistory(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const user = await verifyInitData(body.initData, env);
+  if (!user) return json({ error: 'invalid initData' }, 401);
+  return json({ ok: true, history: await readHistory(env, user.id) });
+}
+
+const csvCell = (v) => `"${String(v).replace(/"/g, '""')}"`;
+
+function historyCsv(history) {
+  const time = (ms) => new Date(ms + MSK_SHIFT_MS).toISOString().slice(0, 16).replace('T', ' ');
+  const rows = [['Дата (МСК)', 'Лотерея', 'Режим', 'Билет', 'Числа']];
+  history.forEach((h) => {
+    h.tickets.forEach((t, i) => {
+      rows.push([time(h.at), h.game, h.mode === 'ai' ? 'ИИ' : 'Анализ', i + 1,
+        t.map((f) => f.join(' ')).join(' + ')]);
+    });
+  });
+  // BOM — чтобы Excel открыл кириллицу без танцев с кодировкой.
+  return String.fromCharCode(0xFEFF) + rows.map((r) => r.map(csvCell).join(';')).join('\r\n');
+}
+
+/**
+ * Файл истории — документом в чат с ботом. Скачивание прямо из Mini App
+ * работает не во всех клиентах Telegram, а документ в чате открывается и
+ * сохраняется везде.
+ */
+async function sendHistoryFile(env, userId, chatId = userId) {
+  const history = await readHistory(env, userId);
+  if (!history.length) return { ok: false, reason: 'История пока пуста: подберите первый билет.' };
+  const form = new FormData();
+  form.append('chat_id', String(chatId));
+  form.append('caption', `История прокруток: ${history.length} подборов.`);
+  form.append('document', new Blob([historyCsv(history)], { type: 'text/csv' }), 'история-прокруток.csv');
+  const res = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, {
+    method: 'POST',
+    body: form,
+  });
+  const data = await res.json().catch(() => ({ ok: false }));
+  if (!data.ok) {
+    console.error('sendDocument failed', JSON.stringify(data));
+    return { ok: false, reason: 'Telegram не принял файл. Попробуйте позже.' };
+  }
+  return { ok: true };
+}
+
+async function handleHistorySend(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const user = await verifyInitData(body.initData, env);
+  if (!user) return json({ error: 'invalid initData' }, 401);
+  const result = await sendHistoryFile(env, user.id);
+  return json(result, result.ok ? 200 : 400);
+}
+
+// ------------------------------------------------------- журнал ошибок
+
+// Ошибки из приложения: без них сбой на чужом телефоне не увидеть. /errors
+// показывает последние админу.
+const ERR_LOG_KEY = 'errlog';
+
+async function handleClientLog(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const user = await verifyInitData(body.initData, env);
+  try {
+    const log = JSON.parse((await env.SUBS.get(ERR_LOG_KEY)) || '[]');
+    log.unshift({
+      at: Date.now(),
+      user: user?.id ?? null,
+      where: String(body.where || '').slice(0, 60),
+      message: String(body.message || '').slice(0, 300),
+      platform: String(body.platform || '').slice(0, 30),
+    });
+    await env.SUBS.put(ERR_LOG_KEY, JSON.stringify(log.slice(0, 40)));
+  } catch (err) {
+    console.error('errlog failed', err);
+  }
+  return json({ ok: true });
+}
+
+async function errorsReport(env) {
+  const log = JSON.parse((await env.SUBS.get(ERR_LOG_KEY)) || '[]');
+  if (!log.length) return 'Ошибок из приложения не приходило.';
+  const time = (ms) => new Date(ms + MSK_SHIFT_MS).toISOString().slice(5, 19).replace('T', ' ');
+  return 'Последние ошибки приложения (МСК):\n\n' + log.map((e) =>
+    `${time(e.at)} · ${e.user ?? '—'} · ${e.platform} · ${e.where}: ${e.message}`).join('\n');
+}
+
 // --------------------------------------------------------------- вебхук
 
 async function handleUpdate(update, env) {
@@ -753,6 +885,28 @@ async function handleUpdate(update, env) {
       if (!isAdmin(env, userId)) return send(TEXT.unknown);
       return send(await adsReport(env));
 
+    case '/errors':
+      if (!isAdmin(env, userId)) return send(TEXT.unknown);
+      return send(await errorsReport(env));
+
+    case '/give': {
+      // /give 50 — себе, /give 50 123456789 — другому. Только админам.
+      if (!isAdmin(env, userId)) return send(TEXT.unknown);
+      const [, amountRaw, targetRaw] = message.text.trim().split(/\s+/);
+      const amount = Number(amountRaw);
+      const target = Number(targetRaw || userId);
+      if (!Number.isInteger(amount) || amount < 1 || amount > 10000 || !target) {
+        return send('Формат: /give 50 или /give 50 ID_пользователя');
+      }
+      const rec = await addSpins(env, target, amount);
+      return send(`Начислено ${amount}. На балансе у ${target}: ${totalSpins(rec)}.`);
+    }
+
+    case '/history': {
+      const result = await sendHistoryFile(env, userId, chatId);
+      return result.ok ? null : send(result.reason);
+    }
+
     case '/refund': {
       const result = await refundLastPayment(env, userId);
       return send(result.ok
@@ -789,6 +943,7 @@ const COMMANDS = [
   { command: 'spins', description: 'Сколько прокруток на балансе' },
   { command: 'buy', description: 'Пакеты прокруток' },
   { command: 'invite', description: 'Позвать друга: +3 прокрутки обоим' },
+  { command: 'history', description: 'История прокруток файлом' },
   { command: 'help', description: 'Что умеет бот' },
 ];
 const COMMANDS_VERSION = COMMANDS.map((c) => `${c.command}:${c.description}`).join('|');
@@ -825,7 +980,7 @@ export default {
         // Метка сборки. Нужна, чтобы отличать «опубликовалось» от
         // «опубликовалось, но до боевого адреса не доехало»: без неё обе
         // ситуации выглядят одинаково.
-        build: 'spins-v3',
+        build: 'spins-v4',
         commands_synced: (await env.SUBS?.get('cmd:version')) === COMMANDS_VERSION,
         packs: Object.keys(PACKS),
         economy: ECONOMY,
@@ -834,6 +989,7 @@ export default {
         webhook_secret: Boolean(env.WEBHOOK_SECRET),
         ad_reward_secret: Boolean(env.AD_REWARD_SECRET),
         ad_block_id: env.ADSGRAM_BLOCK_ID || null,
+        admin_ids_set: Boolean(String(env.ADMIN_IDS || '').trim()),
         miniapp_url: env.MINIAPP_URL || null,
         donate_url: env.DONATE_URL || null,
       });
@@ -852,6 +1008,10 @@ export default {
       '/api/state': handleState,
       '/api/spend': handleSpend,
       '/api/ad-claim': handleAdClaim,
+      '/api/history': handleHistory,
+      '/api/history-add': handleHistoryAdd,
+      '/api/history-send': handleHistorySend,
+      '/api/client-log': handleClientLog,
       '/api/invoice': handleInvoice,
     }[url.pathname];
     if (api) {
