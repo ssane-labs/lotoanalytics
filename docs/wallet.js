@@ -115,11 +115,23 @@ export class Wallet {
   // ------------------------------------------------------------------ сеть
 
   async post(path, body) {
-    const res = await fetch(`${this.config.WORKER_URL}${path}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ initData: this.tg?.initData, ...body }),
-    });
+    // Без тайм-аута зависший запрос в WebView Telegram висит бесконечно — и
+    // вместе с ним экран загрузки или анимация подбора.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12_000);
+    let res;
+    try {
+      res = await fetch(`${this.config.WORKER_URL}${path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ initData: this.tg?.initData, ...body }),
+        signal: ctrl.signal,
+      });
+    } catch (err) {
+      throw new Error(err?.name === 'AbortError' ? 'сервер не ответил вовремя' : 'нет связи с сервером');
+    } finally {
+      clearTimeout(timer);
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = new Error(data.error || `сервер ответил ${res.status}`);
@@ -160,7 +172,14 @@ export class Wallet {
       return null;
     }
     try {
-      return this.applyServer(await this.post('/api/state'));
+      let data;
+      try {
+        data = await this.post('/api/state');
+      } catch (first) {
+        if (first.status) throw first;
+        data = await this.post('/api/state'); // сеть моргнула — ещё раз
+      }
+      return this.applyServer(data);
     } catch (err) {
       this.server = null;
       this.error = `Нет связи с сервером: ${err.message}`;

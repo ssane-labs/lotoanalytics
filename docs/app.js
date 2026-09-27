@@ -14,11 +14,11 @@ import {
   PopularityModel,
   FACTOR_LABELS,
   generate,
-} from './model.js?v=5d5987e8';
-import { CONFIG } from './config.js?v=5d5987e8';
-import { DrawAI } from './ai.js?v=5d5987e8';
-import { Wallet, spinsWord } from './wallet.js?v=5d5987e8';
-import { NumberField } from './numfield.js?v=5d5987e8';
+} from './model.js?v=0e0ba856';
+import { CONFIG } from './config.js?v=0e0ba856';
+import { DrawAI } from './ai.js?v=0e0ba856';
+import { Wallet, spinsWord } from './wallet.js?v=0e0ba856';
+import { NumberField } from './numfield.js?v=0e0ba856';
 
 const DEFAULT_GAME = '6x45';
 const GAME_STORAGE_KEY = 'loto.game';
@@ -103,16 +103,29 @@ function haptic(kind = 'light') {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Данные игры. Мобильная сеть внутри Telegram рвётся, поэтому три попытки с
+ * тайм-аутом: без него зависший запрос оставлял экран недогруженным.
+ */
 async function loadJSON(name, { optional = false } = {}) {
   const stamp = new Date().toISOString().slice(0, 10);
-  try {
-    const res = await fetch(`data/${name}?v=${stamp}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    if (optional) return null;
-    throw new Error(`Не удалось загрузить data/${name}: ${err.message}`);
+  let last = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15_000);
+    try {
+      const res = await fetch(`data/${name}?v=${stamp}`, { signal: ctrl.signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      last = err;
+      await sleep(600 * (attempt + 1));
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  if (optional) return null;
+  throw new Error(`Не удалось загрузить данные. Проверьте интернет и откройте приложение ещё раз. (${last?.message})`);
 }
 
 function loadUnlocked() {
@@ -695,8 +708,10 @@ function renderRunButton() {
   const need = cost.generate;
   // Пока идёт подбор, надпись принадлежит анимации: списание меняет
   // баланс и дёргает эту функцию как раз в этот момент.
-  if (!state.busy) $('#gen-run-label').textContent = 'Подобрать';
-  $('#gen-run-price').textContent = String(wallet.total);
+  if (!state.busy) {
+    $('#gen-run-label').textContent = need > 1 ? `Подобрать ${need}` : 'Подобрать';
+  }
+  $('#gen-run-price').textContent = `Баланс ${wallet.total}`;
   $('#gen-run-balance').setAttribute('aria-label', `На балансе ${spinsWord(wallet.total)}`);
   const btn = $('#gen-run');
   btn.classList.toggle('is-short', wallet.total < need);
@@ -728,7 +743,7 @@ function setRunning(on) {
   const btn = $('#gen-run');
   btn.classList.toggle('is-running', on);
   btn.disabled = on;
-  $('#gen-run-label').textContent = on ? 'Подбор…' : 'Подобрать';
+  $('#gen-run-label').textContent = on ? 'Подбор…' : (cost.generate > 1 ? `Подобрать ${cost.generate}` : 'Подобрать');
   $('#gen-run-balance').hidden = on;
 }
 
@@ -797,7 +812,11 @@ async function runGenerator() {
   reels.node.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
   const spinFloor = sleep(reduceMotion ? 0 : 700);
 
-  const paid = await wallet.spend(need, 'generate');
+  // Страховка: что бы ни случилось со связью, анимация не крутится вечно.
+  const paid = await Promise.race([
+    wallet.spend(need, 'generate'),
+    sleep(45_000).then(() => ({ ok: false, need: 0, error: 'Сервер не ответил. Попробуйте ещё раз.' })),
+  ]);
   if (!paid.ok) {
     state.busy = false;
     setRunning(false);
